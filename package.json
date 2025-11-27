@@ -1,0 +1,40 @@
+{
+  "name": "done-food-delivery",
+  "version": "1.0.0",
+  "description": "Blockchain-based food delivery platform",
+  "private": true,
+  "workspaces": [
+    "contracts",
+    "backend",
+    "frontend/client",
+    "frontend/restaurant",
+    "frontend/deliverer"
+  ],
+  "scripts": {
+    "install:all": "npm install && npm install --workspaces",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:client": "npm run dev --workspace=frontend/client",
+    "dev:restaurant": "npm run dev --workspace=frontend/restaurant",
+    "dev:deliverer": "npm run dev --workspace=frontend/deliverer",
+    "test:contracts": "npx hardhat test",
+    "deploy:mumbai": "npx hardhat run scripts/deploy-all.js --network mumbai",
+    "deploy:local": "npx hardhat run scripts/deploy-all.js --network localhost",
+    "compile": "npx hardhat compile",
+    "clean": "npx hardhat clean"
+  },
+  "keywords": [
+    "blockchain",
+    "food-delivery",
+    "ethereum",
+    "polygon",
+    "smart-contracts",
+    "web3"
+  ],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
+
