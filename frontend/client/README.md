@@ -1157,6 +1157,322 @@ VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key
 
 ---
 
+## Intégration API Backend
+
+Cette section décrit comment intégrer les API du backend Node.js/Express dans l'application client. Toutes les requêtes API sont gérées via le fichier `src/services/api.js`.
+
+### Configuration de base
+
+**URL de l'API** :
+```javascript
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+```
+
+**Headers d'authentification** :
+```javascript
+const authHeaders = (address) => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${address}`
+})
+```
+
+### Endpoints API utilisés par le client
+
+#### 1. Restaurants
+
+**GET /api/restaurants**
+- **Description** : Récupérer la liste des restaurants avec filtres optionnels
+- **Paramètres** : `{ cuisine, priceRange, minRating }`
+- **Utilisation** : `RestaurantList.jsx` pour afficher les restaurants
+- **Exemple** :
+```javascript
+const getRestaurants = async (filters) => {
+  const params = new URLSearchParams(filters)
+  const response = await fetch(`${API_BASE_URL}/restaurants?${params}`)
+  return response.json()
+}
+```
+
+**GET /api/restaurants/:id**
+- **Description** : Récupérer les détails complets d'un restaurant avec son menu
+- **Utilisation** : `RestaurantPage.jsx` et `MenuItems.jsx`
+- **Exemple** :
+```javascript
+const getRestaurant = async (restaurantId) => {
+  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}`)
+  return response.json()
+}
+```
+
+#### 2. Commandes (Orders)
+
+**POST /api/orders/create**
+- **Description** : Créer une nouvelle commande (on-chain + off-chain)
+- **Body** :
+```javascript
+{
+  restaurantId: String,
+  items: [{
+    name: String,
+    quantity: Number,
+    price: Number,
+    image: String // IPFS hash
+  }],
+  deliveryAddress: String,
+  clientAddress: String,
+  foodPrice: Number,
+  deliveryFee: Number
+}
+```
+- **Retourne** : `{ success: true, orderId, txHash, ipfsHash }`
+- **Utilisation** : `Checkout.jsx` lors de la validation de commande
+- **Exemple** :
+```javascript
+const createOrder = async (orderData) => {
+  const response = await fetch(`${API_BASE_URL}/orders/create`, {
+    method: 'POST',
+    headers: authHeaders(orderData.clientAddress),
+    body: JSON.stringify(orderData)
+  })
+  return response.json()
+}
+```
+
+**GET /api/orders/:id**
+- **Description** : Récupérer les détails d'une commande (on-chain + off-chain)
+- **Retourne** : Full order data avec items, status, GPS tracking, etc.
+- **Utilisation** : `OrderTracking.jsx` et `OrderHistory.jsx`
+- **Exemple** :
+```javascript
+const getOrder = async (orderId) => {
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}`)
+  return response.json()
+}
+```
+
+**GET /api/orders/client/:address**
+- **Description** : Récupérer l'historique des commandes d'un client
+- **Retourne** : Array of orders
+- **Utilisation** : `OrderHistory.jsx` et `ProfilePage.jsx`
+- **Exemple** :
+```javascript
+const getOrdersByClient = async (clientAddress) => {
+  const response = await fetch(`${API_BASE_URL}/orders/client/${clientAddress}`)
+  return response.json()
+}
+```
+
+**POST /api/orders/:id/confirm-delivery**
+- **Description** : Confirmer la livraison d'une commande
+- **Body** : `{ clientAddress: String }`
+- **Retourne** : `{ success: true, txHash, tokensEarned }`
+- **Utilisation** : `OrderTracking.jsx` quand le client confirme la réception
+- **Exemple** :
+```javascript
+const confirmDelivery = async (orderId, clientAddress) => {
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/confirm-delivery`, {
+    method: 'POST',
+    headers: authHeaders(clientAddress),
+    body: JSON.stringify({ clientAddress })
+  })
+  return response.json()
+}
+```
+
+**POST /api/orders/:id/dispute**
+- **Description** : Ouvrir un litige sur une commande
+- **Body** :
+```javascript
+{
+  reason: String,
+  evidence: String // IPFS hash des preuves
+}
+```
+- **Retourne** : `{ success: true, txHash, disputeId }`
+- **Utilisation** : `DisputeModal.jsx`
+- **Exemple** :
+```javascript
+const openDispute = async (orderId, disputeData) => {
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/dispute`, {
+    method: 'POST',
+    headers: authHeaders(disputeData.clientAddress),
+    body: JSON.stringify(disputeData)
+  })
+  return response.json()
+}
+```
+
+#### 3. Utilisateurs (Users)
+
+**POST /api/users/register**
+- **Description** : Enregistrer un nouveau client
+- **Body** : `{ address, name, email, phone }`
+- **Utilisation** : Lors de la première connexion wallet
+- **Exemple** :
+```javascript
+const registerUser = async (userData) => {
+  const response = await fetch(`${API_BASE_URL}/users/register`, {
+    method: 'POST',
+    headers: authHeaders(userData.address),
+    body: JSON.stringify(userData)
+  })
+  return response.json()
+}
+```
+
+**GET /api/users/:address**
+- **Description** : Récupérer le profil d'un client avec balance de tokens DONE
+- **Retourne** : `{ user, tokenBalance }`
+- **Utilisation** : `ProfilePage.jsx` et `TokenBalance.jsx`
+- **Exemple** :
+```javascript
+const getUserProfile = async (address) => {
+  const response = await fetch(`${API_BASE_URL}/users/${address}`)
+  return response.json()
+}
+```
+
+**PUT /api/users/:address**
+- **Description** : Mettre à jour le profil client
+- **Body** : `{ name, email, phone, deliveryAddresses[] }`
+- **Utilisation** : `ProfilePage.jsx`
+- **Exemple** :
+```javascript
+const updateUserProfile = async (address, updates) => {
+  const response = await fetch(`${API_BASE_URL}/users/${address}`, {
+    method: 'PUT',
+    headers: authHeaders(address),
+    body: JSON.stringify(updates)
+  })
+  return response.json()
+}
+```
+
+**GET /api/users/:address/tokens**
+- **Description** : Récupérer le solde et l'historique des tokens DONE
+- **Retourne** : `{ balance, transactions[] }`
+- **Utilisation** : `TokenBalance.jsx`
+- **Exemple** :
+```javascript
+const getUserTokens = async (address) => {
+  const response = await fetch(`${API_BASE_URL}/users/${address}/tokens`)
+  return response.json()
+}
+```
+
+#### 4. Upload IPFS
+
+**POST /api/upload/image**
+- **Description** : Upload une image vers IPFS via Pinata
+- **Body** : FormData avec file
+- **Retourne** : `{ ipfsHash, url }`
+- **Utilisation** : `DisputeModal.jsx` pour upload de preuves
+- **Exemple** :
+```javascript
+const uploadImage = async (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await fetch(`${API_BASE_URL}/upload/image`, {
+    method: 'POST',
+    body: formData
+  })
+  return response.json()
+}
+```
+
+**POST /api/upload/json**
+- **Description** : Upload des données JSON vers IPFS
+- **Body** : `{ data: Object }`
+- **Retourne** : `{ ipfsHash, url }`
+- **Utilisation** : `Checkout.jsx` pour upload des items de commande
+- **Exemple** :
+```javascript
+const uploadJSON = async (data) => {
+  const response = await fetch(`${API_BASE_URL}/upload/json`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data })
+  })
+  return response.json()
+}
+```
+
+### Gestion des erreurs
+
+Toutes les fonctions API doivent gérer les erreurs :
+
+```javascript
+const apiCall = async (url, options) => {
+  try {
+    const response = await fetch(url, options)
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'API Error')
+    }
+
+    return response.json()
+  } catch (error) {
+    console.error('API Error:', error)
+    throw error
+  }
+}
+```
+
+### Socket.io pour temps réel
+
+**Connexion Socket.io** :
+```javascript
+import io from 'socket.io-client'
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
+const socket = io(SOCKET_URL)
+
+// Rejoindre room client
+socket.emit('joinRoom', `client_${clientAddress}`)
+```
+
+**Events Socket.io écoutés** :
+
+**1. orderStatusUpdate**
+- Émis quand le status d'une commande change
+- Payload : `{ orderId, status }`
+- Utilisation : `OrderTracking.jsx`
+```javascript
+socket.on('orderStatusUpdate', (data) => {
+  if (data.orderId === currentOrderId) {
+    setOrderStatus(data.status)
+  }
+})
+```
+
+**2. delivererLocationUpdate**
+- Émis toutes les 5 secondes pendant livraison
+- Payload : `{ orderId, location: { lat, lng } }`
+- Utilisation : `OrderTracking.jsx` pour mettre à jour la carte GPS
+```javascript
+socket.on('delivererLocationUpdate', (data) => {
+  if (data.orderId === currentOrderId) {
+    setDelivererLocation(data.location)
+  }
+})
+```
+
+### Variables d'environnement requises
+
+Fichier `.env` :
+```
+VITE_API_URL=http://localhost:3000/api
+VITE_SOCKET_URL=http://localhost:3000
+VITE_ORDER_MANAGER_ADDRESS=0x...
+VITE_TOKEN_ADDRESS=0x...
+VITE_IPFS_GATEWAY=https://gateway.pinata.cloud/ipfs/
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key
+```
+
+---
+
 ## Technologies utilisées
 
 **Frontend** :

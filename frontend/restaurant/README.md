@@ -767,6 +767,472 @@ VITE_IPFS_GATEWAY=https://gateway.pinata.cloud/ipfs/
 
 ---
 
+## Intégration API Backend
+
+Cette section décrit comment intégrer les API du backend Node.js/Express dans l'application restaurant. Toutes les requêtes API sont gérées via le fichier `src/services/api.js`.
+
+### Configuration de base
+
+**URL de l'API** :
+```javascript
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+```
+
+**Headers d'authentification** :
+```javascript
+const authHeaders = (address) => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${address}`
+})
+```
+
+### Endpoints API utilisés par le restaurant
+
+#### 1. Restaurants
+
+**POST /api/restaurants/register**
+- **Description** : Enregistrer un nouveau restaurant
+- **Body** :
+```javascript
+{
+  address: String,
+  name: String,
+  cuisine: String,
+  description: String,
+  location: {
+    address: String,
+    lat: Number,
+    lng: Number
+  },
+  images: [String], // IPFS hashes
+  menu: [{
+    name: String,
+    description: String,
+    price: Number,
+    image: String, // IPFS hash
+    category: String
+  }]
+}
+```
+- **Retourne** : `{ success: true, restaurant }`
+- **Utilisation** : Lors de l'inscription initiale
+- **Exemple** :
+```javascript
+const registerRestaurant = async (restaurantData) => {
+  const response = await fetch(`${API_BASE_URL}/restaurants/register`, {
+    method: 'POST',
+    headers: authHeaders(restaurantData.address),
+    body: JSON.stringify(restaurantData)
+  })
+  return response.json()
+}
+```
+
+**GET /api/restaurants/:id**
+- **Description** : Récupérer les détails complets du restaurant avec menu
+- **Retourne** : Restaurant data avec menu complet
+- **Utilisation** : `DashboardPage.jsx`, `MenuPage.jsx`
+- **Exemple** :
+```javascript
+const getRestaurant = async (restaurantId) => {
+  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}`)
+  return response.json()
+}
+```
+
+**PUT /api/restaurants/:id**
+- **Description** : Mettre à jour les informations du restaurant
+- **Body** : `{ name, cuisine, description, location, images[] }`
+- **Retourne** : `{ success: true, restaurant }`
+- **Utilisation** : Page de paramètres
+- **Exemple** :
+```javascript
+const updateRestaurant = async (restaurantId, updates) => {
+  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}`, {
+    method: 'PUT',
+    headers: authHeaders(restaurantAddress),
+    body: JSON.stringify(updates)
+  })
+  return response.json()
+}
+```
+
+**PUT /api/restaurants/:id/menu**
+- **Description** : Mettre à jour le menu complet du restaurant
+- **Body** : `{ menu: [...] }`
+- **Retourne** : `{ success: true, menu }`
+- **Utilisation** : `MenuManager.jsx`
+- **Exemple** :
+```javascript
+const updateMenu = async (restaurantId, menu) => {
+  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/menu`, {
+    method: 'PUT',
+    headers: authHeaders(restaurantAddress),
+    body: JSON.stringify({ menu })
+  })
+  return response.json()
+}
+```
+
+**POST /api/restaurants/:id/menu/item**
+- **Description** : Ajouter un nouvel item au menu
+- **Body** :
+```javascript
+{
+  name: String,
+  description: String,
+  price: Number,
+  image: String, // IPFS hash
+  category: String,
+  available: Boolean
+}
+```
+- **Retourne** : `{ success: true, item }`
+- **Utilisation** : `MenuManager.jsx` - Modal d'ajout
+- **Exemple** :
+```javascript
+const addMenuItem = async (restaurantId, item) => {
+  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/menu/item`, {
+    method: 'POST',
+    headers: authHeaders(restaurantAddress),
+    body: JSON.stringify(item)
+  })
+  return response.json()
+}
+```
+
+**PUT /api/restaurants/:id/menu/item/:itemId**
+- **Description** : Modifier un item existant du menu
+- **Body** : `{ name, description, price, image, category, available }`
+- **Retourne** : `{ success: true, item }`
+- **Utilisation** : `MenuManager.jsx` - Modal d'édition
+- **Exemple** :
+```javascript
+const updateMenuItem = async (restaurantId, itemId, updates) => {
+  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/menu/item/${itemId}`, {
+    method: 'PUT',
+    headers: authHeaders(restaurantAddress),
+    body: JSON.stringify(updates)
+  })
+  return response.json()
+}
+```
+
+**DELETE /api/restaurants/:id/menu/item/:itemId**
+- **Description** : Supprimer un item du menu
+- **Retourne** : `{ success: true }`
+- **Utilisation** : `MenuManager.jsx`
+- **Exemple** :
+```javascript
+const deleteMenuItem = async (restaurantId, itemId) => {
+  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/menu/item/${itemId}`, {
+    method: 'DELETE',
+    headers: authHeaders(restaurantAddress)
+  })
+  return response.json()
+}
+```
+
+**GET /api/restaurants/:id/analytics**
+- **Description** : Récupérer les statistiques du restaurant
+- **Paramètres** : `{ startDate, endDate }` (query)
+- **Retourne** :
+```javascript
+{
+  totalOrders: Number,
+  revenue: Number,
+  averageRating: Number,
+  popularDishes: [{
+    name: String,
+    orderCount: Number,
+    revenue: Number
+  }],
+  averagePreparationTime: Number
+}
+```
+- **Utilisation** : `Analytics.jsx`, `AnalyticsPage.jsx`
+- **Exemple** :
+```javascript
+const getAnalytics = async (restaurantId, params) => {
+  const query = new URLSearchParams(params)
+  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/analytics?${query}`)
+  return response.json()
+}
+```
+
+#### 2. Commandes (Orders)
+
+**GET /api/restaurants/:id/orders**
+- **Description** : Récupérer toutes les commandes du restaurant
+- **Paramètres** : `{ status, startDate, endDate }` (query optionnels)
+- **Retourne** : Array of orders
+- **Utilisation** : `OrdersQueue.jsx`, `OrdersPage.jsx`
+- **Exemple** :
+```javascript
+const getRestaurantOrders = async (restaurantId, filters = {}) => {
+  const params = new URLSearchParams(filters)
+  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/orders?${params}`)
+  return response.json()
+}
+```
+
+**GET /api/orders/:id**
+- **Description** : Récupérer les détails d'une commande spécifique
+- **Retourne** : Full order data avec items, client, deliverer, GPS tracking
+- **Utilisation** : `OrderCard.jsx` pour afficher détails
+- **Exemple** :
+```javascript
+const getOrder = async (orderId) => {
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}`)
+  return response.json()
+}
+```
+
+**POST /api/orders/:id/confirm-preparation**
+- **Description** : Confirmer qu'une commande est prête (déclenche notification aux livreurs)
+- **Body** : `{ restaurantAddress: String }`
+- **Retourne** : `{ success: true, txHash }`
+- **Utilisation** : `OrdersQueue.jsx`, `OrderCard.jsx`
+- **Exemple** :
+```javascript
+const confirmPreparation = async (orderId, restaurantAddress) => {
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/confirm-preparation`, {
+    method: 'POST',
+    headers: authHeaders(restaurantAddress),
+    body: JSON.stringify({ restaurantAddress })
+  })
+  return response.json()
+}
+```
+
+**POST /api/orders/:id/accept**
+- **Description** : Accepter une nouvelle commande (optionnel)
+- **Body** : `{ restaurantAddress: String }`
+- **Retourne** : `{ success: true }`
+- **Utilisation** : `OrdersQueue.jsx` si validation manuelle requise
+- **Exemple** :
+```javascript
+const acceptOrder = async (orderId, restaurantAddress) => {
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/accept`, {
+    method: 'POST',
+    headers: authHeaders(restaurantAddress),
+    body: JSON.stringify({ restaurantAddress })
+  })
+  return response.json()
+}
+```
+
+**POST /api/orders/:id/reject**
+- **Description** : Refuser une commande (remboursement client automatique)
+- **Body** : `{ restaurantAddress: String, reason: String }`
+- **Retourne** : `{ success: true, txHash }`
+- **Utilisation** : `OrdersQueue.jsx`
+- **Exemple** :
+```javascript
+const rejectOrder = async (orderId, restaurantAddress, reason) => {
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/reject`, {
+    method: 'POST',
+    headers: authHeaders(restaurantAddress),
+    body: JSON.stringify({ restaurantAddress, reason })
+  })
+  return response.json()
+}
+```
+
+#### 3. Upload IPFS
+
+**POST /api/upload/image**
+- **Description** : Upload une image vers IPFS via Pinata
+- **Body** : FormData avec file
+- **Retourne** : `{ ipfsHash, url }`
+- **Utilisation** : `MenuManager.jsx` pour upload images des plats
+- **Exemple** :
+```javascript
+const uploadImage = async (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await fetch(`${API_BASE_URL}/upload/image`, {
+    method: 'POST',
+    body: formData
+  })
+  return response.json()
+}
+```
+
+**POST /api/upload/multiple-images**
+- **Description** : Upload plusieurs images simultanément
+- **Body** : FormData avec multiple files
+- **Retourne** : `[{ ipfsHash, url }, ...]`
+- **Utilisation** : Lors de l'enregistrement du restaurant
+- **Exemple** :
+```javascript
+const uploadMultipleImages = async (files) => {
+  const formData = new FormData()
+  files.forEach(file => formData.append('files', file))
+
+  const response = await fetch(`${API_BASE_URL}/upload/multiple-images`, {
+    method: 'POST',
+    body: formData
+  })
+  return response.json()
+}
+```
+
+#### 4. Revenus (Earnings)
+
+**GET /api/restaurants/:id/earnings**
+- **Description** : Récupérer les revenus on-chain du restaurant
+- **Paramètres** : `{ startDate, endDate, period }` (query)
+- **Retourne** :
+```javascript
+{
+  daily: [{ date: String, amount: Number }],
+  weekly: [{ week: String, amount: Number }],
+  pending: Number,
+  withdrawn: Number,
+  transactions: [{
+    orderId: Number,
+    amount: Number, // 70% du foodPrice
+    txHash: String,
+    date: Date
+  }]
+}
+```
+- **Utilisation** : `EarningsChart.jsx`
+- **Exemple** :
+```javascript
+const getEarnings = async (restaurantId, period = 'week') => {
+  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/earnings?period=${period}`)
+  return response.json()
+}
+```
+
+**POST /api/restaurants/:id/withdraw**
+- **Description** : Retirer les fonds du PaymentSplitter vers le wallet restaurant
+- **Body** : `{ restaurantAddress: String }`
+- **Retourne** : `{ success: true, txHash, amount }`
+- **Utilisation** : `EarningsChart.jsx`
+- **Exemple** :
+```javascript
+const withdrawEarnings = async (restaurantId, restaurantAddress) => {
+  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/withdraw`, {
+    method: 'POST',
+    headers: authHeaders(restaurantAddress),
+    body: JSON.stringify({ restaurantAddress })
+  })
+  return response.json()
+}
+```
+
+### Gestion des erreurs
+
+Toutes les fonctions API doivent gérer les erreurs :
+
+```javascript
+const apiCall = async (url, options) => {
+  try {
+    const response = await fetch(url, options)
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'API Error')
+    }
+
+    return response.json()
+  } catch (error) {
+    console.error('API Error:', error)
+    throw error
+  }
+}
+```
+
+### Socket.io pour temps réel
+
+**Connexion Socket.io** :
+```javascript
+import io from 'socket.io-client'
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
+const socket = io(SOCKET_URL)
+
+// Rejoindre room restaurant
+socket.emit('joinRoom', `restaurant_${restaurantId}`)
+```
+
+**Events Socket.io écoutés** :
+
+**1. orderCreated**
+- Émis quand un client crée une nouvelle commande pour ce restaurant
+- Payload :
+```javascript
+{
+  orderId: Number,
+  client: { name, address },
+  items: [...],
+  totalAmount: Number,
+  deliveryAddress: String
+}
+```
+- Utilisation : `OrdersQueue.jsx` pour afficher nouvelle commande en temps réel
+```javascript
+socket.on('orderCreated', (order) => {
+  setOrders(prev => [order, ...prev])
+  playNotificationSound()
+})
+```
+
+**2. delivererAssigned**
+- Émis quand un livreur accepte une commande
+- Payload : `{ orderId, deliverer: { name, address, phone } }`
+- Utilisation : `OrdersQueue.jsx` pour mettre à jour status
+```javascript
+socket.on('delivererAssigned', (data) => {
+  setOrders(prev => prev.map(o =>
+    o.orderId === data.orderId
+      ? { ...o, deliverer: data.deliverer, status: 'IN_DELIVERY' }
+      : o
+  ))
+})
+```
+
+**3. orderDelivered**
+- Émis quand une commande est livrée avec succès
+- Payload : `{ orderId, completedAt: Date }`
+- Utilisation : `OrdersPage.jsx` pour mettre à jour historique
+```javascript
+socket.on('orderDelivered', (data) => {
+  setOrders(prev => prev.map(o =>
+    o.orderId === data.orderId
+      ? { ...o, status: 'DELIVERED', completedAt: data.completedAt }
+      : o
+  ))
+})
+```
+
+**4. disputeOpened**
+- Émis quand un client ouvre un litige sur une commande
+- Payload : `{ orderId, reason: String, evidence: String }`
+- Utilisation : Notification au restaurant
+```javascript
+socket.on('disputeOpened', (data) => {
+  showNotification(`Litige ouvert sur commande #${data.orderId}`)
+})
+```
+
+### Variables d'environnement requises
+
+Fichier `.env` :
+```
+VITE_API_URL=http://localhost:3000/api
+VITE_SOCKET_URL=http://localhost:3000
+VITE_ORDER_MANAGER_ADDRESS=0x...
+VITE_PAYMENT_SPLITTER_ADDRESS=0x...
+VITE_IPFS_GATEWAY=https://gateway.pinata.cloud/ipfs/
+```
+
+---
+
 ## Technologies utilisées
 
 **Frontend** :

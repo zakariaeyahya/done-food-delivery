@@ -946,6 +946,380 @@ VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key
 
 ---
 
+## Intégration API Backend
+
+Cette section décrit comment intégrer les API du backend Node.js/Express dans l'application livreur. Toutes les requêtes API sont gérées via le fichier `src/services/api.js`.
+
+### Configuration de base
+
+**URL de l'API** :
+```javascript
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+```
+
+**Headers d'authentification** :
+```javascript
+const authHeaders = (address) => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${address}`
+})
+```
+
+### Endpoints API utilisés par le livreur
+
+#### 1. Livreurs (Deliverers)
+
+**POST /api/deliverers/register**
+- **Description** : Enregistrer un nouveau livreur
+- **Body** :
+```javascript
+{
+  address: String,
+  name: String,
+  phone: String,
+  vehicleType: String, // 'bike', 'scooter', 'car'
+  location: { lat: Number, lng: Number }
+}
+```
+- **Retourne** : `{ success: true, deliverer }`
+- **Utilisation** : Lors de la première connexion wallet
+- **Exemple** :
+```javascript
+const registerDeliverer = async (delivererData) => {
+  const response = await fetch(`${API_BASE_URL}/deliverers/register`, {
+    method: 'POST',
+    headers: authHeaders(delivererData.address),
+    body: JSON.stringify(delivererData)
+  })
+  return response.json()
+}
+```
+
+**GET /api/deliverers/:address**
+- **Description** : Récupérer le profil du livreur avec statut staking
+- **Retourne** : `{ deliverer, isStaked, stakedAmount }`
+- **Utilisation** : `ProfilePage.jsx` et `ConnectWallet.jsx`
+- **Exemple** :
+```javascript
+const getDeliverer = async (address) => {
+  const response = await fetch(`${API_BASE_URL}/deliverers/${address}`)
+  return response.json()
+}
+```
+
+**GET /api/deliverers/available**
+- **Description** : Récupérer les commandes disponibles à proximité
+- **Paramètres** : `{ location: { lat, lng } }`
+- **Retourne** : Array of available orders triées par distance
+- **Utilisation** : `AvailableOrders.jsx`
+- **Exemple** :
+```javascript
+const getAvailableOrders = async (location) => {
+  const params = new URLSearchParams({
+    lat: location.lat,
+    lng: location.lng
+  })
+  const response = await fetch(`${API_BASE_URL}/deliverers/available?${params}`)
+  return response.json()
+}
+```
+
+**PUT /api/deliverers/:address/status**
+- **Description** : Mettre à jour le statut de disponibilité du livreur
+- **Body** : `{ isAvailable: Boolean }`
+- **Retourne** : `{ success: true }`
+- **Utilisation** : `HomePage.jsx` toggle online/offline
+- **Exemple** :
+```javascript
+const updateStatus = async (address, isAvailable) => {
+  const response = await fetch(`${API_BASE_URL}/deliverers/${address}/status`, {
+    method: 'PUT',
+    headers: authHeaders(address),
+    body: JSON.stringify({ isAvailable })
+  })
+  return response.json()
+}
+```
+
+**GET /api/deliverers/:address/orders**
+- **Description** : Récupérer l'historique des livraisons du livreur
+- **Paramètres** : `{ status: String }` (optionnel)
+- **Retourne** : Array of orders
+- **Utilisation** : `DeliveriesPage.jsx` et `ProfilePage.jsx`
+- **Exemple** :
+```javascript
+const getDelivererOrders = async (address, status) => {
+  const params = status ? `?status=${status}` : ''
+  const response = await fetch(`${API_BASE_URL}/deliverers/${address}/orders${params}`)
+  return response.json()
+}
+```
+
+**GET /api/deliverers/:address/earnings**
+- **Description** : Récupérer les revenus du livreur par période
+- **Paramètres** : `{ startDate, endDate, period }`
+- **Retourne** : `{ totalEarnings, completedDeliveries, averageEarning }`
+- **Utilisation** : `EarningsTracker.jsx` et `EarningsPage.jsx`
+- **Exemple** :
+```javascript
+const getEarnings = async (address, period = 'week') => {
+  const response = await fetch(`${API_BASE_URL}/deliverers/${address}/earnings?period=${period}`)
+  return response.json()
+}
+```
+
+**GET /api/deliverers/:address/rating**
+- **Description** : Récupérer la note et les avis du livreur
+- **Retourne** : `{ rating, totalDeliveries, reviews[] }`
+- **Utilisation** : `RatingDisplay.jsx`
+- **Exemple** :
+```javascript
+const getRating = async (address) => {
+  const response = await fetch(`${API_BASE_URL}/deliverers/${address}/rating`)
+  return response.json()
+}
+```
+
+#### 2. Staking
+
+**POST /api/deliverers/stake**
+- **Description** : Staker des MATIC pour devenir livreur actif
+- **Body** : `{ address: String, amount: Number }` (amount en wei)
+- **Retourne** : `{ success: true, txHash }`
+- **Utilisation** : `StakingPanel.jsx`
+- **Exemple** :
+```javascript
+const stakeAsDeliverer = async (address, amount) => {
+  const response = await fetch(`${API_BASE_URL}/deliverers/stake`, {
+    method: 'POST',
+    headers: authHeaders(address),
+    body: JSON.stringify({ address, amount })
+  })
+  return response.json()
+}
+```
+
+**POST /api/deliverers/unstake**
+- **Description** : Retirer le staking (si aucune livraison active)
+- **Body** : `{ address: String }`
+- **Retourne** : `{ success: true, txHash }`
+- **Utilisation** : `StakingPanel.jsx`
+- **Exemple** :
+```javascript
+const unstake = async (address) => {
+  const response = await fetch(`${API_BASE_URL}/deliverers/unstake`, {
+    method: 'POST',
+    headers: authHeaders(address),
+    body: JSON.stringify({ address })
+  })
+  return response.json()
+}
+```
+
+#### 3. Commandes (Orders)
+
+**POST /api/deliverers/orders/:id/accept**
+- **Description** : Accepter une commande disponible
+- **Body** : `{ delivererAddress: String }`
+- **Retourne** : `{ success: true, order, txHash }`
+- **Utilisation** : `AvailableOrders.jsx`
+- **Exemple** :
+```javascript
+const acceptOrder = async (orderId, delivererAddress) => {
+  const response = await fetch(`${API_BASE_URL}/deliverers/orders/${orderId}/accept`, {
+    method: 'POST',
+    headers: authHeaders(delivererAddress),
+    body: JSON.stringify({ delivererAddress })
+  })
+  return response.json()
+}
+```
+
+**POST /api/orders/:id/confirm-pickup**
+- **Description** : Confirmer la récupération de la commande au restaurant
+- **Body** : `{ delivererAddress: String }`
+- **Retourne** : `{ success: true, txHash }`
+- **Utilisation** : `ActiveDelivery.jsx`
+- **Exemple** :
+```javascript
+const confirmPickup = async (orderId, delivererAddress) => {
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/confirm-pickup`, {
+    method: 'POST',
+    headers: authHeaders(delivererAddress),
+    body: JSON.stringify({ delivererAddress })
+  })
+  return response.json()
+}
+```
+
+**POST /api/orders/:id/update-gps**
+- **Description** : Mettre à jour la position GPS du livreur en temps réel
+- **Body** : `{ lat: Number, lng: Number }`
+- **Retourne** : `{ success: true }`
+- **Utilisation** : `ActiveDelivery.jsx` - appelé toutes les 5 secondes
+- **Exemple** :
+```javascript
+const updateGPSLocation = async (orderId, lat, lng) => {
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/update-gps`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lat, lng })
+  })
+  return response.json()
+}
+```
+
+**POST /api/orders/:id/confirm-delivery**
+- **Description** : Confirmer la livraison au client (déclenche paiement automatique)
+- **Body** : `{ delivererAddress: String }`
+- **Retourne** : `{ success: true, txHash, earnings }`
+- **Utilisation** : `ActiveDelivery.jsx`
+- **Exemple** :
+```javascript
+const confirmDelivery = async (orderId, delivererAddress) => {
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/confirm-delivery`, {
+    method: 'POST',
+    headers: authHeaders(delivererAddress),
+    body: JSON.stringify({ delivererAddress })
+  })
+  return response.json()
+}
+```
+
+**GET /api/orders/:id**
+- **Description** : Récupérer les détails d'une commande
+- **Retourne** : Full order data avec restaurant, client, items, GPS tracking
+- **Utilisation** : `ActiveDelivery.jsx` et `DeliveriesPage.jsx`
+- **Exemple** :
+```javascript
+const getOrder = async (orderId) => {
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}`)
+  return response.json()
+}
+```
+
+**GET /api/deliverers/:address/active-delivery**
+- **Description** : Récupérer la livraison active en cours (s'il y en a une)
+- **Retourne** : Order data ou null
+- **Utilisation** : `HomePage.jsx` pour afficher la livraison active
+- **Exemple** :
+```javascript
+const getActiveDelivery = async (address) => {
+  const response = await fetch(`${API_BASE_URL}/deliverers/${address}/active-delivery`)
+  return response.json()
+}
+```
+
+### Gestion des erreurs
+
+Toutes les fonctions API doivent gérer les erreurs :
+
+```javascript
+const apiCall = async (url, options) => {
+  try {
+    const response = await fetch(url, options)
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'API Error')
+    }
+
+    return response.json()
+  } catch (error) {
+    console.error('API Error:', error)
+    throw error
+  }
+}
+```
+
+### Socket.io pour temps réel
+
+**Connexion Socket.io** :
+```javascript
+import io from 'socket.io-client'
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
+const socket = io(SOCKET_URL)
+
+// Rejoindre room deliverer
+socket.emit('joinRoom', `deliverer_${delivererAddress}`)
+```
+
+**Events Socket.io écoutés** :
+
+**1. orderReady**
+- Émis quand un restaurant confirme qu'une commande est prête
+- Payload : `{ orderId, restaurant, location, earnings }`
+- Utilisation : `AvailableOrders.jsx` pour afficher nouvelle commande
+```javascript
+socket.on('orderReady', (order) => {
+  setOrders(prev => [order, ...prev])
+  playNotificationSound()
+})
+```
+
+**2. orderAccepted**
+- Émis quand un autre livreur accepte une commande
+- Payload : `{ orderId }`
+- Utilisation : `AvailableOrders.jsx` pour retirer commande de la liste
+```javascript
+socket.on('orderAccepted', (data) => {
+  setOrders(prev => prev.filter(o => o.orderId !== data.orderId))
+})
+```
+
+**3. clientLocationUpdate**
+- Émis si le client met à jour son adresse de livraison
+- Payload : `{ orderId, newAddress, location }`
+- Utilisation : `ActiveDelivery.jsx`
+```javascript
+socket.on('clientLocationUpdate', (data) => {
+  if (data.orderId === activeDelivery.orderId) {
+    setClientLocation(data.location)
+  }
+})
+```
+
+### GPS Tracking automatique
+
+Pendant une livraison active, le livreur doit envoyer sa position toutes les 5 secondes :
+
+```javascript
+// ActiveDelivery.jsx
+useEffect(() => {
+  if (!activeDelivery) return
+
+  const watchId = navigator.geolocation.watchPosition(
+    (position) => {
+      const { latitude, longitude } = position.coords
+
+      // Envoyer position au backend
+      updateGPSLocation(activeDelivery.orderId, latitude, longitude)
+
+      // Mettre à jour position locale
+      setCurrentLocation({ lat: latitude, lng: longitude })
+    },
+    (error) => console.error('GPS Error:', error),
+    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+  )
+
+  return () => navigator.geolocation.clearWatch(watchId)
+}, [activeDelivery])
+```
+
+### Variables d'environnement requises
+
+Fichier `.env` :
+```
+VITE_API_URL=http://localhost:3000/api
+VITE_SOCKET_URL=http://localhost:3000
+VITE_ORDER_MANAGER_ADDRESS=0x...
+VITE_STAKING_ADDRESS=0x...
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key
+```
+
+---
+
 ## Technologies utilisées
 
 **Frontend** :
