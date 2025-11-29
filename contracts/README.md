@@ -377,13 +377,392 @@ function splitPayment(
 - DoneOrderManager dépend de DonePaymentSplitter, DoneToken et DoneStaking
 - Les interfaces permettent la modularité et l'évolutivité
 
-## Déploiement
+## 🚀 Guide de Déploiement
 
-Les contrats doivent être déployés dans l'ordre suivant :
-1. DoneToken.sol
-2. DonePaymentSplitter.sol
-3. DoneStaking.sol
-4. DoneOrderManager.sol (utilise les adresses des contrats précédents)
+### Prérequis
 
-Utiliser le script `scripts/deploy-all.js` pour un déploiement automatique.
+Avant de déployer les smart contracts :
+
+1. **Node.js et npm** installés (v18+)
+2. **MetaMask** avec au moins **0.5 MATIC** sur Mumbai testnet
+3. **Compte PolygonScan** (optionnel - pour vérifier les contrats)
+
+### Configuration Hardhat
+
+#### 1. Installer les dépendances
+
+```bash
+# À la racine du projet
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+npm install @openzeppelin/contracts
+```
+
+#### 2. Configuration du fichier `.env`
+
+Créer un fichier `.env` à la **racine du projet** :
+
+```bash
+# Copier le template
+cp .env.example .env
+```
+
+Contenu du fichier `.env` :
+
+```env
+# Polygon Mumbai Testnet
+MUMBAI_RPC_URL=https://rpc-mumbai.maticvigil.com
+PRIVATE_KEY=votre_cle_privee_metamask_sans_0x
+
+# Polygon Mainnet (production uniquement)
+POLYGON_RPC_URL=https://polygon-rpc.com
+POLYGON_PRIVATE_KEY=
+
+# PolygonScan API (pour vérification des contrats)
+POLYGONSCAN_API_KEY=votre_cle_polygonscan_optionnelle
+
+# Configuration
+NETWORK=mumbai
+```
+
+**🔑 Comment obtenir votre PRIVATE_KEY** :
+1. Ouvrir MetaMask
+2. Cliquer sur les 3 points → Account Details → Export Private Key
+3. Entrer votre mot de passe MetaMask
+4. Copier la clé privée (⚠️ **JAMAIS** la partager ou commiter dans Git)
+
+**🔑 Comment obtenir POLYGONSCAN_API_KEY** (optionnel) :
+1. Aller sur [polygonscan.com](https://polygonscan.com/)
+2. Créer un compte
+3. My Account → API Keys → Add
+4. Copier la clé générée
+
+#### 3. Configuration `hardhat.config.js`
+
+Vérifier que le fichier `hardhat.config.js` à la racine contient :
+
+```javascript
+require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
+
+module.exports = {
+  solidity: {
+    version: "0.8.20",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200
+      }
+    }
+  },
+  networks: {
+    hardhat: {
+      chainId: 31337
+    },
+    mumbai: {
+      url: process.env.MUMBAI_RPC_URL || "",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 80001,
+      gas: 6000000,
+      gasPrice: 10000000000 // 10 gwei
+    },
+    polygon: {
+      url: process.env.POLYGON_RPC_URL || "",
+      accounts: process.env.POLYGON_PRIVATE_KEY ? [process.env.POLYGON_PRIVATE_KEY] : [],
+      chainId: 137,
+      gas: 6000000,
+      gasPrice: 50000000000 // 50 gwei
+    }
+  },
+  etherscan: {
+    apiKey: {
+      polygonMumbai: process.env.POLYGONSCAN_API_KEY || "",
+      polygon: process.env.POLYGONSCAN_API_KEY || ""
+    }
+  }
+};
+```
+
+---
+
+### Ordre de Déploiement
+
+⚠️ **IMPORTANT** : Les contrats doivent être déployés dans cet **ordre exact** car ils dépendent les uns des autres :
+
+1. **DoneToken.sol** (indépendant)
+2. **DonePaymentSplitter.sol** (indépendant)
+3. **DoneStaking.sol** (indépendant)
+4. **DoneOrderManager.sol** (nécessite les adresses des 3 contrats précédents)
+
+---
+
+### Option 1 : Déploiement Automatique (Recommandé)
+
+Utiliser le script de déploiement automatique qui gère toutes les dépendances :
+
+```bash
+# Compiler les contrats
+npx hardhat compile
+
+# Déployer sur Mumbai testnet
+npx hardhat run scripts/deploy.js --network mumbai
+
+# Ou déployer sur Polygon mainnet (production)
+npx hardhat run scripts/deploy.js --network polygon
+```
+
+**Résultat attendu** :
+```
+Deploying contracts to Mumbai testnet...
+Deploying DoneToken...
+✅ DoneToken deployed to: 0x1234567890abcdef1234567890abcdef12345678
+
+Deploying DonePaymentSplitter...
+✅ DonePaymentSplitter deployed to: 0xabcdef1234567890abcdef1234567890abcdef12
+
+Deploying DoneStaking...
+✅ DoneStaking deployed to: 0x567890abcdef1234567890abcdef1234567890ab
+
+Deploying DoneOrderManager...
+✅ DoneOrderManager deployed to: 0xcdef1234567890abcdef1234567890abcdef1234
+
+All contracts deployed successfully!
+Contract addresses saved to: contracts-addresses.json
+```
+
+**⚠️ IMPORTANT** : Copier ces adresses dans :
+- `backend/.env` → `ORDER_MANAGER_ADDRESS`, `PAYMENT_SPLITTER_ADDRESS`, `TOKEN_ADDRESS`, `STAKING_ADDRESS`
+- `frontend/client/.env` → `VITE_ORDER_MANAGER_ADDRESS`, `VITE_TOKEN_ADDRESS`
+- `frontend/restaurant/.env` → `VITE_ORDER_MANAGER_ADDRESS`, `VITE_PAYMENT_SPLITTER_ADDRESS`
+- `frontend/deliverer/.env` → `VITE_ORDER_MANAGER_ADDRESS`, `VITE_STAKING_ADDRESS`
+
+---
+
+### Option 2 : Déploiement Manuel (Étape par Étape)
+
+Si vous voulez déployer manuellement chaque contrat :
+
+#### Étape 1 : Compiler les contrats
+
+```bash
+npx hardhat compile
+```
+
+Résultat attendu :
+```
+Compiled 15 Solidity files successfully
+```
+
+#### Étape 2 : Déployer DoneToken
+
+Créer un script `scripts/deploy-token.js` :
+
+```javascript
+const hre = require("hardhat");
+
+async function main() {
+  const DoneToken = await hre.ethers.getContractFactory("DoneToken");
+  const token = await DoneToken.deploy();
+  await token.waitForDeployment();
+
+  const address = await token.getAddress();
+  console.log("DoneToken deployed to:", address);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+Déployer :
+```bash
+npx hardhat run scripts/deploy-token.js --network mumbai
+```
+
+#### Étape 3 : Déployer DonePaymentSplitter
+
+```bash
+npx hardhat run scripts/deploy-payment-splitter.js --network mumbai
+```
+
+#### Étape 4 : Déployer DoneStaking
+
+```bash
+npx hardhat run scripts/deploy-staking.js --network mumbai
+```
+
+#### Étape 5 : Déployer DoneOrderManager
+
+⚠️ **Nécessite les adresses des 3 contrats précédents**
+
+```javascript
+// scripts/deploy-order-manager.js
+const TOKEN_ADDRESS = "0x..."; // DoneToken
+const PAYMENT_SPLITTER_ADDRESS = "0x..."; // DonePaymentSplitter
+const STAKING_ADDRESS = "0x..."; // DoneStaking
+
+const OrderManager = await hre.ethers.getContractFactory("DoneOrderManager");
+const orderManager = await OrderManager.deploy(
+  TOKEN_ADDRESS,
+  PAYMENT_SPLITTER_ADDRESS,
+  STAKING_ADDRESS
+);
+```
+
+---
+
+### Vérifier les Contrats sur PolygonScan
+
+Après déploiement, vérifier les contrats pour permettre l'interaction directe :
+
+```bash
+# Vérifier DoneToken
+npx hardhat verify --network mumbai <TOKEN_ADDRESS>
+
+# Vérifier DonePaymentSplitter
+npx hardhat verify --network mumbai <PAYMENT_SPLITTER_ADDRESS>
+
+# Vérifier DoneStaking
+npx hardhat verify --network mumbai <STAKING_ADDRESS>
+
+# Vérifier DoneOrderManager (avec constructor args)
+npx hardhat verify --network mumbai <ORDER_MANAGER_ADDRESS> "<TOKEN_ADDRESS>" "<PAYMENT_SPLITTER_ADDRESS>" "<STAKING_ADDRESS>"
+```
+
+**Résultat** : Les contrats seront vérifiés et le code source sera visible sur PolygonScan.
+
+---
+
+## 🧪 Tests
+
+### Lancer les tests unitaires
+
+```bash
+# Tous les tests
+npx hardhat test
+
+# Tests spécifiques
+npx hardhat test test/DoneOrderManager.test.js
+npx hardhat test test/DonePaymentSplitter.test.js
+npx hardhat test test/DoneToken.test.js
+npx hardhat test test/DoneStaking.test.js
+```
+
+### Coverage des tests
+
+```bash
+# Générer le rapport de couverture
+npx hardhat coverage
+```
+
+**Objectif** : Coverage > 90% pour tous les contrats critiques.
+
+### Tests recommandés
+
+Pour chaque contrat, tester :
+
+**DoneOrderManager** :
+- ✅ Création de commande avec paiement correct
+- ✅ Rejet si paiement insuffisant
+- ✅ Confirmation préparation par restaurant
+- ✅ Assignation livreur staké uniquement
+- ✅ Confirmation livraison et split automatique
+- ✅ Ouverture et résolution de litige
+- ✅ Reentrancy protection
+- ✅ Access control (rôles)
+
+**DonePaymentSplitter** :
+- ✅ Split 70/20/10 correct
+- ✅ Transferts réussis
+- ✅ Reentrancy protection
+
+**DoneToken** :
+- ✅ Mint après livraison
+- ✅ Burn pour réductions
+- ✅ Transferts ERC20
+
+**DoneStaking** :
+- ✅ Stake minimum 0.1 ETH
+- ✅ Unstake si pas de livraison active
+- ✅ Slashing en cas d'abus
+
+---
+
+## 🔧 Troubleshooting (Problèmes courants)
+
+### Erreur : "insufficient funds for intrinsic transaction cost"
+
+**Cause** : Pas assez de MATIC pour payer le gas.
+
+**Solution** :
+1. Obtenir plus de MATIC depuis le faucet : https://faucet.polygon.technology/
+2. Vérifier le solde MetaMask : au moins **0.5 MATIC** requis
+
+### Erreur : "nonce too high"
+
+**Cause** : Désynchronisation du nonce entre MetaMask et la blockchain.
+
+**Solution** :
+1. Ouvrir MetaMask
+2. Settings → Advanced → Clear activity tab data
+3. Rafraîchir et réessayer
+
+### Erreur : "contract creation code storage out of gas"
+
+**Cause** : Contrat trop gros (> 24 KB).
+
+**Solution** :
+1. Activer l'optimizer dans `hardhat.config.js` :
+```javascript
+optimizer: {
+  enabled: true,
+  runs: 200
+}
+```
+2. Séparer le contrat en modules plus petits
+
+### Erreur : "PolygonScan verification failed"
+
+**Cause** : API Key invalide ou constructor args incorrects.
+
+**Solution** :
+1. Vérifier `POLYGONSCAN_API_KEY` dans `.env`
+2. Vérifier que les constructor args sont dans le bon ordre
+3. Attendre 1-2 minutes après le déploiement avant de vérifier
+
+### Erreur : "Error: Cannot find module 'dotenv'"
+
+**Cause** : Dépendances manquantes.
+
+**Solution** :
+```bash
+npm install dotenv
+```
+
+---
+
+## 📚 Ressources Utiles
+
+- **Hardhat Documentation** : https://hardhat.org/docs
+- **OpenZeppelin Contracts** : https://docs.openzeppelin.com/contracts/
+- **Polygon Mumbai Faucet** : https://faucet.polygon.technology/
+- **Mumbai PolygonScan** : https://mumbai.polygonscan.com/
+- **Polygon Mainnet PolygonScan** : https://polygonscan.com/
+- **Ethers.js Documentation** : https://docs.ethers.org/
+
+---
+
+## 📝 Checklist de Déploiement
+
+Avant de déployer en production (Polygon Mainnet) :
+
+- [ ] Tous les tests unitaires passent (coverage > 90%)
+- [ ] Audit de sécurité effectué
+- [ ] Gas optimization effectuée
+- [ ] Fichiers `.env` configurés pour mainnet
+- [ ] MATIC suffisant pour le déploiement (~2-5 MATIC)
+- [ ] Backup de la PRIVATE_KEY sécurisé
+- [ ] Contrats vérifiés sur PolygonScan
+- [ ] Documentation mise à jour avec les nouvelles adresses
+- [ ] Backend et frontends configurés avec les nouvelles adresses
 
