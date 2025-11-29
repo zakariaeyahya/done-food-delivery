@@ -68,3 +68,18 @@ desktop.ini
 .cache/
 
 DONE Food Delivery.txt
+
+# Fichiers de documentation des sprints
+SPRINT_0.txt
+SPRINT_1.txt
+SPRINT_2.txt
+SPRINT_3.txt
+SPRINT_4.txt
+SPRINT_5.txt
+SPRINT_6.txt
+SPRINT_7.txt
+SPRINT_8.txt
+SPRINT_9.txt
+# Fichiers dans les dossiers sprint
+sprint */SPRINT_*.txt
+sprint */ETAPES_*.txt
