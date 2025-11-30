@@ -1,0 +1,3290 @@
+# SPRINT 1: SMART CONTRACTS CORE
+
+## OBJECTIF
+Développer les smart contracts Solidity pour la gestion des commandes, paiements, tokens de fidélité et staking des livreurs.
+
+---
+
+## ⚠️ ÉTAT ACTUEL DU PROJET
+
+**IMPORTANT:** Les dossiers et fichiers suivants existent déjà mais sont **VIDES**. Il faut les compléter/implémenter.
+
+**Dossiers existants:**
+- ✓ `contracts/` (existe)
+- ✓ `contracts/interfaces/` (existe)
+- ✓ `contracts/libraries/` (existe)
+- ✓ `scripts/` (existe)
+- ✓ `test/` (existe)
+
+**Fichiers existants mais vides:**
+- ✓ `contracts/DoneToken.sol` (vide)
+- ✓ `contracts/DonePaymentSplitter.sol` (vide)
+- ✓ `contracts/DoneStaking.sol` (vide)
+- ✓ `contracts/DoneOrderManager.sol` (vide)
+- ✓ `contracts/interfaces/IOrderManager.sol` (vide)
+- ✓ `contracts/interfaces/IPaymentSplitter.sol` (vide)
+- ✓ `contracts/libraries/OrderLib.sol` (vide)
+- ✓ `scripts/deploy-all.js` (vide)
+- ✓ `scripts/setup-roles.js` (vide)
+- ✓ `scripts/seed-data.js` (vide)
+- ✓ `test/DoneOrderManager.test.js` (vide)
+- ✓ `test/DonePaymentSplitter.test.js` (vide)
+- ✓ `test/DoneToken.test.js` (vide)
+- ✓ `test/DoneStaking.test.js` (vide)
+
+---
+
+## ÉTAPES À SUIVRE PAR ORDRE
+
+### ÉTAPE 1: PRÉPARATION DE L'ENVIRONNEMENT
+- ✓ Vérifier que Hardhat est installé globalement (optionnel)
+- ✓ Préparer les clés privées pour déploiement (Mumbai testnet)
+- ✓ Obtenir des MATIC de test depuis faucet Polygon Mumbai
+- ✓ Configurer MetaMask avec réseau Polygon Mumbai
+
+### ÉTAPE 2: INSTALLATION DES DÉPENDANCES
+1. Aller dans le dossier `contracts/`:
+   ```bash
+   cd contracts
+   ```
+2. Initialiser npm (si pas déjà fait):
+   ```bash
+   npm init -y
+   ```
+3. Installer les dépendances Hardhat:
+   ```bash
+   npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+   npm install @openzeppelin/contracts ethers
+   ```
+4. Initialiser Hardhat (si pas déjà fait):
+   ```bash
+   npx hardhat init
+   ```
+   (Choisir: Create a JavaScript project)
+
+### ÉTAPE 3: CONFIGURATION DE HARDHAT
+**Fichier à compléter:** `hardhat.config.js` (à la racine - peut être vide)
+
+**Configuration à ajouter:**
+- Réseau Mumbai (RPC URL, accounts)
+- Optimisation du compilateur
+- Chemins des contrats et tests
+
+### ÉTAPE 4: IMPLÉMENTATION DES INTERFACES
+**Fichiers à compléter (existent mais vides):**
+
+1. **`contracts/interfaces/IOrderManager.sol`** (vide - à compléter)
+   - Définir les signatures de fonctions essentielles
+   - Faciliter les interactions cross-contracts
+
+2. **`contracts/interfaces/IPaymentSplitter.sol`** (vide - à compléter)
+   - Interface pour DonePaymentSplitter
+   - Standardiser la communication entre contrats
+
+### ÉTAPE 5: IMPLÉMENTATION DES BIBLIOTHÈQUES
+**Fichier à compléter:**
+
+1. **`contracts/libraries/OrderLib.sol`** (vide - à compléter)
+   - Fonctions utilitaires pour la gestion des commandes
+   - Validations (montant, état)
+   - Helpers (calcul totalAmount)
+   - Optimisation gas
+
+### ÉTAPE 6: IMPLÉMENTATION DU CONTRAT DoneToken.sol
+**Fichier à compléter:** `contracts/DoneToken.sol` (vide - à compléter)
+
+**Implémenter:**
+- Standard ERC20 complet (OpenZeppelin)
+- Fonctions `mint()` et `burn()`
+- Taux de récompense: 1 DONE token par 10€ dépensés
+- Contrôle d'accès MINTER_ROLE
+- 18 decimals
+
+### ÉTAPE 7: IMPLÉMENTATION DU CONTRAT DonePaymentSplitter.sol
+**Fichier à compléter:** `contracts/DonePaymentSplitter.sol` (vide - à compléter)
+
+**Implémenter:**
+- Répartition automatique des paiements
+- Split: 70% restaurant, 20% livreur, 10% plateforme
+- Fonction `splitPayment()` appelée automatiquement
+- Events PaymentSplit pour traçabilité
+- Protection ReentrancyGuard
+
+### ÉTAPE 8: IMPLÉMENTATION DU CONTRAT DoneStaking.sol
+**Fichier à compléter:** `contracts/DoneStaking.sol` (vide - à compléter)
+
+**Implémenter:**
+- Gestion du staking des livreurs
+- Minimum: 0.1 ETH requis
+- Fonctions: `stakeAsDeliverer()`, `unstake()`, `slash()`, `isStaked()`
+- Protection contre les abus
+
+### ÉTAPE 9: IMPLÉMENTATION DU CONTRAT DoneOrderManager.sol
+**Fichier à compléter:** `contracts/DoneOrderManager.sol` (vide - à compléter)
+
+**Implémenter:**
+- Contrat principal de gestion du cycle de vie des commandes
+- Rôles: CLIENT, RESTAURANT, DELIVERER, PLATFORM, ARBITRATOR
+- Struct Order avec tous les champs nécessaires
+- Fonctions principales:
+  * `createOrder()` - Création de commande avec paiement
+  * `confirmPreparation()` - Confirmation par le restaurant
+  * `assignDeliverer()` - Assignation d'un livreur
+  * `confirmPickup()` - Confirmation de récupération
+  * `confirmDelivery()` - Confirmation de livraison + split automatique
+  * `openDispute()` - Ouverture d'un litige
+  * `resolveDispute()` - Résolution par arbitre
+- États: CREATED, PREPARING, IN_DELIVERY, DELIVERED, DISPUTED
+- Gestion escrow des fonds
+- Events pour chaque transition d'état
+- Intégration avec DonePaymentSplitter, DoneToken, DoneStaking
+
+### ÉTAPE 10: IMPLÉMENTATION DES SCRIPTS DE DÉPLOIEMENT
+**Fichiers à compléter (existent mais vides):**
+
+1. **`scripts/deploy-all.js`** (vide - à compléter)
+   - Déploiement automatique de tous les contrats sur Mumbai
+   - Ordre de déploiement:
+     1. DoneToken
+     2. DonePaymentSplitter
+     3. DoneStaking
+     4. DoneOrderManager
+   - Sauvegarde des adresses dans `deployed-addresses.json`
+   - Configuration post-déploiement (autorisations)
+
+2. **`scripts/setup-roles.js`** (vide - à compléter)
+   - Configuration des rôles AccessControl après déploiement
+   - Assignation des rôles RESTAURANT, DELIVERER, ARBITRATOR
+   - Vérification des rôles configurés
+
+3. **`scripts/seed-data.js`** (vide - à compléter)
+   - Création de données de test
+   - Utilisateurs, restaurants, livreurs
+   - Commandes on-chain et off-chain
+   - Environnement de développement réaliste
+
+### ÉTAPE 11: IMPLÉMENTATION DES TESTS
+**Fichiers à compléter (existent mais vides):**
+
+1. **`test/DoneOrderManager.test.js`** (vide - à compléter)
+   - Tests T1: Création de commande avec paiement correct
+   - Tests T2: Workflow complet (CREATED → DELIVERED)
+   - Tests T4: Dispute et gel des fonds
+   - Vérification des transitions d'état
+   - Vérification des events
+
+2. **`test/DonePaymentSplitter.test.js`** (vide - à compléter)
+   - Tests T3: Split de paiement automatique (70/20/10)
+   - Vérification des calculs mathématiques
+   - Gestion des arrondis
+   - Protection contre les adresses nulles
+
+3. **`test/DoneToken.test.js`** (vide - à compléter)
+   - Tests standard ERC20
+   - Tests T6: Distribution de récompenses tokens
+   - Tests `mint()` et `burn()`
+   - Vérification du taux (1 token / 10€)
+
+4. **`test/DoneStaking.test.js`** (vide - à compléter)
+   - Tests T5: Staking et slashing livreur
+   - Vérification minimum 0.1 ETH
+   - Tests `unstake()`
+   - Tests `slash()` avec validations
+
+### ÉTAPE 12: COMPILATION ET VÉRIFICATION
+1. Compiler les contrats:
+   ```bash
+   npx hardhat compile
+   ```
+2. Vérifier qu'il n'y a pas d'erreurs de compilation
+3. Vérifier les warnings et les corriger si nécessaire
+
+### ÉTAPE 13: EXÉCUTION DES TESTS
+1. Exécuter tous les tests:
+   ```bash
+   npx hardhat test
+   ```
+2. Vérifier que tous les tests passent (100%)
+3. Si des tests échouent, corriger les bugs
+
+### ÉTAPE 14: DÉPLOIEMENT SUR MUMBAI (TESTNET)
+1. Configurer les variables d'environnement:
+   - `PRIVATE_KEY` (clé privée du wallet de déploiement)
+   - `MUMBAI_RPC_URL`
+2. Déployer les contrats:
+   ```bash
+   npx hardhat run scripts/deploy-all.js --network mumbai
+   ```
+3. Configurer les rôles:
+   ```bash
+   npx hardhat run scripts/setup-roles.js --network mumbai
+   ```
+4. Vérifier les contrats sur Polygonscan Mumbai
+
+### ÉTAPE 15: DOCUMENTATION
+**Fichier à compléter:** `contracts/README.md` (peut être complété après implémentation)
+
+**Contenu à ajouter:**
+- Documentation détaillée de chaque contrat
+- Spécifications techniques complètes
+- Fonctions, events, structs
+- Sécurité et optimisations
+- Ordre de déploiement
+
+### ÉTAPE 16: VALIDATION DU SPRINT 1
+✓ Tous les fichiers vides complétés avec le code
+✓ Tous les contrats compilés sans erreurs
+✓ Tous les tests passent (100%)
+✓ Contrats déployés sur Mumbai
+✓ Adresses des contrats sauvegardées
+✓ Documentation complète
+✓ Scripts de déploiement fonctionnels
+
+---
+
+## RÉCAPITULATIF DES FICHIERS À COMPLÉTER PAR ORDRE
+
+**⚠️ NOTE:** Tous ces fichiers existent déjà mais sont **VIDES**. Il faut les compléter dans l'ordre suivant:
+
+### 1. Configuration
+- `hardhat.config.js` (à la racine - peut être vide)
+
+### 2. Interfaces (Fichiers vides - à compléter)
+- `contracts/interfaces/IOrderManager.sol` ⚠️ VIDE
+- `contracts/interfaces/IPaymentSplitter.sol` ⚠️ VIDE
+
+### 3. Bibliothèques (Fichier vide - à compléter)
+- `contracts/libraries/OrderLib.sol` ⚠️ VIDE
+
+### 4. Contrats Principaux (Fichiers vides - à compléter)
+- `contracts/DoneToken.sol` ⚠️ VIDE
+- `contracts/DonePaymentSplitter.sol` ⚠️ VIDE
+- `contracts/DoneStaking.sol` ⚠️ VIDE
+- `contracts/DoneOrderManager.sol` ⚠️ VIDE
+
+### 5. Scripts de Déploiement (Fichiers vides - à compléter)
+- `scripts/deploy-all.js` ⚠️ VIDE
+- `scripts/setup-roles.js` ⚠️ VIDE
+- `scripts/seed-data.js` ⚠️ VIDE
+
+### 6. Tests (Fichiers vides - à compléter)
+- `test/DoneOrderManager.test.js` ⚠️ VIDE
+- `test/DonePaymentSplitter.test.js` ⚠️ VIDE
+- `test/DoneToken.test.js` ⚠️ VIDE
+- `test/DoneStaking.test.js` ⚠️ VIDE
+
+### 7. Documentation
+- `contracts/README.md` (peut être complété après implémentation)
+
+---
+
+## FONCTIONNALITÉS DÉTAILLÉES PAR CONTRAT
+
+### DoneOrderManager.sol
+- Gestion complète du workflow des commandes
+- Escrow pattern pour sécuriser les fonds
+- AccessControl pour les rôles
+- ReentrancyGuard pour sécurité
+- Pausable pour urgence
+- Events pour chaque action importante
+- Calcul automatique de platformFee (10%)
+- Intégration avec DonePaymentSplitter, DoneToken, DoneStaking
+
+### DonePaymentSplitter.sol
+- Split automatique lors de `confirmDelivery()`
+- Calculs précis (70/20/10)
+- Transferts sécurisés via low-level call
+- Events pour audit trail
+- Pas de stockage d'état (gas optimisé)
+
+### DoneToken.sol
+- Standard ERC20 complet
+- Mint automatique après livraison
+- Burn pour utilisation des tokens
+- Contrôle d'accès MINTER_ROLE
+- 18 decimals
+- Transferable et échangeable
+
+### DoneStaking.sol
+- Garantie de fiabilité des livreurs
+- Minimum 0.1 ETH
+- Slashing pour comportements abusifs
+- Unstake si pas de livraison active
+- Protection contre slashing excessif
+
+---
+
+## TESTS CRITIQUES À IMPLÉMENTER
+
+- **T1:** Création commande avec paiement correct
+- **T2:** Workflow complet (CREATED → DELIVERED)
+- **T3:** Split paiement automatique
+- **T4:** Dispute freeze funds
+- **T5:** Staking/slashing livreur
+- **T6:** Rewards tokens distribution
+
+---
+
+## LIVRABLES ATTENDUS
+
+✓ Contrats déployés sur Mumbai
+✓ Tests 100% pass
+✓ Adresses des contrats dans `.env`
+✓ Documentation complète
+✓ Scripts de déploiement fonctionnels
+
+---
+
+## NOTES IMPORTANTES
+
+- Les contrats utilisent OpenZeppelin pour sécurité
+- Ordre de déploiement critique (dépendances)
+- Tests exhaustifs requis avant mainnet
+- Documentation README très détaillée
+- Vérifier les coûts de gas et optimiser si nécessaire
+
+---
+
+## PROCHAINES ÉTAPES
+
+→ Passer au Sprint 2: Backend API
+→ Lire `SPRINT_2.txt` pour connaître les fichiers à créer
+→ Suivre `ETAPES_2.txt` pour les étapes détaillées
+
+# SPRINT 2: BACKEND API
+
+## OBJECTIF
+Créer l'API REST Node.js/Express pour orchestrer les interactions off-chain, gérer MongoDB et servir d'interface entre les frontends et la blockchain.
+
+---
+
+## ⚠️ ÉTAT ACTUEL DU PROJET
+
+**IMPORTANT:** Les dossiers et fichiers suivants existent déjà mais sont **VIDES** ou **PARTIELLEMENT REMPLIS**. Il faut les compléter/implémenter.
+
+**Dossiers existants:**
+- ✓ `backend/` (existe)
+- ✓ `backend/src/` (existe)
+- ✓ `backend/src/config/` (existe)
+- ✓ `backend/src/controllers/` (existe)
+- ✓ `backend/src/services/` (existe)
+- ✓ `backend/src/models/` (existe)
+- ✓ `backend/src/routes/` (existe)
+- ✓ `backend/src/middleware/` (existe)
+- ✓ `backend/src/utils/` (existe)
+
+**Fichiers existants mais vides/à compléter:**
+- ✓ `backend/src/server.js` (vide - à compléter)
+- ✓ `backend/src/config/blockchain.js` (vide - à compléter)
+- ✓ `backend/src/config/ipfs.js` (vide - à compléter)
+- ✓ `backend/src/config/database.js` (vide - à compléter)
+- ✓ `backend/src/controllers/orderController.js` (vide - à compléter)
+- ✓ `backend/src/controllers/userController.js` (vide - à compléter)
+- ✓ `backend/src/controllers/restaurantController.js` (vide - à compléter)
+- ✓ `backend/src/controllers/delivererController.js` (vide - à compléter)
+- ✓ `backend/src/services/blockchainService.js` (vide - à compléter)
+- ✓ `backend/src/services/ipfsService.js` (vide - à compléter)
+- ✓ `backend/src/services/notificationService.js` (vide - à compléter)
+- ✓ `backend/src/models/User.js` (vide - à compléter)
+- ✓ `backend/src/models/Restaurant.js` (vide - à compléter)
+- ✓ `backend/src/models/Order.js` (vide - à compléter)
+- ✓ `backend/src/models/Deliverer.js` (vide - à compléter)
+- ✓ `backend/src/routes/orders.js` (vide - à compléter)
+- ✓ `backend/src/routes/users.js` (vide - à compléter)
+- ✓ `backend/src/routes/restaurants.js` (vide - à compléter)
+- ✓ `backend/src/routes/deliverers.js` (vide - à compléter)
+- ✓ `backend/src/middleware/auth.js` (vide - à compléter)
+- ✓ `backend/src/middleware/validation.js` (vide - à compléter)
+- ✓ `backend/src/utils/priceOracle.js` (vide - à compléter)
+- ✓ `backend/src/utils/gpsTracker.js` (vide - à compléter)
+
+---
+
+## ÉTAPES À SUIVRE PAR ORDRE
+
+### ÉTAPE 1: PRÉPARATION DE L'ENVIRONNEMENT
+- ✓ Vérifier que Node.js (v18+) est installé
+- ✓ Créer un compte MongoDB Atlas (ou installer MongoDB localement)
+- ✓ Préparer les variables d'environnement (.env)
+- ✓ Avoir les adresses des contrats déployés (Sprint 1)
+
+### ÉTAPE 2: INITIALISATION DU BACKEND
+1. Aller dans le dossier `backend/`:
+   ```bash
+   cd backend
+   ```
+2. Initialiser npm (si pas déjà fait):
+   ```bash
+   npm init -y
+   ```
+3. Installer les dépendances principales:
+   ```bash
+   npm install express mongoose ethers ipfs-http-client socket.io cors helmet morgan dotenv
+   npm install --save-dev nodemon
+   ```
+
+### ÉTAPE 3: VÉRIFICATION DE LA STRUCTURE DES DOSSIERS
+**Structure attendue (déjà créée):**
+```
+backend/
+├── src/
+│   ├── config/
+│   ├── controllers/
+│   ├── services/
+│   ├── models/
+│   ├── routes/
+│   ├── middleware/
+│   └── utils/
+└── package.json
+```
+
+### ÉTAPE 4: IMPLÉMENTATION DES FICHIERS DE CONFIGURATION
+**Fichiers à compléter (existent mais vides):**
+
+1. **`backend/src/config/blockchain.js`** (vide - à compléter)
+   - Configuration connexion Polygon Mumbai
+   - Provider ethers.js
+   - Wallet backend (PRIVATE_KEY)
+   - Instances des 4 contrats (OrderManager, PaymentSplitter, Token, Staking)
+   - Méthodes: `initBlockchain()`, `getContractInstance()`, `isConnected()`
+   - Variables d'environnement: `MUMBAI_RPC_URL`, `PRIVATE_KEY`, adresses contrats
+
+2. **`backend/src/config/ipfs.js`** (vide - à compléter)
+   - Configuration IPFS (Pinata ou local)
+   - Client IPFS configuré
+   - Pinata API si utilisé
+   - Méthodes: `initIPFS()`, `getPinataConfig()`, `getIPFSGateway()`
+   - Variables: `PINATA_API_KEY`, `PINATA_SECRET_KEY`, `IPFS_GATEWAY_URL`
+
+3. **`backend/src/config/database.js`** (vide - à compléter)
+   - Configuration MongoDB
+   - Instance mongoose
+   - Méthodes: `connectDB()`, `disconnectDB()`, `getConnectionStatus()`
+   - Variables: `MONGODB_URI`, `DB_NAME`
+
+### ÉTAPE 5: IMPLÉMENTATION DES MODÈLES MONGODB
+**Fichiers à compléter (existent mais vides):**
+
+1. **`backend/src/models/User.js`** (vide - à compléter)
+   - Schema Mongoose pour clients
+   - Champs: `address`, `name`, `email`, `phone`, `deliveryAddresses[]`
+   - Méthodes: `findByAddress()`, `updateProfile()`, `addDeliveryAddress()`
+
+2. **`backend/src/models/Restaurant.js`** (vide - à compléter)
+   - Schema Mongoose pour restaurants
+   - Champs: `address`, `name`, `cuisine`, `location`, `images[]`, `menu[]`, `rating`, `totalOrders`
+   - Méthodes: `findByAddress()`, `updateMenu()`, `incrementOrderCount()`, `updateRating()`
+
+3. **`backend/src/models/Order.js`** (vide - à compléter)
+   - Schema Mongoose pour commandes (données off-chain)
+   - Champs: `orderId`, `txHash`, `client`, `restaurant`, `deliverer`, `items[]`, `status`, `gpsTracking[]`
+   - Méthodes: `findByOrderId()`, `updateStatus()`, `addGPSLocation()`, `getOrdersByClient/Restaurant/Deliverer()`
+
+4. **`backend/src/models/Deliverer.js`** (vide - à compléter)
+   - Schema Mongoose pour livreurs
+   - Champs: `address`, `name`, `phone`, `vehicleType`, `currentLocation`, `isAvailable`, `isStaked`, `rating`
+   - Méthodes: `findByAddress()`, `updateLocation()`, `setAvailability()`, `incrementDeliveryCount()`
+
+### ÉTAPE 6: IMPLÉMENTATION DES SERVICES
+**Fichiers à compléter (existent mais vides):**
+
+1. **`backend/src/services/blockchainService.js`** (vide - à compléter)
+   - Abstraction des interactions avec smart contracts
+   - Méthodes:
+     * `createOrder()` - Création on-chain
+     * `confirmPreparation()` - Confirmation restaurant
+     * `assignDeliverer()` - Assignation
+     * `confirmPickup()` - Récupération
+     * `confirmDelivery()` - Livraison + split + tokens
+     * `openDispute()` - Litige
+     * `resolveDispute()` - Résolution
+     * `getOrder()` - Lecture on-chain
+     * `stakeDeliverer()` - Staking
+     * `unstake()` - Retrait
+     * `isStaked()` - Vérification
+     * `getTokenBalance()` - Balance tokens
+     * `mintTokens()` - Mint tokens
+     * `listenEvents()` - Écoute events blockchain pour WebSocket
+
+2. **`backend/src/services/ipfsService.js`** (vide - à compléter)
+   - Gestion upload/download IPFS
+   - Méthodes:
+     * `uploadJSON()` - Upload données JSON
+     * `uploadImage()` - Upload image
+     * `uploadMultipleImages()` - Upload multiple images
+     * `getJSON()` - Récupération JSON
+     * `getImage()` - URL image
+     * `pinFile()` - Pin fichier
+
+3. **`backend/src/services/notificationService.js`** (vide - à compléter)
+   - Notifications temps réel (Socket.io + Email)
+   - Méthodes:
+     * `notifyOrderCreated()` - Notification restaurant
+     * `notifyDeliverersAvailable()` - Notification livreurs
+     * `notifyClientOrderUpdate()` - Notification client
+     * `notifyArbitrators()` - Notification arbitres
+     * `sendEmail()` - Envoi email
+
+### ÉTAPE 7: IMPLÉMENTATION DES MIDDLEWARES
+**Fichiers à compléter (existent mais vides):**
+
+1. **`backend/src/middleware/auth.js`** (vide - à compléter)
+   - Authentification Web3
+   - Méthodes: `verifySignature()`, `requireRole()`
+
+2. **`backend/src/middleware/validation.js`** (vide - à compléter)
+   - Validation des requêtes
+   - Méthodes: `validateOrderCreation()`, `validateOrderId()`, `validateAddress()`
+
+### ÉTAPE 8: IMPLÉMENTATION DES UTILS
+**Fichiers à compléter (existent mais vides):**
+
+1. **`backend/src/utils/priceOracle.js`** (vide - à compléter)
+   - Simulation Chainlink Price Feed
+   - Méthodes: `getMATICPrice()`, `convertUSDtoMATIC()`, `convertMATICtoUSD()`
+
+2. **`backend/src/utils/gpsTracker.js`** (vide - à compléter)
+   - Simulation tracking GPS
+   - Méthodes: `calculateDistance()`, `isNearby()`, `getETA()`, `generateMockRoute()`
+
+### ÉTAPE 9: IMPLÉMENTATION DES CONTROLLERS
+**Fichiers à compléter (existent mais vides):**
+
+1. **`backend/src/controllers/orderController.js`** (vide - à compléter)
+   - Gestion de toutes les requêtes HTTP liées aux commandes
+   - Méthodes:
+     * `createOrder()` - Création commande avec upload IPFS
+     * `getOrder()` - Récupération commande complète (on-chain + off-chain)
+     * `getOrdersByClient()` - Historique client
+     * `confirmPreparation()` - Confirmation restaurant
+     * `assignDeliverer()` - Assignation livreur
+     * `confirmPickup()` - Confirmation récupération
+     * `updateGPSLocation()` - Mise à jour position GPS
+     * `confirmDelivery()` - Confirmation livraison + split + tokens
+     * `openDispute()` - Ouverture litige
+     * `getOrderHistory()` - Historique avec pagination
+
+2. **`backend/src/controllers/userController.js`** (vide - à compléter)
+   - Gestion des utilisateurs (clients)
+   - Méthodes:
+     * `registerUser()` - Inscription client
+     * `getUserProfile()` - Profil avec balance tokens
+     * `updateUserProfile()` - Mise à jour profil
+     * `getUserOrders()` - Commandes du client
+     * `getUserTokens()` - Balance et historique tokens
+
+3. **`backend/src/controllers/restaurantController.js`** (vide - à compléter)
+   - Gestion des restaurants
+   - Méthodes:
+     * `registerRestaurant()` - Inscription restaurant avec upload IPFS
+     * `getRestaurant()` - Détails restaurant avec menu
+     * `getAllRestaurants()` - Liste avec filtres
+     * `updateRestaurant()` - Mise à jour
+     * `getRestaurantOrders()` - Commandes du restaurant
+     * `getRestaurantAnalytics()` - Statistiques
+     * `updateMenu()` - Gestion menu avec images IPFS
+
+4. **`backend/src/controllers/delivererController.js`** (vide - à compléter)
+   - Gestion des livreurs
+   - Méthodes:
+     * `registerDeliverer()` - Inscription livreur
+     * `getDeliverer()` - Profil avec statut staking
+     * `getAvailableDeliverers()` - Liste disponible avec distance
+     * `updateDelivererStatus()` - Disponibilité
+     * `stakeAsDeliverer()` - Staking on-chain
+     * `unstake()` - Retrait staking
+     * `getDelivererOrders()` - Livraisons
+     * `getDelivererEarnings()` - Revenus depuis blockchain events
+
+### ÉTAPE 10: IMPLÉMENTATION DES ROUTES
+**Fichiers à compléter (existent mais vides):**
+
+1. **`backend/src/routes/orders.js`** (vide - à compléter)
+   - Routes API commandes:
+     * `POST /api/orders/create`
+     * `GET /api/orders/:id`
+     * `GET /api/orders/client/:address`
+     * `POST /api/orders/:id/confirm-preparation`
+     * `POST /api/orders/:id/assign-deliverer`
+     * `POST /api/orders/:id/confirm-pickup`
+     * `POST /api/orders/:id/update-gps`
+     * `POST /api/orders/:id/confirm-delivery`
+     * `POST /api/orders/:id/dispute`
+     * `GET /api/orders/history/:address`
+
+2. **`backend/src/routes/users.js`** (vide - à compléter)
+   - Routes API utilisateurs:
+     * `POST /api/users/register`
+     * `GET /api/users/:address`
+     * `PUT /api/users/:address`
+     * `GET /api/users/:address/orders`
+     * `GET /api/users/:address/tokens`
+
+3. **`backend/src/routes/restaurants.js`** (vide - à compléter)
+   - Routes API restaurants:
+     * `POST /api/restaurants/register`
+     * `GET /api/restaurants`
+     * `GET /api/restaurants/:id`
+     * `PUT /api/restaurants/:id`
+     * `GET /api/restaurants/:id/orders`
+     * `GET /api/restaurants/:id/analytics`
+     * `PUT /api/restaurants/:id/menu`
+
+4. **`backend/src/routes/deliverers.js`** (vide - à compléter)
+   - Routes API livreurs:
+     * `POST /api/deliverers/register`
+     * `GET /api/deliverers/:address`
+     * `GET /api/deliverers/available`
+     * `PUT /api/deliverers/:address/status`
+     * `POST /api/deliverers/stake`
+     * `POST /api/deliverers/unstake`
+     * `GET /api/deliverers/:address/orders`
+     * `GET /api/deliverers/:address/earnings`
+
+### ÉTAPE 11: IMPLÉMENTATION DU SERVEUR PRINCIPAL
+**Fichier à compléter:** `backend/src/server.js` (vide - à compléter)
+
+**Implémenter:**
+- Initialisation Express.js
+- Configuration middlewares (CORS, helmet, morgan, body-parser)
+- Connexions aux services (MongoDB, Blockchain, IPFS)
+- Montage des routes API
+- Démarrage serveur HTTP et Socket.io
+- Gestion centralisée des erreurs
+
+### ÉTAPE 12: CONFIGURATION DU package.json
+**Fichier à compléter:** `backend/package.json`
+
+**À ajouter:**
+- Scripts: `start`, `dev`, `test`, `seed`
+- Configurer les dépendances
+
+**Créer:** `backend/.env.example`
+- Variables d'environnement requises
+- Server, MongoDB, Blockchain, IPFS, Notifications, JWT
+
+### ÉTAPE 13: TEST DE L'API
+1. Démarrer le serveur:
+   ```bash
+   npm run dev
+   ```
+2. Tester les endpoints avec Postman ou curl:
+   - `GET /api/restaurants`
+   - `POST /api/users/register`
+   - `POST /api/orders/create`
+3. Vérifier les connexions:
+   - MongoDB connecté
+   - Blockchain connectée
+   - IPFS connecté
+
+### ÉTAPE 14: DOCUMENTATION
+**Fichier à compléter:** `backend/README.md` (peut être complété après implémentation)
+
+**Contenu à ajouter:**
+- Documentation complète du backend
+- Description de chaque fichier et composant
+- Architecture détaillée
+- Endpoints API
+- Modèles MongoDB
+- Services et leurs méthodes
+
+### ÉTAPE 15: VALIDATION DU SPRINT 2
+✓ Tous les fichiers vides complétés avec le code
+✓ API fonctionnelle avec tous les endpoints
+✓ MongoDB connecté et opérationnel
+✓ Connexion blockchain établie
+✓ IPFS configuré
+✓ Socket.io pour notifications temps réel
+✓ Documentation complète
+✓ Tests manuels effectués
+
+---
+
+## RÉCAPITULATIF DES FICHIERS À COMPLÉTER PAR ORDRE
+
+**⚠️ NOTE:** Tous ces fichiers existent déjà mais sont **VIDES**. Il faut les compléter dans l'ordre suivant:
+
+### 1. Configuration (Fichiers vides - à compléter)
+- `backend/src/config/blockchain.js` ⚠️ VIDE
+- `backend/src/config/ipfs.js` ⚠️ VIDE
+- `backend/src/config/database.js` ⚠️ VIDE
+
+### 2. Modèles MongoDB (Fichiers vides - à compléter)
+- `backend/src/models/User.js` ⚠️ VIDE
+- `backend/src/models/Restaurant.js` ⚠️ VIDE
+- `backend/src/models/Order.js` ⚠️ VIDE
+- `backend/src/models/Deliverer.js` ⚠️ VIDE
+
+### 3. Services (Fichiers vides - à compléter)
+- `backend/src/services/blockchainService.js` ⚠️ VIDE
+- `backend/src/services/ipfsService.js` ⚠️ VIDE
+- `backend/src/services/notificationService.js` ⚠️ VIDE
+
+### 4. Middlewares (Fichiers vides - à compléter)
+- `backend/src/middleware/auth.js` ⚠️ VIDE
+- `backend/src/middleware/validation.js` ⚠️ VIDE
+
+### 5. Utils (Fichiers vides - à compléter)
+- `backend/src/utils/priceOracle.js` ⚠️ VIDE
+- `backend/src/utils/gpsTracker.js` ⚠️ VIDE
+
+### 6. Controllers (Fichiers vides - à compléter)
+- `backend/src/controllers/orderController.js` ⚠️ VIDE
+- `backend/src/controllers/userController.js` ⚠️ VIDE
+- `backend/src/controllers/restaurantController.js` ⚠️ VIDE
+- `backend/src/controllers/delivererController.js` ⚠️ VIDE
+
+### 7. Routes (Fichiers vides - à compléter)
+- `backend/src/routes/orders.js` ⚠️ VIDE
+- `backend/src/routes/users.js` ⚠️ VIDE
+- `backend/src/routes/restaurants.js` ⚠️ VIDE
+- `backend/src/routes/deliverers.js` ⚠️ VIDE
+
+### 8. Serveur Principal (Fichier vide - à compléter)
+- `backend/src/server.js` ⚠️ VIDE
+
+### 9. Configuration
+- `backend/package.json` (à compléter avec scripts)
+- `backend/.env.example` (à créer)
+
+### 10. Documentation
+- `backend/README.md` (peut être complété après implémentation)
+
+---
+
+## ENDPOINTS PRINCIPAUX À IMPLÉMENTER
+
+### Commandes
+- `POST /api/orders/create` - Création commande
+- `GET /api/orders/:id` - Détails commande
+- `POST /api/orders/:id/confirm-preparation` - Confirmation restaurant
+- `POST /api/orders/:id/assign-deliverer` - Assignation livreur
+- `POST /api/orders/:id/confirm-pickup` - Récupération
+- `POST /api/orders/:id/update-gps` - Mise à jour GPS
+- `POST /api/orders/:id/confirm-delivery` - Livraison
+- `POST /api/orders/:id/dispute` - Litige
+
+### Utilisateurs
+- `POST /api/users/register` - Inscription client
+- `GET /api/users/:address` - Profil utilisateur
+- `PUT /api/users/:address` - Mise à jour profil
+- `GET /api/users/:address/orders` - Commandes du client
+- `GET /api/users/:address/tokens` - Balance tokens
+
+### Restaurants
+- `POST /api/restaurants/register` - Inscription restaurant
+- `GET /api/restaurants` - Liste restaurants
+- `GET /api/restaurants/:id` - Détails restaurant
+- `PUT /api/restaurants/:id` - Mise à jour
+- `GET /api/restaurants/:id/orders` - Commandes
+- `GET /api/restaurants/:id/analytics` - Statistiques
+- `PUT /api/restaurants/:id/menu` - Mise à jour menu
+
+### Livreurs
+- `POST /api/deliverers/register` - Inscription livreur
+- `GET /api/deliverers/:address` - Profil livreur
+- `GET /api/deliverers/available` - Livreurs disponibles
+- `PUT /api/deliverers/:address/status` - Mise à jour statut
+- `POST /api/deliverers/stake` - Staking livreur
+- `POST /api/deliverers/unstake` - Retrait staking
+- `GET /api/deliverers/:address/orders` - Livraisons
+- `GET /api/deliverers/:address/earnings` - Revenus
+
+---
+
+## FONCTIONNALITÉS DÉTAILLÉES PAR COMPOSANT
+
+### blockchainService.js
+- Abstraction complète des interactions avec smart contracts
+- Gestion des transactions et events
+- Intégration avec ethers.js
+- Écoute des events pour notifications temps réel
+
+### ipfsService.js
+- Upload/download de fichiers (images, JSON)
+- Intégration Pinata ou IPFS local
+- Gestion des hash IPFS
+- URLs gateway pour accès aux fichiers
+
+### notificationService.js
+- Notifications Socket.io temps réel
+- Envoi d'emails
+- Notifications par rôle (client, restaurant, livreur)
+- Intégration avec les events blockchain
+
+### Models MongoDB
+- Schémas Mongoose pour toutes les entités
+- Méthodes statiques et d'instance
+- Validation des données
+- Index pour performance
+
+---
+
+## LIVRABLES ATTENDUS
+
+✓ API fonctionnelle avec tous les endpoints
+✓ MongoDB connecté et opérationnel
+✓ Connexion blockchain établie
+✓ IPFS configuré
+✓ Socket.io pour notifications temps réel
+✓ Documentation complète
+✓ Tests manuels effectués
+
+---
+
+## NOTES IMPORTANTES
+
+- Backend sert de couche intermédiaire entre frontends et blockchain
+- MongoDB pour données off-chain (menus, GPS tracking, analytics)
+- Socket.io pour notifications temps réel
+- IPFS pour stockage décentralisé des images
+- Tous les appels blockchain via `blockchainService`
+- Validation des données avant envoi à la blockchain
+- Gestion d'erreurs centralisée
+
+---
+
+## PROCHAINES ÉTAPES
+
+→ Passer au Sprint 3: Frontend Client App
+→ Lire `SPRINT_3.txt` pour connaître les fichiers à créer
+→ Suivre `ETAPES_3.txt` pour les étapes détaillées
+
+# SPRINT 3: FRONTEND CLIENT APP
+
+## OBJECTIF
+Créer l'interface React pour les clients permettant de commander des repas, suivre les livraisons en temps réel et gérer leur compte avec tokens de fidélité.
+
+---
+
+## ⚠️ ÉTAT ACTUEL DU PROJET
+
+**IMPORTANT:** Les dossiers et fichiers suivants existent déjà mais sont **VIDES** ou **PARTIELLEMENT REMPLIS**. Il faut les compléter/implémenter.
+
+**Dossiers existants:**
+- ✓ `frontend/client/` (existe)
+- ✓ `frontend/client/src/` (existe)
+- ✓ `frontend/client/src/components/` (existe)
+- ✓ `frontend/client/src/pages/` (existe)
+- ✓ `frontend/client/src/services/` (existe)
+- ✓ `frontend/client/src/utils/` (existe)
+
+**Fichiers existants mais vides/à compléter:**
+- ✓ `frontend/client/src/App.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/index.jsx` (vide - à compléter)
+- ✓ `frontend/client/public/index.html` (vide - à compléter)
+- ✓ `frontend/client/src/components/ConnectWallet.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/components/RestaurantList.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/components/RestaurantCard.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/components/MenuItems.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/components/Cart.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/components/Checkout.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/components/OrderTracking.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/components/OrderHistory.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/components/TokenBalance.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/components/DisputeModal.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/pages/HomePage.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/pages/RestaurantPage.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/pages/CheckoutPage.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/pages/TrackingPage.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/pages/ProfilePage.jsx` (vide - à compléter)
+- ✓ `frontend/client/src/services/api.js` (vide - à compléter)
+- ✓ `frontend/client/src/services/blockchain.js` (vide - à compléter)
+- ✓ `frontend/client/src/services/ipfs.js` (vide - à compléter)
+- ✓ `frontend/client/src/utils/web3.js` (vide - à compléter)
+- ✓ `frontend/client/src/utils/formatters.js` (vide - à compléter)
+- ✓ `frontend/client/src/index.css` (vide - à compléter)
+- ✓ `frontend/client/vite.config.js` (vide - à compléter)
+- ✓ `frontend/client/tailwind.config.js` (vide - à compléter)
+
+---
+
+## ÉTAPES À SUIVRE PAR ORDRE
+
+### ÉTAPE 1: PRÉPARATION DE L'ENVIRONNEMENT
+- ✓ Vérifier que Node.js (v18+) est installé
+- ✓ Avoir l'URL de l'API backend (Sprint 2)
+- ✓ Obtenir une clé API Google Maps
+- ✓ Préparer les adresses des contrats déployés
+
+### ÉTAPE 2: INITIALISATION DU FRONTEND CLIENT
+1. Aller dans le dossier `frontend/client/`:
+   ```bash
+   cd frontend/client
+   ```
+2. Initialiser npm (si pas déjà fait):
+   ```bash
+   npm init -y
+   ```
+3. Installer les dépendances principales:
+   ```bash
+   npm install react-router-dom ethers socket.io-client @react-google-maps/api axios
+   npm install -D tailwindcss postcss autoprefixer
+   npx tailwindcss init -p
+   ```
+
+### ÉTAPE 3: CONFIGURATION DE TAILWINDCSS
+**Fichiers à compléter:**
+- `tailwind.config.js` (vide - à compléter)
+- `index.css` avec directives Tailwind (vide - à compléter)
+- `vite.config.js` (vide - à compléter)
+
+### ÉTAPE 4: IMPLÉMENTATION DES SERVICES
+**Fichiers à compléter (existent mais vides):**
+
+1. **`frontend/client/src/services/api.js`** (vide - à compléter)
+   - Service appels API backend
+   - Fonctions: `getRestaurants()`, `getRestaurant()`, `createOrder()`, `getOrder()`, `getOrdersByClient()`, `confirmDelivery()`, `openDispute()`, `submitReview()`
+
+2. **`frontend/client/src/services/blockchain.js`** (vide - à compléter)
+   - Service interactions Web3 directes
+   - Fonctions: `connectWallet()`, `getBalance()`, `getTokenBalance()`, `createOrderOnChain()`, `confirmDeliveryOnChain()`, `openDisputeOnChain()`, `getOrderOnChain()`
+
+3. **`frontend/client/src/services/ipfs.js`** (vide - à compléter)
+   - Service interactions IPFS
+   - Fonctions: `uploadImage()`, `getImage()`, `uploadJSON()`, `getJSON()`
+
+### ÉTAPE 5: IMPLÉMENTATION DES UTILS
+**Fichiers à compléter (existent mais vides):**
+
+1. **`frontend/client/src/utils/web3.js`** (vide - à compléter)
+   - Utilitaires Web3
+   - Fonctions: `formatAddress()`, `formatBalance()`, `parseUnits()`, `formatUnits()`, `isValidAddress()`
+
+2. **`frontend/client/src/utils/formatters.js`** (vide - à compléter)
+   - Formatage des données
+   - Fonctions: `formatPrice()`, `formatDate()`, `formatTime()`, `truncateText()`
+
+### ÉTAPE 6: IMPLÉMENTATION DES COMPOSANTS
+**Fichiers à compléter (existent mais vides):**
+
+1. **`frontend/client/src/components/ConnectWallet.jsx`** (vide - à compléter)
+   - Connexion MetaMask
+   - Détection MetaMask installé
+   - Vérification réseau Polygon Mumbai
+   - Affichage adresse connectée et solde MATIC
+
+2. **`frontend/client/src/components/RestaurantList.jsx`** (vide - à compléter)
+   - Affichage liste restaurants
+   - Filtres (cuisine type, prix, rating)
+   - Fetch depuis API backend
+   - Grid layout responsive
+
+3. **`frontend/client/src/components/RestaurantCard.jsx`** (vide - à compléter)
+   - Carte individuelle restaurant
+   - Informations: nom, cuisine, description, image IPFS
+   - Note moyenne et nombre d'avis
+   - Temps de livraison estimé
+
+4. **`frontend/client/src/components/MenuItems.jsx`** (vide - à compléter)
+   - Affichage menu avec images IPFS
+   - Add to cart
+   - Prix en ETH/MATIC + EUR (conversion)
+   - Filtres par catégorie
+
+5. **`frontend/client/src/components/Cart.jsx`** (vide - à compléter)
+   - Liste items dans panier
+   - Calcul total (food + delivery + platform fee 10%)
+   - Remove items et modification quantités
+
+6. **`frontend/client/src/components/Checkout.jsx`** (vide - à compléter)
+   - Confirmation adresse de livraison
+   - Autocomplete Google Places
+   - Approbation paiement MetaMask
+   - Appel `createOrder()` via backend
+   - Affichage progression transaction
+
+7. **`frontend/client/src/components/OrderTracking.jsx`** (vide - à compléter)
+   - Suivi temps réel d'une commande
+   - Socket.io listener 'orderStatusUpdate'
+   - Timeline visuelle des étapes
+   - GPS map (Google Maps API)
+   - Markers: restaurant, client, livreur
+   - ETA countdown
+
+8. **`frontend/client/src/components/OrderHistory.jsx`** (vide - à compléter)
+   - Historique des commandes passées
+   - Table avec colonnes: Order ID, Restaurant, Date, Total, Status, Actions
+   - Pagination
+   - Bouton "Commander à nouveau"
+   - Modal avis
+
+9. **`frontend/client/src/components/TokenBalance.jsx`** (vide - à compléter)
+   - Affichage solde tokens DONE
+   - Conversion en EUR
+   - Utilisation tokens pour discount
+   - Historique transactions tokens
+
+10. **`frontend/client/src/components/DisputeModal.jsx`** (vide - à compléter)
+    - Modal pour ouvrir un litige
+    - Formulaire: raison, type de problème
+    - Upload preuves images (IPFS)
+    - Submit dispute
+
+### ÉTAPE 7: IMPLÉMENTATION DES PAGES
+**Fichiers à compléter (existent mais vides):**
+
+1. **`frontend/client/src/pages/HomePage.jsx`** (vide - à compléter)
+   - Page d'accueil
+   - Hero section avec recherche
+   - Liste restaurants populaires
+   - Catégories de cuisine
+
+2. **`frontend/client/src/pages/RestaurantPage.jsx`** (vide - à compléter)
+   - Page détail restaurant
+   - Informations complètes
+   - Menu complet avec MenuItems
+   - Avis et notes clients
+
+3. **`frontend/client/src/pages/CheckoutPage.jsx`** (vide - à compléter)
+   - Page checkout complète
+   - Intègre Checkout component
+   - Gestion flux paiement
+
+4. **`frontend/client/src/pages/TrackingPage.jsx`** (vide - à compléter)
+   - Page dédiée suivi commande
+   - Intègre OrderTracking component
+   - Vue full-screen avec map
+
+5. **`frontend/client/src/pages/ProfilePage.jsx`** (vide - à compléter)
+   - Profil utilisateur
+   - Informations personnelles
+   - Historique commandes
+   - Solde tokens DONE
+   - Paramètres compte
+
+### ÉTAPE 8: CONFIGURATION DU ROUTING
+**Fichier à compléter:** `frontend/client/src/App.jsx` (vide - à compléter)
+
+**Implémenter:**
+- Composant racine de l'application
+- Configuration React Router
+- Gestion état global (Context API)
+- Authentification wallet
+- Layout responsive avec header/footer
+- Gestion panier global
+- Connexion Socket.io
+
+**Routes à configurer:**
+- `/` → HomePage
+- `/restaurant/:id` → RestaurantPage
+- `/checkout` → CheckoutPage
+- `/tracking/:orderId` → TrackingPage
+- `/profile` → ProfilePage
+
+### ÉTAPE 9: CONFIGURATION DES VARIABLES D'ENVIRONNEMENT
+**Créer:** `frontend/client/.env.example`
+- `VITE_API_URL`
+- `VITE_ORDER_MANAGER_ADDRESS`
+- `VITE_TOKEN_ADDRESS`
+- `VITE_SOCKET_URL`
+- `VITE_IPFS_GATEWAY`
+- `VITE_GOOGLE_MAPS_API_KEY`
+
+**Créer:** `.env` avec les valeurs réelles
+
+### ÉTAPE 10: TEST DE L'APPLICATION
+1. Démarrer le serveur de développement:
+   ```bash
+   npm run dev
+   ```
+2. Tester les fonctionnalités:
+   - Connexion wallet
+   - Affichage restaurants
+   - Ajout au panier
+   - Checkout et paiement
+   - Suivi commande
+   - Historique
+3. Vérifier le responsive mobile
+
+### ÉTAPE 11: DOCUMENTATION
+**Fichier à compléter:** `frontend/client/README.md` (peut être complété après implémentation)
+
+**Contenu à ajouter:**
+- Documentation complète application client
+- Description de chaque composant et page
+- Services et utils
+- Workflow utilisateur
+- Technologies utilisées
+
+### ÉTAPE 12: VALIDATION DU SPRINT 3
+✓ Tous les fichiers vides complétés avec le code
+✓ Application client fonctionnelle
+✓ Connexion wallet + flux commande complet
+✓ Responsive mobile
+✓ Intégration Google Maps
+✓ Socket.io pour notifications temps réel
+✓ Documentation complète
+
+---
+
+## RÉCAPITULATIF DES FICHIERS À COMPLÉTER PAR ORDRE
+
+**⚠️ NOTE:** Tous ces fichiers existent déjà mais sont **VIDES**. Il faut les compléter dans l'ordre suivant:
+
+### 1. Configuration (Fichiers vides - à compléter)
+- `frontend/client/tailwind.config.js` ⚠️ VIDE
+- `frontend/client/vite.config.js` ⚠️ VIDE
+- `frontend/client/src/index.css` ⚠️ VIDE
+
+### 2. Services (Fichiers vides - à compléter)
+- `frontend/client/src/services/api.js` ⚠️ VIDE
+- `frontend/client/src/services/blockchain.js` ⚠️ VIDE
+- `frontend/client/src/services/ipfs.js` ⚠️ VIDE
+
+### 3. Utils (Fichiers vides - à compléter)
+- `frontend/client/src/utils/web3.js` ⚠️ VIDE
+- `frontend/client/src/utils/formatters.js` ⚠️ VIDE
+
+### 4. Composants (Fichiers vides - à compléter)
+- `frontend/client/src/components/ConnectWallet.jsx` ⚠️ VIDE
+- `frontend/client/src/components/RestaurantList.jsx` ⚠️ VIDE
+- `frontend/client/src/components/RestaurantCard.jsx` ⚠️ VIDE
+- `frontend/client/src/components/MenuItems.jsx` ⚠️ VIDE
+- `frontend/client/src/components/Cart.jsx` ⚠️ VIDE
+- `frontend/client/src/components/Checkout.jsx` ⚠️ VIDE
+- `frontend/client/src/components/OrderTracking.jsx` ⚠️ VIDE
+- `frontend/client/src/components/OrderHistory.jsx` ⚠️ VIDE
+- `frontend/client/src/components/TokenBalance.jsx` ⚠️ VIDE
+- `frontend/client/src/components/DisputeModal.jsx` ⚠️ VIDE
+
+### 5. Pages (Fichiers vides - à compléter)
+- `frontend/client/src/pages/HomePage.jsx` ⚠️ VIDE
+- `frontend/client/src/pages/RestaurantPage.jsx` ⚠️ VIDE
+- `frontend/client/src/pages/CheckoutPage.jsx` ⚠️ VIDE
+- `frontend/client/src/pages/TrackingPage.jsx` ⚠️ VIDE
+- `frontend/client/src/pages/ProfilePage.jsx` ⚠️ VIDE
+
+### 6. Application Principale (Fichier vide - à compléter)
+- `frontend/client/src/App.jsx` ⚠️ VIDE
+- `frontend/client/src/index.jsx` ⚠️ VIDE
+- `frontend/client/public/index.html` ⚠️ VIDE
+
+### 7. Configuration
+- `frontend/client/.env.example` (à créer)
+- `frontend/client/.env` (à créer)
+
+### 8. Documentation
+- `frontend/client/README.md` (peut être complété après implémentation)
+
+---
+
+## FONCTIONNALITÉS DÉTAILLÉES PAR COMPOSANT
+
+### RestaurantList.jsx
+- Affiche liste restaurants
+- Filtres (cuisine type, prix, rating)
+- Fetch depuis API backend
+- Grid layout responsive
+
+### MenuItems.jsx
+- Affiche menu avec images IPFS
+- Add to cart
+- Prix en ETH/MATIC + EUR
+
+### Cart.jsx
+- Liste items
+- Calcul total (food + delivery + platform fee)
+- Remove items
+
+### Checkout.jsx
+- Confirm address
+- Approve payment (MetaMask)
+- Call createOrder() via backend
+- Show transaction progress
+
+### OrderTracking.jsx
+- Real-time status updates
+- GPS map (Google Maps API)
+- Deliverer info
+- ETA countdown
+- Confirm delivery button
+
+### OrderHistory.jsx
+- List past orders
+- Reorder button
+- Leave review
+- Download receipt (IPFS proof)
+
+### TokenBalance.jsx
+- Display DONE tokens
+- Use tokens for discount
+- Token transaction history
+
+### DisputeModal.jsx
+- Open dispute form
+- Upload proof images (IPFS)
+- Submit dispute
+
+---
+
+## LIVRABLES ATTENDUS
+
+✓ Application client fonctionnelle
+✓ Connexion wallet + flux commande complet
+✓ Responsive mobile
+✓ Intégration Google Maps
+✓ Socket.io pour notifications temps réel
+✓ Documentation complète
+
+---
+
+## NOTES IMPORTANTES
+
+- Application React avec Vite pour build rapide
+- TailwindCSS pour styling responsive
+- Socket.io pour notifications temps réel
+- Google Maps pour tracking GPS
+- Intégration MetaMask pour paiements Web3
+
+---
+
+## PROCHAINES ÉTAPES
+
+→ Passer au Sprint 4: Frontend Restaurant Dashboard
+→ Lire `SPRINT_4.txt` pour connaître les fichiers à créer
+→ Suivre `ETAPES_4.txt` pour les étapes détaillées
+
+# SPRINT 4: FRONTEND RESTAURANT DASHBOARD
+
+## OBJECTIF
+Créer l'interface React pour les restaurants permettant de gérer les commandes, le menu et consulter les statistiques en temps réel.
+
+---
+
+## ⚠️ ÉTAT ACTUEL DU PROJET
+
+**IMPORTANT:** Les dossiers et fichiers suivants existent déjà mais sont **VIDES** ou **PARTIELLEMENT REMPLIS**. Il faut les compléter/implémenter.
+
+**Dossiers existants:**
+- ✓ `frontend/restaurant/` (existe)
+- ✓ `frontend/restaurant/src/` (existe)
+- ✓ `frontend/restaurant/src/components/` (existe)
+- ✓ `frontend/restaurant/src/pages/` (existe)
+- ✓ `frontend/restaurant/src/services/` (existe)
+
+**Fichiers existants mais vides/à compléter:**
+- ✓ `frontend/restaurant/src/App.jsx` (vide - à compléter)
+- ✓ `frontend/restaurant/src/index.jsx` (vide - à compléter)
+- ✓ `frontend/restaurant/public/index.html` (vide - à compléter)
+- ✓ `frontend/restaurant/src/components/ConnectWallet.jsx` (vide - à compléter)
+- ✓ `frontend/restaurant/src/components/OrdersQueue.jsx` (vide - à compléter)
+- ✓ `frontend/restaurant/src/components/OrderCard.jsx` (vide - à compléter)
+- ✓ `frontend/restaurant/src/components/MenuManager.jsx` (vide - à compléter)
+- ✓ `frontend/restaurant/src/components/Analytics.jsx` (vide - à compléter)
+- ✓ `frontend/restaurant/src/components/EarningsChart.jsx` (vide - à compléter)
+- ✓ `frontend/restaurant/src/pages/DashboardPage.jsx` (vide - à compléter)
+- ✓ `frontend/restaurant/src/pages/OrdersPage.jsx` (vide - à compléter)
+- ✓ `frontend/restaurant/src/pages/MenuPage.jsx` (vide - à compléter)
+- ✓ `frontend/restaurant/src/pages/AnalyticsPage.jsx` (vide - à compléter)
+- ✓ `frontend/restaurant/src/services/api.js` (vide - à compléter)
+- ✓ `frontend/restaurant/src/services/blockchain.js` (vide - à compléter)
+- ✓ `frontend/restaurant/src/index.css` (vide - à compléter)
+- ✓ `frontend/restaurant/vite.config.js` (vide - à compléter)
+- ✓ `frontend/restaurant/tailwind.config.js` (vide - à compléter)
+
+---
+
+## ÉTAPES À SUIVRE PAR ORDRE
+
+### ÉTAPE 1: PRÉPARATION DE L'ENVIRONNEMENT
+- ✓ Vérifier que Node.js (v18+) est installé
+- ✓ Avoir l'URL de l'API backend (Sprint 2)
+- ✓ Préparer les adresses des contrats déployés
+- ✓ Avoir accès aux données de test (restaurants)
+
+### ÉTAPE 2: INITIALISATION DU FRONTEND RESTAURANT
+1. Aller dans le dossier `frontend/restaurant/`:
+   ```bash
+   cd frontend/restaurant
+   ```
+2. Initialiser npm (si pas déjà fait):
+   ```bash
+   npm init -y
+   ```
+3. Installer les dépendances principales:
+   ```bash
+   npm install react-router-dom ethers socket.io-client chart.js react-chartjs-2 axios
+   npm install -D tailwindcss postcss autoprefixer
+   npx tailwindcss init -p
+   ```
+
+### ÉTAPE 3: CONFIGURATION DE TAILWINDCSS
+**Fichiers à compléter:**
+- `tailwind.config.js` (vide - à compléter)
+- `index.css` avec directives Tailwind (vide - à compléter)
+- `vite.config.js` (vide - à compléter)
+
+### ÉTAPE 4: IMPLÉMENTATION DES SERVICES
+**Fichiers à compléter (existent mais vides):**
+
+1. **`frontend/restaurant/src/services/api.js`** (vide - à compléter)
+   - Service appels API backend
+   - Fonctions: `getRestaurant()`, `getOrders()`, `confirmPreparation()`, `updateMenu()`, `addMenuItem()`, `updateMenuItem()`, `deleteMenuItem()`, `getAnalytics()`, `uploadImage()`
+
+2. **`frontend/restaurant/src/services/blockchain.js`** (vide - à compléter)
+   - Service interactions Web3
+   - Fonctions: `connectWallet()`, `hasRole()`, `confirmPreparationOnChain()`, `getRestaurantOrders()`, `getEarningsOnChain()`, `getPaymentSplitEvents()`, `getPendingBalance()`, `withdraw()`
+
+### ÉTAPE 5: IMPLÉMENTATION DES COMPOSANTS
+**Fichiers à compléter (existent mais vides):**
+
+1. **`frontend/restaurant/src/components/ConnectWallet.jsx`** (vide - à compléter)
+   - Connexion MetaMask pour restaurant
+   - Détection MetaMask
+   - Vérification rôle RESTAURANT_ROLE
+   - Affichage adresse connectée
+
+2. **`frontend/restaurant/src/components/OrdersQueue.jsx`** (vide - à compléter)
+   - File d'attente commandes en temps réel
+   - Socket.io listener 'orderCreated'
+   - Accept/Reject order (optionnel)
+   - Estimation temps de préparation
+   - Bouton "Confirmer préparation"
+   - Filtres par statut
+
+3. **`frontend/restaurant/src/components/OrderCard.jsx`** (vide - à compléter)
+   - Carte individuelle commande
+   - Détails: orderId, items avec quantités, prix, images IPFS
+   - Adresse de livraison
+   - Informations client
+   - Badge statut coloré
+   - Timer: temps écoulé depuis création
+
+4. **`frontend/restaurant/src/components/MenuManager.jsx`** (vide - à compléter)
+   - Gestion complète du menu restaurant
+   - CRUD items menu (Create, Read, Update, Delete)
+   - Upload images vers IPFS
+   - Définition prix (MATIC + conversion EUR)
+   - Activation/désactivation items
+   - Catégorisation (Entrées, Plats, Desserts, Boissons)
+
+5. **`frontend/restaurant/src/components/Analytics.jsx`** (vide - à compléter)
+   - Statistiques restaurant
+   - Total commandes (jour/semaine/mois)
+   - Graphique revenus (line chart)
+   - Plats les plus populaires (bar chart horizontal)
+   - Temps moyen de préparation
+   - Vue d'ensemble notes (rating moyen, nombre avis)
+   - Derniers commentaires clients
+   - Filtres période
+
+6. **`frontend/restaurant/src/components/EarningsChart.jsx`** (vide - à compléter)
+   - Graphique revenus et gains on-chain
+   - Revenus quotidiens/hebdomadaires (line chart)
+   - Data depuis blockchain events PaymentSplit
+   - Retraits en attente
+   - Bouton "Retirer"
+   - Historique transactions on-chain
+
+### ÉTAPE 6: IMPLÉMENTATION DES PAGES
+**Fichiers à compléter (existent mais vides):**
+
+1. **`frontend/restaurant/src/pages/DashboardPage.jsx`** (vide - à compléter)
+   - Tableau de bord principal
+   - Vue d'ensemble commandes du jour
+   - Statistiques rapides (KPIs)
+   - Commandes en attente (intègre OrdersQueue)
+   - Revenus du jour
+
+2. **`frontend/restaurant/src/pages/OrdersPage.jsx`** (vide - à compléter)
+   - Gestion complète des commandes
+   - Liste toutes commandes
+   - Table avec colonnes: Order ID, Client, Items, Total, Status, Date, Actions
+   - Filtres par statut et date
+   - Search bar
+   - Modal détails commande complète
+
+3. **`frontend/restaurant/src/pages/MenuPage.jsx`** (vide - à compléter)
+   - Gestion menu restaurant
+   - Intègre MenuManager en mode full-page
+   - Sidebar avec catégories
+   - Grid items avec images
+   - Bouton "Ajouter item"
+
+4. **`frontend/restaurant/src/pages/AnalyticsPage.jsx`** (vide - à compléter)
+   - Analytics détaillées
+   - Intègre Analytics et EarningsChart
+   - Graphiques détaillés
+   - Export données (bouton "Export CSV")
+   - Date range selector
+
+### ÉTAPE 7: CONFIGURATION DU ROUTING
+**Fichier à compléter:** `frontend/restaurant/src/App.jsx` (vide - à compléter)
+
+**Implémenter:**
+- Composant racine application restaurant
+- Configuration React Router
+- Gestion état global (Context API ou Redux)
+- Authentification restaurant via wallet
+- Layout avec navigation sidebar/header
+- Gestion notifications Socket.io
+
+**Routes à configurer:**
+- `/` → DashboardPage
+- `/orders` → OrdersPage
+- `/menu` → MenuPage
+- `/analytics` → AnalyticsPage
+
+### ÉTAPE 8: CONFIGURATION DES VARIABLES D'ENVIRONNEMENT
+**Créer:** `frontend/restaurant/.env.example`
+- `VITE_API_URL`
+- `VITE_ORDER_MANAGER_ADDRESS`
+- `VITE_PAYMENT_SPLITTER_ADDRESS`
+- `VITE_SOCKET_URL`
+- `VITE_IPFS_GATEWAY`
+
+**Créer:** `.env` avec les valeurs réelles
+
+### ÉTAPE 9: TEST DE L'APPLICATION
+1. Démarrer le serveur de développement:
+   ```bash
+   npm run dev
+   ```
+2. Tester les fonctionnalités:
+   - Connexion wallet restaurant
+   - Réception commandes en temps réel
+   - Confirmation préparation
+   - Gestion menu
+   - Analytics et revenus
+
+### ÉTAPE 10: DOCUMENTATION
+**Fichier à compléter:** `frontend/restaurant/README.md` (peut être complété après implémentation)
+
+**Contenu à ajouter:**
+- Documentation complète application restaurant
+- Description de chaque composant et page
+- Services
+- Workflow utilisateur
+- Technologies utilisées
+
+### ÉTAPE 11: VALIDATION DU SPRINT 4
+✓ Tous les fichiers vides complétés avec le code
+✓ Dashboard restaurant fonctionnel
+✓ Notifications commandes temps réel
+✓ Gestion menu complète
+✓ Analytics avec charts
+✓ Intégration blockchain pour revenus
+✓ Documentation complète
+
+---
+
+## RÉCAPITULATIF DES FICHIERS À COMPLÉTER PAR ORDRE
+
+**⚠️ NOTE:** Tous ces fichiers existent déjà mais sont **VIDES**. Il faut les compléter dans l'ordre suivant:
+
+### 1. Configuration (Fichiers vides - à compléter)
+- `frontend/restaurant/tailwind.config.js` ⚠️ VIDE
+- `frontend/restaurant/vite.config.js` ⚠️ VIDE
+- `frontend/restaurant/src/index.css` ⚠️ VIDE
+
+### 2. Services (Fichiers vides - à compléter)
+- `frontend/restaurant/src/services/api.js` ⚠️ VIDE
+- `frontend/restaurant/src/services/blockchain.js` ⚠️ VIDE
+
+### 3. Composants (Fichiers vides - à compléter)
+- `frontend/restaurant/src/components/ConnectWallet.jsx` ⚠️ VIDE
+- `frontend/restaurant/src/components/OrdersQueue.jsx` ⚠️ VIDE
+- `frontend/restaurant/src/components/OrderCard.jsx` ⚠️ VIDE
+- `frontend/restaurant/src/components/MenuManager.jsx` ⚠️ VIDE
+- `frontend/restaurant/src/components/Analytics.jsx` ⚠️ VIDE
+- `frontend/restaurant/src/components/EarningsChart.jsx` ⚠️ VIDE
+
+### 4. Pages (Fichiers vides - à compléter)
+- `frontend/restaurant/src/pages/DashboardPage.jsx` ⚠️ VIDE
+- `frontend/restaurant/src/pages/OrdersPage.jsx` ⚠️ VIDE
+- `frontend/restaurant/src/pages/MenuPage.jsx` ⚠️ VIDE
+- `frontend/restaurant/src/pages/AnalyticsPage.jsx` ⚠️ VIDE
+
+### 5. Application Principale (Fichiers vides - à compléter)
+- `frontend/restaurant/src/App.jsx` ⚠️ VIDE
+- `frontend/restaurant/src/index.jsx` ⚠️ VIDE
+- `frontend/restaurant/public/index.html` ⚠️ VIDE
+
+### 6. Configuration
+- `frontend/restaurant/.env.example` (à créer)
+- `frontend/restaurant/.env` (à créer)
+
+### 7. Documentation
+- `frontend/restaurant/README.md` (peut être complété après implémentation)
+
+---
+
+## FONCTIONNALITÉS DÉTAILLÉES PAR COMPOSANT
+
+### OrdersQueue.jsx
+- Real-time incoming orders (Socket.io)
+- Accept/Reject order (optionnel)
+- Preparation time estimate
+- Confirm preparation button
+
+### MenuManager.jsx
+- CRUD menu items
+- Upload images to IPFS
+- Set prices
+- Enable/disable items
+
+### Analytics.jsx
+- Total orders today/week/month
+- Revenue chart
+- Popular dishes
+- Average preparation time
+- Ratings overview
+
+### EarningsChart.jsx
+- Daily/weekly earnings
+- Pending withdrawals
+- Withdrawn amounts
+- Transaction history on-chain
+
+---
+
+## LIVRABLES ATTENDUS
+
+✓ Dashboard restaurant fonctionnel
+✓ Notifications commandes temps réel
+✓ Gestion menu complète
+✓ Analytics avec charts
+✓ Intégration blockchain pour revenus
+✓ Documentation complète
+
+---
+
+## NOTES IMPORTANTES
+
+- Application React avec Vite
+- Socket.io pour notifications temps réel
+- Chart.js ou Recharts pour graphiques
+- Interface optimisée pour gestion commandes
+- Analytics complètes avec données on-chain et off-chain
+
+---
+
+## PROCHAINES ÉTAPES
+
+→ Passer au Sprint 5: Frontend Deliverer App
+→ Lire `SPRINT_5.txt` pour connaître les fichiers à créer
+→ Suivre `ETAPES_5.txt` pour les étapes détaillées
+
+# SPRINT 5: FRONTEND DELIVERER APP
+
+## OBJECTIF
+Créer l'application React web-first pour les livreurs permettant d'accepter des livraisons, suivre les trajets en temps réel et gérer les gains. Application conçue en web-first avec possibilité PWA pour accès mobile.
+
+---
+
+## ⚠️ ÉTAT ACTUEL DU PROJET
+
+**IMPORTANT:** Les dossiers et fichiers suivants existent déjà mais sont **VIDES** ou **PARTIELLEMENT REMPLIS**. Il faut les compléter/implémenter.
+
+**Dossiers existants:**
+- ✓ `frontend/deliverer/` (existe)
+- ✓ `frontend/deliverer/src/` (existe)
+- ✓ `frontend/deliverer/src/components/` (existe)
+- ✓ `frontend/deliverer/src/pages/` (existe)
+- ✓ `frontend/deliverer/src/services/` (existe)
+
+**Fichiers existants mais vides/à compléter:**
+- ✓ `frontend/deliverer/src/App.jsx` (vide - à compléter)
+- ✓ `frontend/deliverer/src/index.jsx` (vide - à compléter)
+- ✓ `frontend/deliverer/public/index.html` (vide - à compléter)
+- ✓ `frontend/deliverer/src/components/ConnectWallet.jsx` (vide - à compléter)
+- ✓ `frontend/deliverer/src/components/StakingPanel.jsx` (vide - à compléter)
+- ✓ `frontend/deliverer/src/components/AvailableOrders.jsx` (vide - à compléter)
+- ✓ `frontend/deliverer/src/components/ActiveDelivery.jsx` (vide - à compléter)
+- ✓ `frontend/deliverer/src/components/NavigationMap.jsx` (vide - à compléter)
+- ✓ `frontend/deliverer/src/components/EarningsTracker.jsx` (vide - à compléter)
+- ✓ `frontend/deliverer/src/components/RatingDisplay.jsx` (vide - à compléter)
+- ✓ `frontend/deliverer/src/pages/HomePage.jsx` (vide - à compléter)
+- ✓ `frontend/deliverer/src/pages/DeliveriesPage.jsx` (vide - à compléter)
+- ✓ `frontend/deliverer/src/pages/EarningsPage.jsx` (vide - à compléter)
+- ✓ `frontend/deliverer/src/pages/ProfilePage.jsx` (vide - à compléter)
+- ✓ `frontend/deliverer/src/services/api.js` (vide - à compléter)
+- ✓ `frontend/deliverer/src/services/blockchain.js` (vide - à compléter)
+- ✓ `frontend/deliverer/src/services/geolocation.js` (vide - à compléter)
+- ✓ `frontend/deliverer/src/index.css` (vide - à compléter)
+- ✓ `frontend/deliverer/vite.config.js` (vide - à compléter)
+- ✓ `frontend/deliverer/tailwind.config.js` (vide - à compléter)
+
+---
+
+## ÉTAPES À SUIVRE PAR ORDRE
+
+### ÉTAPE 1: PRÉPARATION DE L'ENVIRONNEMENT
+- ✓ Vérifier que Node.js (v18+) est installé
+- ✓ Avoir l'URL de l'API backend (Sprint 2)
+- ✓ Obtenir une clé API Google Maps
+- ✓ Préparer les adresses des contrats déployés
+- ✓ Tester l'accès GPS sur navigateur mobile
+
+### ÉTAPE 2: INITIALISATION DU FRONTEND DELIVERER
+1. Aller dans le dossier `frontend/deliverer/`:
+   ```bash
+   cd frontend/deliverer
+   ```
+2. Initialiser npm (si pas déjà fait):
+   ```bash
+   npm init -y
+   ```
+3. Installer les dépendances principales:
+   ```bash
+   npm install react-router-dom ethers socket.io-client @react-google-maps/api chart.js axios
+   npm install -D tailwindcss postcss autoprefixer vite-plugin-pwa
+   npx tailwindcss init -p
+   ```
+
+### ÉTAPE 3: CONFIGURATION DE TAILWINDCSS ET PWA
+**Fichiers à compléter:**
+- `tailwind.config.js` (vide - à compléter)
+- `index.css` avec directives Tailwind (vide - à compléter)
+- `vite.config.js` avec plugin PWA (vide - à compléter)
+- `manifest.json` pour PWA (à créer)
+
+### ÉTAPE 4: IMPLÉMENTATION DES SERVICES
+**Fichiers à compléter (existent mais vides):**
+
+1. **`frontend/deliverer/src/services/api.js`** (vide - à compléter)
+   - Service appels API backend
+   - Fonctions: `getAvailableOrders()`, `acceptOrder()`, `confirmPickup()`, `confirmDelivery()`, `updateGPSLocation()`, `getEarnings()`, `getRating()`, `updateStatus()`, `getDelivererOrders()`
+
+2. **`frontend/deliverer/src/services/blockchain.js`** (vide - à compléter)
+   - Service interactions Web3
+   - Fonctions: `connectWallet()`, `hasRole()`, `isStaked()`, `getStakeInfo()`, `stake()`, `unstake()`, `acceptOrderOnChain()`, `confirmPickupOnChain()`, `confirmDeliveryOnChain()`, `getSlashingEvents()`, `getEarningsEvents()`
+
+3. **`frontend/deliverer/src/services/geolocation.js`** (vide - à compléter)
+   - Service géolocalisation et calculs GPS
+   - Fonctions: `getCurrentPosition()`, `watchPosition()`, `calculateRoute()`, `getDistance()`, `isNearLocation()`
+
+### ÉTAPE 5: IMPLÉMENTATION DES COMPOSANTS
+**Fichiers à compléter (existent mais vides):**
+
+1. **`frontend/deliverer/src/components/ConnectWallet.jsx`** (vide - à compléter)
+   - Connexion MetaMask pour livreur
+   - Détection MetaMask
+   - Vérification rôle DELIVERER_ROLE
+   - Vérification staking (minimum 0.1 ETH)
+   - Affichage montant staké actuel
+
+2. **`frontend/deliverer/src/components/StakingPanel.jsx`** (vide - à compléter)
+   - Panel gestion staking livreur
+   - Affichage montant staké (MATIC + USD)
+   - Statut: Staké / Non staké (badge visuel)
+   - Input montant à staker (minimum 0.1 MATIC)
+   - Bouton "Stake 0.1 ETH"
+   - Bouton "Unstake" (si pas de livraison active)
+   - Historique slashing
+
+3. **`frontend/deliverer/src/components/AvailableOrders.jsx`** (vide - à compléter)
+   - Liste commandes disponibles à accepter
+   - Fetch commandes avec status PREPARING
+   - Tri par distance (plus proche en premier)
+   - Auto-refresh toutes les 10 secondes
+   - Socket.io listener 'orderReady'
+   - Distance au restaurant
+   - Gains estimés (deliveryFee 20% du total)
+   - Bouton "Accepter" par commande
+
+4. **`frontend/deliverer/src/components/ActiveDelivery.jsx`** (vide - à compléter)
+   - Affichage livraison en cours
+   - Détails commande (orderId, client, items, total, delivery fee)
+   - Adresse restaurant et client
+   - Distance actuelle au restaurant/client
+   - Bouton "Naviguer vers restaurant"
+   - Bouton "Naviguer vers client"
+   - Bouton "Confirmer pickup" (visible si proche restaurant < 100m)
+   - Bouton "Confirmer delivery" (visible si proche client < 100m)
+   - GPS tracking actif
+
+5. **`frontend/deliverer/src/components/NavigationMap.jsx`** (vide - à compléter)
+   - Carte navigation interactive Google Maps
+   - Intégration @react-google-maps/api
+   - Markers: position livreur, restaurant, client
+   - Route vers restaurant (si step = 'pickup')
+   - Route vers client (si step = 'delivery')
+   - DirectionsService Google Maps
+   - Update position temps réel (watchposition GPS)
+   - ETA affiché
+
+6. **`frontend/deliverer/src/components/EarningsTracker.jsx`** (vide - à compléter)
+   - Suivi gains livreur
+   - Gains aujourd'hui (MATIC + USD, nombre livraisons)
+   - Tabs: Jour / Semaine / Mois
+   - Graphique line chart des earnings
+   - Paiements en attente
+   - Bouton "Retirer" si solde > 0
+   - Statistiques: nombre livraisons, taux de succès, temps moyen, rating moyen
+
+7. **`frontend/deliverer/src/components/RatingDisplay.jsx`** (vide - à compléter)
+   - Affichage notes et avis livreur
+   - Note moyenne (sur 5 étoiles)
+   - Nombre total avis et livraisons
+   - Avis récents clients
+   - Graphique évolution notes
+   - Objectifs performance
+
+### ÉTAPE 6: IMPLÉMENTATION DES PAGES
+**Fichiers à compléter (existent mais vides):**
+
+1. **`frontend/deliverer/src/pages/HomePage.jsx`** (vide - à compléter)
+   - Page d'accueil livreur
+   - Statut en ligne/hors ligne (toggle switch)
+   - Commandes disponibles (intègre AvailableOrders, limite 5)
+   - Livraison active (intègre ActiveDelivery si activeDelivery existe)
+   - Statistiques rapides (cards)
+   - Accès rapide autres pages
+
+2. **`frontend/deliverer/src/pages/DeliveriesPage.jsx`** (vide - à compléter)
+   - Gestion et historique livraisons
+   - Liste livraisons (passées et en cours)
+   - Table avec colonnes: Order ID, Restaurant, Client, Status, Earnings, Date, Actions
+   - Filtres par statut
+   - Modal détails livraison complète
+   - Timeline des étapes
+   - GPS tracking history (replay)
+
+3. **`frontend/deliverer/src/pages/EarningsPage.jsx`** (vide - à compléter)
+   - Page détaillée revenus
+   - Intègre EarningsTracker en full-page
+   - Graphiques détaillés
+   - Historique complet transactions blockchain
+   - Export données (bouton "Export CSV")
+
+4. **`frontend/deliverer/src/pages/ProfilePage.jsx`** (vide - à compléter)
+   - Profil et paramètres livreur
+   - Informations personnelles
+   - Statut staking (intègre StakingPanel)
+   - Notes et avis (intègre RatingDisplay)
+   - Historique livraisons (statistiques globales)
+   - Paramètres (langue, notifications, thème, sons)
+
+### ÉTAPE 7: CONFIGURATION DU ROUTING
+**Fichier à compléter:** `frontend/deliverer/src/App.jsx` (vide - à compléter)
+
+**Implémenter:**
+- Composant racine application livreur
+- Configuration React Router
+- Gestion état global (Context API)
+- Authentification livreur via wallet
+- Layout responsive web-first
+- Gestion notifications Socket.io
+- Tracking GPS continu si livraison active
+
+**Routes à configurer:**
+- `/` → HomePage
+- `/deliveries` → DeliveriesPage
+- `/earnings` → EarningsPage
+- `/profile` → ProfilePage
+
+### ÉTAPE 8: CONFIGURATION DES VARIABLES D'ENVIRONNEMENT
+**Créer:** `frontend/deliverer/.env.example`
+- `VITE_API_URL`
+- `VITE_ORDER_MANAGER_ADDRESS`
+- `VITE_STAKING_ADDRESS`
+- `VITE_SOCKET_URL`
+- `VITE_GOOGLE_MAPS_API_KEY`
+
+**Créer:** `.env` avec les valeurs réelles
+
+### ÉTAPE 9: CONFIGURATION PWA
+1. Configurer `vite.config.js` avec plugin PWA
+2. Créer `manifest.json` avec:
+   - Nom de l'application
+   - Icônes (différentes tailles)
+   - Thème et couleurs
+   - Mode d'affichage
+3. Tester l'installation PWA sur mobile
+
+### ÉTAPE 10: TEST DE L'APPLICATION
+1. Démarrer le serveur de développement:
+   ```bash
+   npm run dev
+   ```
+2. Tester les fonctionnalités:
+   - Connexion wallet livreur
+   - Staking (0.1 ETH)
+   - Acceptation commandes
+   - Navigation GPS
+   - Confirmation pickup/delivery
+   - Suivi gains
+3. Tester sur mobile (PWA):
+   - Installation sur écran d'accueil
+   - Accès GPS natif
+   - Notifications push
+
+### ÉTAPE 11: DOCUMENTATION
+**Fichier à compléter:** `frontend/deliverer/README.md` (peut être complété après implémentation)
+
+**Contenu à ajouter:**
+- Documentation complète application livreur
+- Description de chaque composant et page
+- Services (api, blockchain, geolocation)
+- Configuration PWA
+- Workflow utilisateur
+- Technologies utilisées
+
+### ÉTAPE 12: VALIDATION DU SPRINT 5
+✓ Tous les fichiers vides complétés avec le code
+✓ Application livreur fonctionnelle
+✓ GPS tracking simulé
+✓ Affichage staking/earnings
+✓ PWA pour mobile
+✓ Intégration Google Maps
+✓ Socket.io pour notifications temps réel
+✓ Documentation complète
+
+---
+
+## RÉCAPITULATIF DES FICHIERS À COMPLÉTER PAR ORDRE
+
+**⚠️ NOTE:** Tous ces fichiers existent déjà mais sont **VIDES**. Il faut les compléter dans l'ordre suivant:
+
+### 1. Configuration (Fichiers vides - à compléter)
+- `frontend/deliverer/tailwind.config.js` ⚠️ VIDE
+- `frontend/deliverer/vite.config.js` ⚠️ VIDE
+- `frontend/deliverer/src/index.css` ⚠️ VIDE
+- `frontend/deliverer/public/manifest.json` (à créer)
+
+### 2. Services (Fichiers vides - à compléter)
+- `frontend/deliverer/src/services/api.js` ⚠️ VIDE
+- `frontend/deliverer/src/services/blockchain.js` ⚠️ VIDE
+- `frontend/deliverer/src/services/geolocation.js` ⚠️ VIDE
+
+### 3. Composants (Fichiers vides - à compléter)
+- `frontend/deliverer/src/components/ConnectWallet.jsx` ⚠️ VIDE
+- `frontend/deliverer/src/components/StakingPanel.jsx` ⚠️ VIDE
+- `frontend/deliverer/src/components/AvailableOrders.jsx` ⚠️ VIDE
+- `frontend/deliverer/src/components/ActiveDelivery.jsx` ⚠️ VIDE
+- `frontend/deliverer/src/components/NavigationMap.jsx` ⚠️ VIDE
+- `frontend/deliverer/src/components/EarningsTracker.jsx` ⚠️ VIDE
+- `frontend/deliverer/src/components/RatingDisplay.jsx` ⚠️ VIDE
+
+### 4. Pages (Fichiers vides - à compléter)
+- `frontend/deliverer/src/pages/HomePage.jsx` ⚠️ VIDE
+- `frontend/deliverer/src/pages/DeliveriesPage.jsx` ⚠️ VIDE
+- `frontend/deliverer/src/pages/EarningsPage.jsx` ⚠️ VIDE
+- `frontend/deliverer/src/pages/ProfilePage.jsx` ⚠️ VIDE
+
+### 5. Application Principale (Fichiers vides - à compléter)
+- `frontend/deliverer/src/App.jsx` ⚠️ VIDE
+- `frontend/deliverer/src/index.jsx` ⚠️ VIDE
+- `frontend/deliverer/public/index.html` ⚠️ VIDE
+
+### 6. Configuration
+- `frontend/deliverer/.env.example` (à créer)
+- `frontend/deliverer/.env` (à créer)
+
+### 7. Documentation
+- `frontend/deliverer/README.md` (peut être complété après implémentation)
+
+---
+
+## FONCTIONNALITÉS DÉTAILLÉES PAR COMPOSANT
+
+### StakingPanel.jsx
+- Display staked amount
+- Stake 0.1 ETH button
+- Unstake button (if no active delivery)
+- Slashing history
+
+### AvailableOrders.jsx
+- List nearby orders
+- Distance to restaurant
+- Estimated earnings
+- Accept order button
+
+### ActiveDelivery.jsx
+- Order details
+- Restaurant address
+- Client address
+- Navigation button
+- Confirm pickup button
+- Confirm delivery button
+- GPS tracking active
+
+### NavigationMap.jsx
+- Google Maps integration
+- Route to restaurant
+- Route to client
+- Real-time location updates
+
+### EarningsTracker.jsx
+- Today's earnings
+- Week/month earnings
+- Pending payments
+- Completed deliveries count
+
+### RatingDisplay.jsx
+- Note moyenne
+- Nombre total livraisons
+- Avis récents clients
+- Graphique évolution notes
+- Objectifs performance
+
+---
+
+## PWA POUR MOBILE
+
+- Configuration PWA dans vite.config.js
+- Installation sur écran d'accueil mobile
+- Fonctionnement offline partiel
+- Notifications push
+- Accès GPS natif
+- Manifest avec icônes
+
+---
+
+## LIVRABLES ATTENDUS
+
+✓ Application livreur fonctionnelle
+✓ GPS tracking simulé
+✓ Affichage staking/earnings
+✓ PWA pour mobile
+✓ Intégration Google Maps
+✓ Socket.io pour notifications temps réel
+✓ Documentation complète
+
+---
+
+## NOTES IMPORTANTES
+
+- Application web-first avec PWA pour mobile
+- Google Maps pour navigation
+- Geolocation API native pour GPS
+- Socket.io pour notifications temps réel
+- Interface optimisée pour usage mobile (livreur en déplacement)
+
+---
+
+## PROCHAINES ÉTAPES
+
+→ Passer au Sprint 6: Oracles & Advanced Features
+→ Lire `SPRINT_6.txt` pour connaître les fichiers à créer
+→ Suivre `ETAPES_6.txt` pour les étapes détaillées
+
+# SPRINT 6: ORACLES & ADVANCED FEATURES
+
+## OBJECTIF
+Intégrer des Oracles (Chainlink + GPS + Météo) et un système d'arbitrage tokenisé pour rendre l'application plus intelligente, fiable et décentralisée.
+
+---
+
+## ⚠️ ÉTAT ACTUEL DU PROJET
+
+**IMPORTANT:** Les dossiers et fichiers suivants existent déjà mais sont **VIDES** ou **PARTIELLEMENT REMPLIS**. Il faut les compléter/implémenter.
+
+**Dossiers existants:**
+- ✓ `contracts/oracles/` (existe)
+- ✓ `contracts/governance/` (existe)
+- ✓ `backend/src/services/` (existe)
+
+**Fichiers existants mais vides/à compléter:**
+- ✓ `contracts/oracles/DonePriceOracle.sol` (vide - à compléter)
+- ✓ `contracts/oracles/DoneGPSOracle.sol` (vide - à compléter)
+- ✓ `contracts/oracles/DoneWeatherOracle.sol` (vide - à compléter)
+- ✓ `contracts/governance/DoneArbitration.sol` (vide - à compléter)
+- ✓ `backend/src/services/chainlinkService.js` (vide - à compléter)
+- ✓ `backend/src/services/gpsOracleService.js` (vide - à compléter)
+- ✓ `backend/src/services/arbitrationService.js` (vide - à compléter)
+
+**Fichiers documentés:**
+- ✓ `contracts/oracles/README.md` (créé et documenté)
+- ✓ `contracts/governance/README.md` (créé et documenté)
+- ✓ `backend/src/services/README_SPRINT6.md` (créé et documenté - 1975 lignes)
+
+---
+
+## ÉTAPES À SUIVRE PAR ORDRE
+
+### ÉTAPE 1: PRÉPARATION DE L'ENVIRONNEMENT
+- ✓ Vérifier que Hardhat est configuré (Sprint 1)
+- ✓ Obtenir une clé API Chainlink (si nécessaire)
+- ✓ Préparer les adresses des contrats existants (OrderManager, Token)
+- ✓ Avoir des MATIC de test pour déploiement
+- ✓ Comprendre le fonctionnement des Chainlink Price Feeds
+
+### ÉTAPE 2: INSTALLATION DES DÉPENDANCES ORACLES
+1. Aller dans le dossier `contracts/`:
+   ```bash
+   cd contracts
+   ```
+2. Installer les dépendances Chainlink:
+   ```bash
+   npm install @chainlink/contracts
+   ```
+3. Vérifier que OpenZeppelin est installé (déjà fait Sprint 1)
+
+### ÉTAPE 3: IMPLÉMENTATION DU CONTRAT DonePriceOracle.sol
+**Fichier à compléter:** `contracts/oracles/DonePriceOracle.sol` (vide - à compléter)
+
+**Implémenter:**
+- Oracle de prix MATIC/USD utilisant Chainlink Price Feed
+- Imports: `@chainlink/contracts` AggregatorV3Interface, OpenZeppelin Ownable
+- Variables: priceFeed (AggregatorV3Interface), DECIMALS, PRECISION
+- Constructeur: prend address Chainlink Price Feed (Mumbai ou Mainnet)
+- Fonctions:
+  * `getLatestPrice()` - Récupère prix MATIC/USD depuis Chainlink
+  * `convertUSDtoMATIC(uint256 usdAmount)` - Convertit USD en MATIC
+  * `convertMATICtoUSD(uint256 maticAmount)` - Convertit MATIC en USD
+  * `getPriceWithAge()` - Prix avec âge de la donnée
+- Events: PriceUpdated, ConversionRequested
+
+### ÉTAPE 4: IMPLÉMENTATION DU CONTRAT DoneGPSOracle.sol
+**Fichier à compléter:** `contracts/oracles/DoneGPSOracle.sol` (vide - à compléter)
+
+**Implémenter:**
+- Oracle GPS pour vérification livraison on-chain
+- Imports: OpenZeppelin AccessControl, ReentrancyGuard
+- Structs: GPSLocation, DeliveryRoute
+- Variables: DELIVERER_ROLE, ORACLE_ROLE, deliveryRoutes mapping, currentLocations mapping
+- Constantes: DELIVERY_RADIUS (100m), EARTH_RADIUS (6371000m)
+- Fonctions:
+  * `updateLocation(uint256 orderId, int256 lat, int256 lng)`
+  * `verifyDelivery(uint256 orderId, int256 clientLat, int256 clientLng)`
+  * `calculateDistance(int256 lat1, int256 lng1, int256 lat2, int256 lng2)`
+  * `getDeliveryRoute(uint256 orderId)`
+  * `setDeliveryRadius(uint256 newRadius)`
+- Events: LocationUpdated, DeliveryVerified, RouteCompleted
+
+### ÉTAPE 5: IMPLÉMENTATION DU CONTRAT DoneWeatherOracle.sol
+**Fichier à compléter:** `contracts/oracles/DoneWeatherOracle.sol` (vide - à compléter)
+
+**Implémenter:**
+- Oracle météo (bonus) pour adapter conditions livraison
+- Imports: Chainlink AggregatorV3Interface (optionnel), OpenZeppelin Ownable
+- Enums: WeatherCondition (SUNNY, CLOUDY, RAINY, SNOWY, STORM)
+- Structs: WeatherData
+- Variables: weatherByLocation mapping, deliveryFeeMultipliers mapping
+- Constantes: UPDATE_INTERVAL (1 hour)
+- Fonctions:
+  * `updateWeather(int256 lat, int256 lng, WeatherCondition condition, int256 temperature)`
+  * `getWeather(int256 lat, int256 lng)`
+  * `adjustDeliveryFee(uint256 baseFee, WeatherCondition condition)`
+  * `canDeliver(int256 lat, int256 lng)`
+  * `setFeeMultiplier(WeatherCondition condition, uint256 multiplier)`
+- Events: WeatherUpdated, DeliveryFeeAdjusted, ExtremeWeatherAlert
+
+### ÉTAPE 6: IMPLÉMENTATION DU CONTRAT DoneArbitration.sol
+**Fichier à compléter:** `contracts/governance/DoneArbitration.sol` (vide - à compléter)
+
+**Implémenter:**
+- Système d'arbitrage décentralisé par vote communautaire
+- Imports: OpenZeppelin AccessControl, ReentrancyGuard, DoneToken, DoneOrderManager
+- Variables: doneToken, orderManager, disputeCount, disputes mapping, hasVoted mapping, votes mapping
+- Structs: Dispute
+- Enums: Winner, DisputeStatus
+- Events: DisputeCreated, VoteCast, DisputeResolved
+- Fonctions:
+  * `createDispute(uint256 orderId, string reason, string evidenceIPFS)`
+  * `voteDispute(uint256 disputeId, Winner winner)`
+  * `resolveDispute(uint256 disputeId)`
+  * `getDispute(uint256 disputeId)`
+  * `getVoteDistribution(uint256 disputeId)`
+  * `getUserVotingPower(address user)`
+- Paramètres configurables: minVotingPowerRequired (1000 DONE), votingPeriod (48h)
+
+### ÉTAPE 7: IMPLÉMENTATION DES SERVICES BACKEND
+**Fichiers à compléter (existent mais vides):**
+
+1. **`backend/src/services/chainlinkService.js`** (vide - à compléter)
+   - Service interaction Chainlink Price Feed et DonePriceOracle
+   - Fonctions avec métriques de performance:
+     * `fetchPrice()` - Récupère prix MATIC/USD depuis Chainlink
+       → Métriques: totalFetches, failedFetches, averageFetchTime, cacheHitRate
+       → Performance cible: Cache Hit Rate >75%, Avg Fetch <500ms
+     * `convertUSDtoMATIC(usdAmount)` - Convertit USD en MATIC
+     * `convertMATICtoUSD(maticAmount)` - Convertit MATIC en USD
+     * `syncPrice()` - Synchronise prix avec contrat DonePriceOracle
+       → **Cron Job: Toutes les 10 minutes**
+     * `getLatestPrice()` - Dernier prix enregistré
+     * `getPriceMetrics()` - Récupère métriques de performance
+   - Gestion erreurs: Timeouts (5s), Retry Logic (3 tentatives), Fallback cache
+   - Routes API: POST /api/oracles/price/convert, GET /api/oracles/price/latest, GET /api/oracles/price/metrics
+
+2. **`backend/src/services/gpsOracleService.js`** (vide - à compléter)
+   - Service gestion données GPS et interaction DoneGPSOracle
+   - Fonctions avec métriques de performance:
+     * `updateLocation(orderId, lat, lng)` - Met à jour position livreur
+       → Métriques: totalUpdates, onChainRatio, averageLatency
+       → Performance cible: On-chain Ratio 15-25%, Latency <200ms (off-chain)
+     * `verifyDelivery(orderId, clientLat, clientLng)` - Vérifie livraison valide
+       → Métriques: totalVerifications, successRate, averageDistance
+       → Performance cible: Success Rate >90%
+     * `calculateDistance(lat1, lng1, lat2, lng2)` - Calcule distance entre points
+     * `trackDelivery(orderId)` - Suit livraison temps réel
+     * `getDeliveryPath(orderId)` - Récupère chemin complet
+     * `getGPSMetrics()` - Récupère métriques de performance
+   - Stratégie stockage hybride: Off-chain (MongoDB) + On-chain (Blockchain - every 5th update)
+   - Routes API: POST /api/oracles/gps/update, POST /api/oracles/gps/verify, GET /api/oracles/gps/track/:orderId, GET /api/oracles/gps/metrics
+
+3. **`backend/src/services/arbitrationService.js`** (vide - à compléter)
+   - Service gestion système arbitrage décentralisé
+   - Fonctions avec métriques de performance:
+     * `createDispute(orderId, reason, evidence)` - Crée nouveau litige
+       → Métriques: totalDisputes, averageCreationTime
+     * `voteDispute(disputeId, winner, voterAddress)` - Enregistre vote
+       → Métriques: totalVotes, averageVotingPower
+     * `resolveDispute(disputeId)` - Résout litige après période vote
+       → Métriques: totalResolved, resolutionRate, averageResolutionTime
+       → **Cron Job: Toutes les heures (résolution automatique)**
+       → Performance cible: Resolution Rate >80%, Avg Time <48h
+     * `getDispute(disputeId)` - Récupère détails litige
+     * `getVotingPower(address)` - Calcule pouvoir de vote
+     * `getDisputeVotes(disputeId)` - Récupère tous votes
+     * `getArbitrationMetrics()` - Récupère métriques de performance
+   - Routes API: POST /api/oracles/arbitration/dispute, POST /api/oracles/arbitration/vote, POST /api/oracles/arbitration/resolve/:disputeId, GET /api/oracles/arbitration/dispute/:disputeId, GET /api/oracles/arbitration/metrics
+
+### ÉTAPE 8: MISE À JOUR DES CONTRATS EXISTANTS
+**Fichier à modifier:** `contracts/DoneOrderManager.sol`
+
+**À ajouter:**
+- Intégrer DonePriceOracle pour conversions prix
+- Intégrer DoneGPSOracle pour vérification livraison
+- Intégrer DoneArbitration pour résolution litiges
+
+### ÉTAPE 9: COMPILATION ET TESTS
+1. Compiler les contrats:
+   ```bash
+   npx hardhat compile
+   ```
+2. Créer des tests pour les oracles:
+   - `test/oracles/DonePriceOracle.test.js` (à créer)
+   - `test/oracles/DoneGPSOracle.test.js` (à créer)
+   - `test/oracles/DoneWeatherOracle.test.js` (à créer)
+   - `test/governance/DoneArbitration.test.js` (à créer)
+3. Exécuter les tests:
+   ```bash
+   npx hardhat test
+   ```
+
+### ÉTAPE 10: DÉPLOIEMENT DES ORACLES
+1. Déployer DonePriceOracle (avec address Chainlink Price Feed Mumbai):
+   ```bash
+   npx hardhat run scripts/deploy-oracles.js --network mumbai
+   ```
+2. Déployer DoneGPSOracle
+3. Déployer DoneWeatherOracle (optionnel)
+4. Déployer DoneArbitration
+5. Configurer les adresses dans DoneOrderManager
+
+### ÉTAPE 11: CONFIGURATION POST-DÉPLOIEMENT
+1. Configurer les rôles:
+   - ORACLE_ROLE pour backend services
+   - DELIVERER_ROLE pour livreurs (GPS)
+   - ARBITER_ROLE pour arbitres
+2. Configurer Chainlink Price Feed address (Mumbai ou Mainnet)
+3. Tester les conversions de prix
+4. Tester le GPS tracking
+5. Tester l'arbitrage
+
+### ÉTAPE 12: VALIDATION DU SPRINT 6
+✓ Tous les fichiers vides complétés avec le code
+✓ Oracles intégrés (Price, GPS, Weather)
+✓ Prix dynamiques MATIC/USD
+✓ GPS verification on-chain
+✓ Système arbitrage décentralisé
+✓ Services backend pour oracles avec métriques de performance
+✓ **11 Routes API créées et documentées**
+✓ **4 Types de tests implémentés (Unit, Integration, Performance, Resilience)**
+✓ **Gestion erreurs complète (Timeouts, Retry Logic, Logging, Validation)**
+✓ **2 Cron Jobs configurés (Price sync 10min, Dispute resolution 1h)**
+✓ **Endpoint monitoring /api/oracles/metrics**
+✓ Tests passent
+✓ Contrats déployés
+✓ Documentation complète (3 READMEs 5/5 ⭐, total 1975 lignes pour backend)
+
+---
+
+## RÉCAPITULATIF DES FICHIERS À COMPLÉTER PAR ORDRE
+
+**⚠️ NOTE:** Tous ces fichiers existent déjà mais sont **VIDES**. Il faut les compléter dans l'ordre suivant:
+
+### 1. Contrats Oracles (Fichiers vides - à compléter)
+- `contracts/oracles/DonePriceOracle.sol` ⚠️ VIDE
+- `contracts/oracles/DoneGPSOracle.sol` ⚠️ VIDE
+- `contracts/oracles/DoneWeatherOracle.sol` ⚠️ VIDE
+
+### 2. Contrat Governance (Fichier vide - à compléter)
+- `contracts/governance/DoneArbitration.sol` ⚠️ VIDE
+
+### 3. Services Backend (Fichiers vides - à compléter)
+- `backend/src/services/chainlinkService.js` ⚠️ VIDE
+- `backend/src/services/gpsOracleService.js` ⚠️ VIDE
+- `backend/src/services/arbitrationService.js` ⚠️ VIDE
+
+### 4. Mise à jour Contrat Existant
+- `contracts/DoneOrderManager.sol` (à modifier pour intégrer oracles)
+
+### 5. Tests (Fichiers à créer)
+- `test/oracles/DonePriceOracle.test.js` (à créer)
+- `test/oracles/DoneGPSOracle.test.js` (à créer)
+- `test/oracles/DoneWeatherOracle.test.js` (à créer)
+- `test/governance/DoneArbitration.test.js` (à créer)
+
+### 6. Scripts Déploiement
+- `scripts/deploy-oracles.js` (à créer)
+
+### 7. Documentation (Déjà créée)
+- ✓ `contracts/oracles/README.md` (créé et documenté)
+- ✓ `contracts/governance/README.md` (créé et documenté)
+- ✓ `backend/src/services/README_SPRINT6.md` (créé et documenté - 1975 lignes)
+
+---
+
+## ROUTES API BACKEND (11 routes)
+
+### Prix Oracles:
+- `POST /api/oracles/price/convert` - Convertir USD/MATIC
+- `GET /api/oracles/price/latest` - Prix actuel
+- `GET /api/oracles/price/metrics` - Métriques prix
+
+### GPS Oracles:
+- `POST /api/oracles/gps/update` - Update position livreur
+- `POST /api/oracles/gps/verify` - Vérifier livraison
+- `GET /api/oracles/gps/track/:orderId` - Tracking temps réel
+- `GET /api/oracles/gps/metrics` - Métriques GPS
+
+### Arbitration:
+- `POST /api/oracles/arbitration/dispute` - Créer litige
+- `POST /api/oracles/arbitration/vote` - Voter
+- `POST /api/oracles/arbitration/resolve/:disputeId` - Résoudre
+- `GET /api/oracles/arbitration/dispute/:disputeId` - Détails litige
+- `GET /api/oracles/arbitration/metrics` - Métriques arbitrage
+
+---
+
+## CRON JOBS
+
+1. **Price Sync Job** (toutes les 10 minutes):
+   - Synchronise prix MATIC/USD depuis Chainlink
+   - Appelle `chainlinkService.syncPrice()`
+
+2. **Dispute Resolution Job** (toutes les heures):
+   - Résout automatiquement disputes après période vote
+   - Appelle `arbitrationService.resolveDispute()`
+
+---
+
+## MÉTRIQUES DE PERFORMANCE CIBLES
+
+**chainlinkService.js:**
+- Cache Hit Rate: >75% (cible: 78%)
+- Average Fetch Time: <500ms
+- Sync Success Rate: >95%
+
+**gpsOracleService.js:**
+- On-chain Storage Ratio: 15-25% (every 5th update)
+- Update Latency: <200ms (off-chain), <2s (on-chain)
+- Verification Success Rate: >90%
+
+**arbitrationService.js:**
+- Dispute Resolution Rate: >80% (cible: 85%)
+- Average Resolution Time: <48h
+- Participation Rate: >10% token holders
+
+---
+
+## LIVRABLES ATTENDUS
+
+✓ Oracles intégrés (Price, GPS, Weather)
+✓ Prix dynamiques MATIC/USD
+✓ GPS verification on-chain
+✓ Système arbitrage décentralisé
+✓ Services backend pour oracles avec métriques de performance
+✓ 11 Routes API créées et documentées
+✓ 4 Types de tests implémentés
+✓ Gestion erreurs complète
+✓ 2 Cron Jobs configurés
+✓ Endpoint monitoring /api/oracles/metrics
+✓ Documentation complète (1975 lignes pour backend)
+
+---
+
+## NOTES IMPORTANTES
+
+- Sprint 6 rend le système vraiment décentralisé et Web3
+- Oracles permettent automatisation et fiabilité
+- Arbitrage tokenisé transforme la plateforme en DAO-like
+- Documentation backend README_SPRINT6.md est LLM-ready (1975 lignes)
+- Vérifier les coûts de gas pour les oracles
+- Tester exhaustivement avant mainnet
+
+---
+
+## PROCHAINES ÉTAPES
+
+→ Passer au Sprint 7: Testing & Security
+→ Lire `SPRINT_7.txt` pour connaître les fichiers à créer
+→ Suivre `ETAPES_7.txt` pour les étapes détaillées
+
+# SPRINT 7: TESTING & SECURITY
+
+## OBJECTIF
+Tests complets et audit sécurité. Vérifier que les flows critiques fonctionnent de A à Z (intégration), que les smart contracts sont sûrs (pas de reentrancy, pas de vol de fonds), que le gas est optimisé, et produire des rapports (audit, checklists, optimisations).
+
+---
+
+## ⚠️ ÉTAT ACTUEL DU PROJET
+
+**IMPORTANT:** Les dossiers et fichiers suivants doivent être créés ou sont vides. Il faut les créer/compléter.
+
+**Dossiers à créer:**
+- ⚠️ `test/integration/` (à créer)
+- ⚠️ `test/security/` (à créer)
+- ⚠️ `test/performance/` (à créer)
+
+**Fichiers à créer/compléter:**
+- ⚠️ `test/integration/fullOrderFlow.test.js` (à créer)
+- ⚠️ `test/integration/disputeFlow.test.js` (à créer)
+- ⚠️ `test/integration/stakingFlow.test.js` (à créer)
+- ⚠️ `test/security/reentrancy.test.js` (à créer)
+- ⚠️ `test/security/accessControl.test.js` (à créer)
+- ⚠️ `test/security/overflow.test.js` (à créer)
+- ⚠️ `test/performance/gasOptimization.test.js` (à créer)
+- ⚠️ `scripts/audit-report.js` (à créer)
+- ⚠️ `scripts/security-checklist.md` (à créer)
+
+---
+
+## ÉTAPES À SUIVRE PAR ORDRE
+
+### ÉTAPE 1: PRÉPARATION DE L'ENVIRONNEMENT
+- ✓ Vérifier que Hardhat est configuré
+- ✓ Avoir tous les contrats compilés (Sprints 1-6)
+- ✓ Préparer des wallets de test avec fonds
+- ✓ Installer les outils d'audit (Slither, Mythril - optionnel)
+
+### ÉTAPE 2: CRÉATION DES DOSSIERS DE TESTS
+1. Créer les dossiers:
+   ```bash
+   mkdir -p test/integration
+   mkdir -p test/security
+   mkdir -p test/performance
+   ```
+
+### ÉTAPE 3: CRÉATION DES TESTS D'INTÉGRATION
+**Fichiers à créer:**
+
+1. **`test/integration/fullOrderFlow.test.js`** (à créer)
+   - Test flux complet commande du début à la fin
+   - Scénario:
+     1. Client crée commande (`createOrder()`)
+     2. Restaurant confirme préparation (`confirmPreparation()`)
+     3. Livreur assigné (`assignDeliverer()`)
+     4. Livreur pickup (`confirmPickup()`)
+     5. Client confirme livraison (`confirmDelivery()`)
+     6. Split automatique paiements
+     7. Tokens DONE mintés
+   - Vérifier chaque étape et les transitions d'état
+
+2. **`test/integration/disputeFlow.test.js`** (à créer)
+   - Test flux complet de litige
+   - Scénario:
+     1. Client ouvre litige (`openDispute()`)
+     2. Funds frozen
+     3. Arbitres votent (via DoneArbitration.sol)
+     4. Litige résolu (`resolveDispute()`)
+     5. Fonds libérés au gagnant
+   - Vérifier que les fonds ne sont jamais libérés à la mauvaise personne
+
+3. **`test/integration/stakingFlow.test.js`** (à créer)
+   - Test logique complète staking livreurs
+   - Scénario:
+     1. Livreur stake 0.1 ETH (`stakeAsDeliverer()`)
+     2. Livreur accepte commande
+     3. Livreur complète livraison
+     4. Unstake réussi (`unstake()`)
+     5. Slash test (annulation abusive)
+   - Valide système incitation/réputation livreurs
+
+### ÉTAPE 4: CRÉATION DES TESTS DE SÉCURITÉ
+**Fichiers à créer:**
+
+1. **`test/security/reentrancy.test.js`** (à créer)
+   - Vérifier contrats non vulnérables attaque réentrance
+   - Créer contrat malveillant qui tente réentrancy
+   - Vérifications:
+     * Contrat revert si reentrancy possible
+     * Utilise ReentrancyGuard (modifier nonReentrant)
+     * État bien mis à jour avant transferts (checks-effects-interactions pattern)
+
+2. **`test/security/accessControl.test.js`** (à créer)
+   - Vérifier seuls bons rôles peuvent appeler fonctions sensibles
+   - Exemples:
+     * `confirmPreparation()` → seulement restaurant associé
+     * `assignDeliverer()` → seulement plateforme ou contrat autorisé
+     * `confirmDelivery()` → seulement client
+     * `resolveDispute()` → seulement arbitrator
+     * `slash()` → seulement PLATFORM
+   - Tests: Appels avec mauvaise adresse → doivent revert
+
+3. **`test/security/overflow.test.js`** (à créer)
+   - S'assurer pas d'overflow/underflow sur calculs
+   - Tester gros montants dans:
+     * Calcul totalAmount
+     * splitPayment (70/20/10)
+     * mint/burn tokens
+   - Vérifications: Pas comportement bizarre avec montants extrêmes
+
+### ÉTAPE 5: CRÉATION DES TESTS DE PERFORMANCE
+**Fichier à créer:**
+
+1. **`test/performance/gasOptimization.test.js`** (à créer)
+   - Mesurer et optimiser coût gas fonctions
+   - Mesurer gas consommé par:
+     * `createOrder`
+     * `confirmDelivery`
+     * `splitPayment`
+     * `stakeAsDeliverer`
+     * `voteDispute`, `resolveDispute`
+   - Essayer optimisations:
+     * Utiliser uint256 cohérents partout
+     * Réduire écritures storage
+     * Utiliser events plutôt que trop stockage
+     * Simplifier structs
+   - Produire Gas Optimization Report
+
+### ÉTAPE 6: EXÉCUTION DES TESTS
+1. Exécuter tous les tests d'intégration:
+   ```bash
+   npx hardhat test test/integration/
+   ```
+2. Exécuter tous les tests de sécurité:
+   ```bash
+   npx hardhat test test/security/
+   ```
+3. Exécuter tous les tests de performance:
+   ```bash
+   npx hardhat test test/performance/
+   ```
+4. Vérifier que tous les tests passent (100%)
+
+### ÉTAPE 7: CRÉATION DES SCRIPTS D'AUDIT
+**Fichier à créer:**
+
+1. **`scripts/audit-report.js`** (à créer)
+   - Script génération rapport audit sécurité
+   - Analyse contrats pour vulnérabilités
+   - Génère rapport markdown avec findings
+   - Catégories: Critical, High, Medium, Low
+
+2. Exécuter le script:
+   ```bash
+   node scripts/audit-report.js
+   ```
+
+### ÉTAPE 8: CRÉATION DE LA CHECKLIST SÉCURITÉ
+**Fichier à créer:**
+
+1. **`scripts/security-checklist.md`** (à créer)
+   - Checklist sécurité complète
+   - Points vérifiés:
+     * Reentrancy protection
+     * Access control
+     * Integer overflow/underflow
+     * Front-running protection
+     * Gas optimization
+     * Events pour audit trail
+     * Pausable pour urgence
+   - Cocher chaque point vérifié
+
+### ÉTAPE 9: CORRECTION DES BUGS
+1. Identifier les bugs trouvés dans les tests
+2. Corriger les vulnérabilités de sécurité
+3. Optimiser le gas si nécessaire
+4. Re-tester après corrections
+
+### ÉTAPE 10: GÉNÉRATION DES RAPPORTS
+1. Générer rapport d'audit sécurité
+2. Générer rapport optimisation gas
+3. Générer rapport tests d'intégration
+4. Documenter tous les findings
+
+### ÉTAPE 11: VALIDATION DU SPRINT 7
+✓ Tous les fichiers créés et complétés
+✓ Tests intégration 100% pass
+✓ Security audit report généré
+✓ Gas optimization report généré
+✓ Bug fixes déployés
+✓ Checklist sécurité complète
+✓ Tous les contrats audités
+✓ Documentation complète
+
+---
+
+## RÉCAPITULATIF DES FICHIERS À CRÉER PAR ORDRE
+
+**⚠️ NOTE:** Ces fichiers doivent être **CRÉÉS**. Il faut les créer dans l'ordre suivant:
+
+### 1. Dossiers de Tests (À créer)
+- `test/integration/` (à créer)
+- `test/security/` (à créer)
+- `test/performance/` (à créer)
+
+### 2. Tests d'Intégration (Fichiers à créer)
+- `test/integration/fullOrderFlow.test.js` ⚠️ À CRÉER
+- `test/integration/disputeFlow.test.js` ⚠️ À CRÉER
+- `test/integration/stakingFlow.test.js` ⚠️ À CRÉER
+
+### 3. Tests de Sécurité (Fichiers à créer)
+- `test/security/reentrancy.test.js` ⚠️ À CRÉER
+- `test/security/accessControl.test.js` ⚠️ À CRÉER
+- `test/security/overflow.test.js` ⚠️ À CRÉER
+
+### 4. Tests de Performance (Fichier à créer)
+- `test/performance/gasOptimization.test.js` ⚠️ À CRÉER
+
+### 5. Scripts d'Audit (Fichiers à créer)
+- `scripts/audit-report.js` ⚠️ À CRÉER
+- `scripts/security-checklist.md` ⚠️ À CRÉER
+
+---
+
+## TESTS CRITIQUES À IMPLÉMENTER
+
+### fullOrderFlow.test.js
+- Client crée commande
+- Restaurant confirme
+- Livreur assigned
+- Livreur pickup
+- Client confirms delivery
+- Payments split automatique
+- Tokens minted
+
+### disputeFlow.test.js
+- Client ouvre dispute
+- Funds frozen
+- Arbitrators vote
+- Dispute resolved
+- Funds released to winner
+
+### stakingFlow.test.js
+- Livreur stake 0.1 ETH
+- Accept order
+- Complete delivery
+- Unstake successful
+- Slash test (cancel order)
+
+### security/
+- Reentrancy attacks
+- Access control bypass
+- Integer overflow/underflow
+- Front-running protection
+
+---
+
+## LIVRABLES ATTENDUS
+
+✓ Tests intégration 100% pass
+✓ Security audit report
+✓ Gas optimization report
+✓ Bug fixes deployed
+✓ Checklist sécurité complète
+✓ Tous les contrats audités
+✓ Documentation complète
+
+---
+
+## NOTES IMPORTANTES
+
+- Tests d'intégration critiques pour valider workflow complet
+- Tests sécurité essentiels avant mainnet
+- Optimisation gas importante pour coûts réduits
+- Rapports d'audit nécessaires pour confiance utilisateurs
+- Corriger tous les bugs critiques avant déploiement mainnet
+
+---
+
+## PROCHAINES ÉTAPES
+
+→ Passer au Sprint 8: Analytics & Admin Dashboard
+→ Lire `SPRINT_8.txt` pour connaître les fichiers à créer
+→ Suivre `ETAPES_8.txt` pour les étapes détaillées
+
+# SPRINT 8: ANALYTICS & ADMIN DASHBOARD
+
+## OBJECTIF
+Créer le dashboard admin pour le monitoring de la plateforme avec analytics en temps réel et gestion des litiges.
+
+---
+
+## ⚠️ ÉTAT ACTUEL DU PROJET
+
+**IMPORTANT:** Le dossier `frontend/admin/` n'existe pas encore. Il faut le créer ainsi que tous les fichiers.
+
+**Dossiers à créer:**
+- ⚠️ `frontend/admin/` (à créer)
+- ⚠️ `frontend/admin/src/` (à créer)
+- ⚠️ `frontend/admin/src/components/` (à créer)
+- ⚠️ `frontend/admin/src/pages/` (à créer)
+- ⚠️ `frontend/admin/src/services/` (à créer)
+
+**Fichiers à créer:**
+- ⚠️ Tous les fichiers admin (à créer)
+
+**Fichiers backend à créer:**
+- ⚠️ `backend/src/routes/admin.js` (à créer)
+- ⚠️ `backend/src/routes/analytics.js` (à créer)
+
+---
+
+## ÉTAPES À SUIVRE PAR ORDRE
+
+### ÉTAPE 1: PRÉPARATION DE L'ENVIRONNEMENT
+- ✓ Vérifier que Node.js (v18+) est installé
+- ✓ Avoir l'URL de l'API backend (Sprint 2)
+- ✓ Préparer les adresses des contrats déployés
+- ✓ Avoir un wallet avec rôle PLATFORM/ADMIN
+
+### ÉTAPE 2: INITIALISATION DU FRONTEND ADMIN
+1. Créer le dossier `frontend/admin/`:
+   ```bash
+   mkdir -p frontend/admin
+   cd frontend/admin
+   ```
+2. Initialiser le projet Vite + React:
+   ```bash
+   npm create vite@latest . -- --template react
+   ```
+3. Installer les dépendances principales:
+   ```bash
+   npm install react-router-dom ethers chart.js react-chartjs-2 axios
+   npm install -D tailwindcss postcss autoprefixer
+   npx tailwindcss init -p
+   ```
+
+### ÉTAPE 3: CONFIGURATION DE TAILWINDCSS
+**Fichiers à créer:**
+- `tailwind.config.js` (à créer)
+- `index.css` avec directives Tailwind (à créer)
+- `vite.config.js` (à créer)
+
+### ÉTAPE 4: CRÉATION DE LA STRUCTURE DES DOSSIERS
+1. Créer la structure complète:
+   ```
+   frontend/admin/
+   ├── public/
+   │   └── index.html
+   ├── src/
+   │   ├── components/
+   │   ├── pages/
+   │   ├── services/
+   │   ├── App.jsx
+   │   ├── index.jsx
+   │   └── index.css
+   └── package.json
+   ```
+
+### ÉTAPE 5: CRÉATION DES SERVICES
+**Fichiers à créer:**
+
+1. **`frontend/admin/src/services/api.js`** (à créer)
+   - Service appels API backend admin
+   - Fonctions: `getPlatformStats()`, `getDisputes()`, `resolveDispute()`, `getUsers()`, `getRestaurants()`, `getDeliverers()`
+
+2. **`frontend/admin/src/services/blockchain.js`** (à créer)
+   - Service interactions Web3 admin
+   - Fonctions: `hasRole()`, `getPlatformRevenue()`, `resolveDisputeOnChain()`
+
+### ÉTAPE 6: CRÉATION DES COMPOSANTS
+**Fichiers à créer:**
+
+1. **`frontend/admin/src/components/ConnectWallet.jsx`** (à créer)
+   - Connexion MetaMask pour admin
+   - Vérification rôle PLATFORM/ADMIN
+   - Affichage adresse connectée
+
+2. **`frontend/admin/src/components/PlatformStats.jsx`** (à créer)
+   - Statistiques globales plateforme
+   - Total commandes (aujourd'hui/semaine/mois)
+   - Total GMV (Gross Merchandise Value)
+   - Utilisateurs actifs (clients/restaurants/livreurs)
+   - Revenue plateforme (10% des commandes)
+   - Temps moyen livraison
+   - Taux satisfaction client
+   - Cards avec icônes et pourcentages variation
+
+3. **`frontend/admin/src/components/OrdersChart.jsx`** (à créer)
+   - Graphique commandes dans le temps
+   - Line chart avec axe X: dates, axe Y: nombre commandes
+   - Filtres: Jour / Semaine / Mois / Année
+   - Comparaison périodes
+
+4. **`frontend/admin/src/components/RevenueChart.jsx`** (à créer)
+   - Graphique revenus plateforme
+   - Line chart revenus dans le temps
+   - Data depuis blockchain events PaymentSplit
+   - Filtres période
+   - Breakdown par source (restaurants, livreurs)
+
+5. **`frontend/admin/src/components/UsersTable.jsx`** (à créer)
+   - Table utilisateurs (clients)
+   - Colonnes: Address, Name, Email, Total Orders, Total Spent, Tokens DONE, Status
+   - Pagination
+   - Search bar
+   - Filtres (actifs/inactifs, avec tokens/sans tokens)
+
+6. **`frontend/admin/src/components/RestaurantsTable.jsx`** (à créer)
+   - Table restaurants
+   - Colonnes: Address, Name, Cuisine, Total Orders, Revenue, Rating, Status
+   - Pagination
+   - Search bar
+   - Filtres (actifs/inactifs, par cuisine, par rating)
+
+7. **`frontend/admin/src/components/DeliverersTable.jsx`** (à créer)
+   - Table livreurs
+   - Colonnes: Address, Name, Vehicle, Staked Amount, Total Deliveries, Rating, Earnings, Status
+   - Pagination
+   - Search bar
+   - Filtres (stakés/non-stakés, disponibles/indisponibles)
+
+8. **`frontend/admin/src/components/DisputesManager.jsx`** (à créer)
+   - Gestion litiges
+   - Liste litiges actifs
+   - Interface vote (si arbitrage décentralisé)
+   - Détails litige (orderId, parties, raison, preuves IPFS)
+   - Historique résolutions
+   - Actions: Résoudre manuellement, Voir détails, Voir votes
+
+9. **`frontend/admin/src/components/TokenomicsPanel.jsx`** (à créer)
+   - Panel tokenomics DONE
+   - Total tokens DONE mintés
+   - Tokens en circulation
+   - Tokens brûlés
+   - Prix token (si listé)
+   - Distribution tokens (top holders)
+   - Graphique émission/burn dans le temps
+
+### ÉTAPE 7: CRÉATION DES PAGES
+**Fichiers à créer:**
+
+1. **`frontend/admin/src/pages/DashboardPage.jsx`** (à créer)
+   - Tableau de bord principal admin
+   - Intègre PlatformStats, OrdersChart, RevenueChart
+   - Vue d'ensemble KPIs
+   - Accès rapide autres pages
+
+2. **`frontend/admin/src/pages/OrdersPage.jsx`** (à créer)
+   - Gestion toutes commandes plateforme
+   - Table avec filtres avancés
+   - Détails commande complète
+   - Actions admin (annuler, forcer résolution)
+
+3. **`frontend/admin/src/pages/UsersPage.jsx`** (à créer)
+   - Gestion utilisateurs
+   - Intègre UsersTable
+   - Actions: Suspendre, Activer, Voir détails
+
+4. **`frontend/admin/src/pages/DisputesPage.jsx`** (à créer)
+   - Gestion litiges
+   - Intègre DisputesManager
+   - Résolution manuelle si nécessaire
+   - Historique complet
+
+5. **`frontend/admin/src/pages/SettingsPage.jsx`** (à créer)
+   - Paramètres plateforme
+   - Configuration rôles
+   - Paramètres contrats
+   - Variables système
+
+### ÉTAPE 8: CRÉATION DES ROUTES BACKEND ADMIN
+**Fichiers à créer:**
+
+1. **`backend/src/routes/admin.js`** (à créer)
+   - Routes API admin
+   - `GET /api/admin/stats` - Statistiques globales plateforme
+   - `GET /api/admin/disputes` - Tous litiges avec statut
+   - `POST /api/admin/resolve-dispute/:id` - Résolution manuelle litige
+   - `GET /api/admin/users` - Liste utilisateurs
+   - `GET /api/admin/restaurants` - Liste restaurants
+   - `GET /api/admin/deliverers` - Liste livreurs
+   - Middleware: Vérification rôle ADMIN/PLATFORM
+
+2. **`backend/src/routes/analytics.js`** (à créer)
+   - Routes API analytics
+   - `GET /api/analytics/dashboard` - Dashboard analytics
+   - `GET /api/analytics/orders` - Analytics commandes
+   - `GET /api/analytics/revenue` - Analytics revenus
+   - `GET /api/analytics/users` - Analytics utilisateurs
+
+3. Mettre à jour `backend/src/server.js`:
+   - Ajouter les routes admin et analytics
+
+### ÉTAPE 9: CONFIGURATION DU ROUTING
+**Fichier à créer:** `frontend/admin/src/App.jsx` (à créer)
+
+**Implémenter:**
+- Composant racine application admin
+- Configuration React Router
+- Authentification admin via wallet
+- Layout avec navigation sidebar/header
+- Vérification rôle PLATFORM/ADMIN
+
+**Routes à configurer:**
+- `/` → DashboardPage
+- `/orders` → OrdersPage
+- `/users` → UsersPage
+- `/disputes` → DisputesPage
+- `/settings` → SettingsPage
+
+### ÉTAPE 10: CONFIGURATION DES VARIABLES D'ENVIRONNEMENT
+**Créer:** `frontend/admin/.env.example`
+- `VITE_API_URL`
+- `VITE_ORDER_MANAGER_ADDRESS`
+- `VITE_TOKEN_ADDRESS`
+
+**Créer:** `.env` avec les valeurs réelles
+
+### ÉTAPE 11: TEST DE L'APPLICATION
+1. Démarrer le serveur de développement:
+   ```bash
+   npm run dev
+   ```
+2. Tester les fonctionnalités:
+   - Connexion wallet admin
+   - Affichage statistiques globales
+   - Gestion utilisateurs/restaurants/livreurs
+   - Gestion litiges
+   - Analytics et graphiques
+
+### ÉTAPE 12: DOCUMENTATION
+**Fichier à compléter:** `docs/ADMIN_GUIDE.md` (peut être complété après implémentation)
+
+**Contenu à ajouter:**
+- Guide administrateur
+- Gestion rôles
+- Résolution litiges
+- Monitoring transactions
+- Configuration système
+
+### ÉTAPE 13: VALIDATION DU SPRINT 8
+✓ Tous les fichiers créés et complétés
+✓ Dashboard admin fonctionnel
+✓ Analytics temps réel
+✓ Interface gestion litiges
+✓ Gestion utilisateurs/restaurants/livreurs
+✓ Routes backend admin créées
+✓ Documentation complète
+
+---
+
+## RÉCAPITULATIF DES FICHIERS À CRÉER PAR ORDRE
+
+**⚠️ NOTE:** Ces fichiers doivent être **CRÉÉS**. Il faut les créer dans l'ordre suivant:
+
+### 1. Structure Frontend Admin (À créer)
+- `frontend/admin/` (dossier à créer)
+- `frontend/admin/src/` (dossier à créer)
+- `frontend/admin/src/components/` (dossier à créer)
+- `frontend/admin/src/pages/` (dossier à créer)
+- `frontend/admin/src/services/` (dossier à créer)
+
+### 2. Configuration (Fichiers à créer)
+- `frontend/admin/tailwind.config.js` ⚠️ À CRÉER
+- `frontend/admin/vite.config.js` ⚠️ À CRÉER
+- `frontend/admin/src/index.css` ⚠️ À CRÉER
+- `frontend/admin/public/index.html` ⚠️ À CRÉER
+
+### 3. Services (Fichiers à créer)
+- `frontend/admin/src/services/api.js` ⚠️ À CRÉER
+- `frontend/admin/src/services/blockchain.js` ⚠️ À CRÉER
+
+### 4. Composants (Fichiers à créer)
+- `frontend/admin/src/components/ConnectWallet.jsx` ⚠️ À CRÉER
+- `frontend/admin/src/components/PlatformStats.jsx` ⚠️ À CRÉER
+- `frontend/admin/src/components/OrdersChart.jsx` ⚠️ À CRÉER
+- `frontend/admin/src/components/RevenueChart.jsx` ⚠️ À CRÉER
+- `frontend/admin/src/components/UsersTable.jsx` ⚠️ À CRÉER
+- `frontend/admin/src/components/RestaurantsTable.jsx` ⚠️ À CRÉER
+- `frontend/admin/src/components/DeliverersTable.jsx` ⚠️ À CRÉER
+- `frontend/admin/src/components/DisputesManager.jsx` ⚠️ À CRÉER
+- `frontend/admin/src/components/TokenomicsPanel.jsx` ⚠️ À CRÉER
+
+### 5. Pages (Fichiers à créer)
+- `frontend/admin/src/pages/DashboardPage.jsx` ⚠️ À CRÉER
+- `frontend/admin/src/pages/OrdersPage.jsx` ⚠️ À CRÉER
+- `frontend/admin/src/pages/UsersPage.jsx` ⚠️ À CRÉER
+- `frontend/admin/src/pages/DisputesPage.jsx` ⚠️ À CRÉER
+- `frontend/admin/src/pages/SettingsPage.jsx` ⚠️ À CRÉER
+
+### 6. Application Principale (Fichiers à créer)
+- `frontend/admin/src/App.jsx` ⚠️ À CRÉER
+- `frontend/admin/src/index.jsx` ⚠️ À CRÉER
+
+### 7. Routes Backend (Fichiers à créer)
+- `backend/src/routes/admin.js` ⚠️ À CRÉER
+- `backend/src/routes/analytics.js` ⚠️ À CRÉER
+
+### 8. Configuration
+- `frontend/admin/.env.example` (à créer)
+- `frontend/admin/.env` (à créer)
+
+### 9. Documentation
+- `docs/ADMIN_GUIDE.md` (peut être complété après implémentation)
+
+---
+
+## FONCTIONNALITÉS DÉTAILLÉES PAR COMPOSANT
+
+### PlatformStats.jsx
+- Statistiques globales plateforme
+- Total commandes, GMV, utilisateurs actifs
+- Revenue plateforme, temps moyen livraison
+- Taux satisfaction client
+
+### OrdersChart.jsx
+- Graphique commandes dans le temps
+- Filtres période
+- Comparaison périodes
+
+### RevenueChart.jsx
+- Graphique revenus plateforme
+- Data depuis blockchain events
+- Breakdown par source
+
+### DisputesManager.jsx
+- Gestion litiges
+- Interface vote
+- Résolution manuelle
+- Historique résolutions
+
+---
+
+## LIVRABLES ATTENDUS
+
+✓ Dashboard admin fonctionnel
+✓ Analytics temps réel
+✓ Interface gestion litiges
+✓ Gestion utilisateurs/restaurants/livreurs
+✓ Routes backend admin créées
+✓ Documentation complète
+
+---
+
+## NOTES IMPORTANTES
+
+- Dashboard admin pour monitoring complet plateforme
+- Analytics depuis données on-chain et off-chain
+- Gestion litiges avec interface vote
+- Accès restreint aux rôles PLATFORM/ADMIN
+- Sécurité importante: vérifier rôles avant chaque action
+
+---
+
+## PROCHAINES ÉTAPES
+
+→ Passer au Sprint 9: Deployment & Documentation
+→ Lire `SPRINT_9.txt` pour connaître les fichiers à créer
+→ Suivre `ETAPES_9.txt` pour les étapes détaillées
+
+# SPRINT 9: DEPLOYMENT & DOCUMENTATION
+
+## OBJECTIF
+Déployer en production et créer documentation complète. Déploiement optionnel mais documentation obligatoire.
+
+---
+
+## ⚠️ ÉTAT ACTUEL DU PROJET
+
+**IMPORTANT:** Les fichiers de documentation existent déjà mais sont **VIDES**. Il faut les compléter. Les fichiers de déploiement doivent être créés.
+
+**Fichiers documentation existants mais vides:**
+- ✓ `docs/USER_GUIDE.md` (vide - à compléter)
+- ✓ `docs/RESTAURANT_GUIDE.md` (vide - à compléter)
+- ✓ `docs/DELIVERER_GUIDE.md` (vide - à compléter)
+- ✓ `docs/ADMIN_GUIDE.md` (vide - à compléter)
+- ✓ `docs/API_DOCUMENTATION.md` (vide - à compléter)
+- ✓ `docs/SMART_CONTRACTS.md` (vide - à compléter)
+- ✓ `docs/TROUBLESHOOTING.md` (vide - à compléter)
+- ✓ `docs/README.md` (créé et documenté)
+
+**Dossiers à créer:**
+- ⚠️ `docs/VIDEO_DEMOS/` (à créer)
+- ⚠️ `deployment/` (à créer)
+- ⚠️ `deployment/contracts/` (à créer)
+- ⚠️ `deployment/backend/` (à créer)
+- ⚠️ `deployment/frontend/` (à créer)
+
+**Fichiers à créer:**
+- ⚠️ `scripts/deploy-mainnet.js` (à créer)
+- ⚠️ `scripts/migrate-data.js` (à créer)
+- ⚠️ `scripts/backup-db.js` (à créer)
+
+---
+
+## ÉTAPES À SUIVRE PAR ORDRE
+
+### ÉTAPE 1: PRÉPARATION DE L'ENVIRONNEMENT
+- ✓ Vérifier que tous les sprints précédents sont terminés
+- ✓ Avoir un compte AWS/Heroku/Vercel/Netlify
+- ✓ Avoir un compte MongoDB Atlas
+- ✓ Avoir un compte Pinata/Web3.Storage pour IPFS
+- ✓ Préparer les clés API nécessaires
+- ✓ Avoir des MATIC pour déploiement mainnet (si déploiement prévu)
+
+### ÉTAPE 2: FINALISATION DE LA DOCUMENTATION
+**Fichiers à compléter (existent mais vides):**
+
+1. **`docs/USER_GUIDE.md`** (vide - à compléter)
+   - Guide utilisateur complet pour clients
+   - Comment créer compte
+   - Comment connecter wallet MetaMask
+   - Comment passer commande
+   - Comment suivre livraison
+   - Comment utiliser tokens DONE
+   - Comment ouvrir litige
+   - FAQ clients
+
+2. **`docs/RESTAURANT_GUIDE.md`** (vide - à compléter)
+   - Guide complet pour restaurants
+   - Comment s'inscrire comme restaurant
+   - Comment gérer menu
+   - Comment traiter commandes
+   - Comment confirmer préparation
+   - Comment consulter statistiques
+   - Comment gérer revenus
+   - FAQ restaurants
+
+3. **`docs/DELIVERER_GUIDE.md`** (vide - à compléter)
+   - Guide complet pour livreurs
+   - Comment s'inscrire comme livreur
+   - Comment effectuer staking (0.1 ETH)
+   - Comment accepter commandes
+   - Comment suivre trajets
+   - Comment confirmer livraisons
+   - Comment consulter gains
+   - FAQ livreurs
+
+4. **`docs/ADMIN_GUIDE.md`** (vide - à compléter)
+   - Guide pour administrateurs plateforme
+   - Gestion rôles
+   - Résolution litiges
+   - Monitoring transactions
+   - Gestion plateforme
+   - Configuration système
+   - Outils administration
+
+5. **`docs/API_DOCUMENTATION.md`** (vide - à compléter)
+   - Documentation complète API REST backend
+   - Tous endpoints disponibles
+   - Méthodes HTTP (GET, POST, PUT, DELETE)
+   - Paramètres et body requêtes
+   - Réponses et codes erreur
+   - Exemples requêtes (cURL, JavaScript)
+   - Authentification JWT
+   - Rate limiting
+   - Webhooks et événements
+
+6. **`docs/SMART_CONTRACTS.md`** (vide - à compléter)
+   - Documentation technique smart contracts
+   - Architecture contrats
+   - Description détaillée chaque contrat
+   - Fonctions publiques et paramètres
+   - Événements émis
+   - Modifiers et contrôles accès
+   - Schémas données (structs)
+   - Interactions entre contrats
+   - Exemples utilisation
+   - Adresses contrats déployés
+
+7. **`docs/TROUBLESHOOTING.md`** (vide - à compléter)
+   - Guide dépannage et résolution problèmes
+   - Problèmes courants et solutions
+   - Erreurs connexion wallet
+   - Problèmes transactions blockchain
+   - Erreurs API
+   - Problèmes IPFS
+   - Problèmes staking
+   - Support et contacts
+
+8. **Mettre à jour `docs/README.md`**:
+   - Index documentation
+   - Description chaque guide
+   - Utilisation selon rôle
+
+### ÉTAPE 3: CRÉATION DES SCRIPTS DE DÉPLOIEMENT
+**Fichiers à créer:**
+
+1. **`scripts/deploy-mainnet.js`** (à créer)
+   - Déploiement contrats sur Polygon Mainnet
+   - Vérification contrats sur Polygonscan
+   - Sauvegarde adresses
+   - Configuration post-déploiement
+
+2. **`scripts/migrate-data.js`** (à créer)
+   - Migration données testnet → mainnet
+   - Export/import MongoDB
+   - Migration adresses utilisateurs
+
+3. **`scripts/backup-db.js`** (à créer)
+   - Script backup base de données
+   - Export MongoDB
+   - Sauvegarde fichiers
+
+### ÉTAPE 4: CRÉATION DES CONFIGURATIONS DÉPLOIEMENT
+**Dossiers et fichiers à créer:**
+
+1. **`deployment/contracts/mainnet-addresses.json`** (à créer)
+   - Adresses contrats déployés sur Polygon Mainnet
+   - Structure JSON avec network, addresses, deployedAt
+
+2. **`deployment/backend/Dockerfile`** (à créer)
+   - Configuration Docker pour backend
+   - Multi-stage build
+   - Optimisations production
+
+3. **`deployment/backend/docker-compose.yml`** (à créer)
+   - Configuration Docker Compose
+   - Services: backend, MongoDB, Redis (optionnel)
+   - Volumes et networks
+
+4. **`deployment/frontend/vercel.json`** (à créer)
+   - Configuration Vercel pour frontends
+   - Routes et rewrites
+   - Variables d'environnement
+
+### ÉTAPE 5: DÉPLOIEMENT DES CONTRATS (OPTIONNEL)
+1. Vérifier que tous les tests passent (100%)
+2. Vérifier que l'audit sécurité est complet
+3. Déployer sur Polygon Mainnet:
+   ```bash
+   npx hardhat run scripts/deploy-mainnet.js --network polygon
+   ```
+4. Vérifier les contrats sur Polygonscan
+5. Sauvegarder les adresses dans `deployment/contracts/mainnet-addresses.json`
+
+### ÉTAPE 6: DÉPLOIEMENT DU BACKEND (OPTIONNEL)
+1. Setup MongoDB Atlas:
+   - Créer cluster
+   - Configurer accès réseau
+   - Obtenir connection string
+2. Déployer sur AWS/Heroku:
+   - Configurer variables d'environnement
+   - Déployer avec Docker ou directement
+   - Configurer CORS
+   - Setup SSL
+3. Tester l'API en production
+
+### ÉTAPE 7: DÉPLOIEMENT DES FRONTENDS (OPTIONNEL)
+1. Build production:
+   ```bash
+   cd frontend/client && npm run build
+   cd frontend/restaurant && npm run build
+   cd frontend/deliverer && npm run build
+   cd frontend/admin && npm run build
+   ```
+2. Déployer sur Vercel/Netlify:
+   - Configurer env vars
+   - Custom domains
+   - Tester chaque application
+
+### ÉTAPE 8: CONFIGURATION IPFS (OPTIONNEL)
+1. Setup Pinata/Web3.Storage:
+   - Créer compte
+   - Obtenir API keys
+   - Configurer gateway
+2. Pin fichiers critiques:
+   - Images restaurants
+   - Preuves de livraison
+   - Documents importants
+
+### ÉTAPE 9: CRÉATION DES VIDÉOS DÉMO (OPTIONNEL)
+1. Créer le dossier `docs/VIDEO_DEMOS/`
+2. Enregistrer:
+   - `client-demo.mp4` - Démo application client
+   - `restaurant-demo.mp4` - Démo application restaurant
+   - `deliverer-demo.mp4` - Démo application livreur
+
+### ÉTAPE 10: VALIDATION FINALE
+✓ Documentation complète et à jour
+✓ Scripts de déploiement créés
+✓ Contrats mainnet vérifiés (si déployé)
+✓ Backend production live (si déployé)
+✓ Frontends déployés (si déployé)
+✓ IPFS configuré (si déployé)
+✓ Vidéos démo créées (optionnel)
+
+---
+
+## RÉCAPITULATIF DES FICHIERS À COMPLÉTER/CRÉER PAR ORDRE
+
+**⚠️ NOTE:** Les fichiers de documentation existent mais sont **VIDES**. Les fichiers de déploiement doivent être **CRÉÉS**.
+
+### 1. Documentation (Fichiers vides - à compléter)
+- `docs/USER_GUIDE.md` ⚠️ VIDE
+- `docs/RESTAURANT_GUIDE.md` ⚠️ VIDE
+- `docs/DELIVERER_GUIDE.md` ⚠️ VIDE
+- `docs/ADMIN_GUIDE.md` ⚠️ VIDE
+- `docs/API_DOCUMENTATION.md` ⚠️ VIDE
+- `docs/SMART_CONTRACTS.md` ⚠️ VIDE
+- `docs/TROUBLESHOOTING.md` ⚠️ VIDE
+
+### 2. Scripts Déploiement (Fichiers à créer)
+- `scripts/deploy-mainnet.js` ⚠️ À CRÉER
+- `scripts/migrate-data.js` ⚠️ À CRÉER
+- `scripts/backup-db.js` ⚠️ À CRÉER
+
+### 3. Configuration Déploiement (Fichiers à créer)
+- `deployment/contracts/mainnet-addresses.json` ⚠️ À CRÉER
+- `deployment/backend/Dockerfile` ⚠️ À CRÉER
+- `deployment/backend/docker-compose.yml` ⚠️ À CRÉER
+- `deployment/frontend/vercel.json` ⚠️ À CRÉER
+
+### 4. Vidéos Démo (Optionnel)
+- `docs/VIDEO_DEMOS/client-demo.mp4` (optionnel)
+- `docs/VIDEO_DEMOS/restaurant-demo.mp4` (optionnel)
+- `docs/VIDEO_DEMOS/deliverer-demo.mp4` (optionnel)
+
+---
+
+## TÂCHES DÉPLOIEMENT (OPTIONNEL)
+
+### 1. Contracts → Polygon Mainnet
+- Déployer tous contrats
+- Vérifier sur Polygonscan
+- Sauvegarder adresses
+
+### 2. Backend → AWS/Heroku
+- Setup MongoDB Atlas
+- Déployer API
+- Configurer CORS
+- Setup SSL
+
+### 3. Frontend → Vercel/Netlify
+- Build production
+- Configurer env vars
+- Custom domains
+
+### 4. IPFS → Pinata/Web3.Storage
+- Pin fichiers critiques
+- Setup gateway
+
+---
+
+## LIVRABLES ATTENDUS
+
+✓ Documentation complète et à jour (OBLIGATOIRE)
+✓ Scripts de déploiement créés
+✓ Contrats mainnet vérifiés (si déployé)
+✓ Backend production live (si déployé)
+✓ Frontends déployés (si déployé)
+✓ IPFS configuré (si déployé)
+✓ Vidéos démo créées (optionnel)
+
+---
+
+## NOTES IMPORTANTES
+
+- **Documentation complète essentielle pour utilisateurs** (OBLIGATOIRE)
+- Déploiement mainnet nécessite audit sécurité préalable
+- Vidéos démo facilitent adoption
+- Scripts déploiement automatisent processus
+- Tester exhaustivement avant déploiement production
+
+---
+
+## PROCHAINES ÉTAPES
+
+→ **Projet terminé!**
+→ Maintenir et améliorer selon retours utilisateurs
+→ Ajouter nouvelles fonctionnalités selon roadmap
+

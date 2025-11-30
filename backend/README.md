@@ -16,11 +16,16 @@ backend/
 │   │   ├── orderController.js
 │   │   ├── userController.js
 │   │   ├── restaurantController.js
-│   │   └── delivererController.js
+│   │   ├── delivererController.js
+│   │   ├── adminController.js       ← Sprint 8 (à créer)
+│   │   └── analyticsController.js   ← Sprint 8 (à créer)
 │   ├── services/
 │   │   ├── blockchainService.js
 │   │   ├── ipfsService.js
-│   │   └── notificationService.js
+│   │   ├── notificationService.js
+│   │   ├── chainlinkService.js      ← Sprint 6 (à créer)
+│   │   ├── gpsOracleService.js      ← Sprint 6 (à créer)
+│   │   └── arbitrationService.js    ← Sprint 6 (à créer)
 │   ├── models/
 │   │   ├── User.js
 │   │   ├── Restaurant.js
@@ -30,10 +35,15 @@ backend/
 │   │   ├── orders.js
 │   │   ├── users.js
 │   │   ├── restaurants.js
-│   │   └── deliverers.js
+│   │   ├── deliverers.js
+│   │   ├── admin.js                 ← Sprint 8 (à créer)
+│   │   └── analytics.js             ← Sprint 8 (à créer)
 │   ├── middleware/
 │   │   ├── auth.js
-│   │   └── validation.js
+│   │   ├── validation.js
+│   │   ├── verifyAdminRole.js       ← Sprint 8 (à créer)
+│   │   ├── rateLimit.js             ← Tolérance pannes (à créer)
+│   │   └── performanceMonitoring.js ← Tolérance pannes (à créer)
 │   └── utils/
 │       ├── priceOracle.js
 │       └── gpsTracker.js
@@ -882,6 +892,231 @@ GET    /api/deliverers/:address/earnings
 
 ---
 
+### admin.js (Sprint 8 - À CRÉER)
+
+**Rôle** : Routes API pour administration et monitoring plateforme.
+
+**Routes définies** :
+
+```
+GET    /api/admin/stats
+GET    /api/admin/disputes
+POST   /api/admin/resolve-dispute/:id
+GET    /api/admin/users
+GET    /api/admin/restaurants
+GET    /api/admin/deliverers
+```
+
+**Middleware requis** :
+- `verifyAdminRole` : Vérification rôle PLATFORM/ADMIN via blockchain
+
+**Détails des routes** :
+
+**1. GET /api/admin/stats**
+- Statistiques globales plateforme
+- Response :
+  ```json
+  {
+    "totalOrders": 1234,
+    "gmv": "150 ETH",
+    "activeUsers": {
+      "clients": 500,
+      "restaurants": 50,
+      "deliverers": 80
+    },
+    "platformRevenue": "15 ETH",
+    "avgDeliveryTime": "25 min",
+    "satisfaction": "4.5/5"
+  }
+  ```
+
+**2. GET /api/admin/disputes**
+- Liste tous litiges avec statut
+- Query params : `?status=VOTING` (optionnel)
+- Response :
+  ```json
+  [{
+    "disputeId": 1,
+    "orderId": 123,
+    "client": "0xabc...",
+    "restaurant": "0xdef...",
+    "deliverer": "0xghi...",
+    "reason": "Nourriture froide",
+    "evidenceIPFS": "QmXxx...",
+    "status": "VOTING",
+    "createdAt": "2025-11-30",
+    "votes": {
+      "client": 60,
+      "restaurant": 40
+    }
+  }]
+  ```
+
+**3. POST /api/admin/resolve-dispute/:id**
+- Résolution manuelle d'un litige par admin
+- Body :
+  ```json
+  {
+    "winner": "CLIENT"
+  }
+  ```
+- Response :
+  ```json
+  {
+    "success": true,
+    "txHash": "0x...",
+    "blockNumber": 12345
+  }
+  ```
+
+**4. GET /api/admin/users**
+- Liste tous utilisateurs (clients)
+- Query params : `?status=active` (optionnel)
+- Response :
+  ```json
+  [{
+    "address": "0xabc...",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "totalOrders": 15,
+    "totalSpent": "5 ETH",
+    "doneBalance": "1000 DONE",
+    "status": "active"
+  }]
+  ```
+
+**5. GET /api/admin/restaurants**
+- Liste tous restaurants
+- Query params : `?cuisine=Italian` (optionnel)
+- Response :
+  ```json
+  [{
+    "address": "0xdef...",
+    "name": "Pizza Palace",
+    "cuisine": "Italian",
+    "totalOrders": 250,
+    "revenue": "50 ETH",
+    "rating": 4.8,
+    "status": "active"
+  }]
+  ```
+
+**6. GET /api/admin/deliverers**
+- Liste tous livreurs
+- Query params : `?staked=true` (optionnel)
+- Response :
+  ```json
+  [{
+    "address": "0xghi...",
+    "name": "Mike Deliverer",
+    "vehicle": "BIKE",
+    "stakedAmount": "100 DONE",
+    "totalDeliveries": 180,
+    "rating": 4.6,
+    "earnings": "10 ETH",
+    "status": "staked"
+  }]
+  ```
+
+---
+
+### analytics.js (Sprint 8 - À CRÉER)
+
+**Rôle** : Routes API pour analytics et statistiques avancées.
+
+**Routes définies** :
+
+```
+GET    /api/analytics/dashboard
+GET    /api/analytics/orders
+GET    /api/analytics/revenue
+GET    /api/analytics/users
+```
+
+**Détails des routes** :
+
+**1. GET /api/analytics/dashboard**
+- Dashboard analytics complet
+- Response :
+  ```json
+  {
+    "stats": {
+      "totalOrders": 1234,
+      "gmv": "150 ETH",
+      "platformRevenue": "15 ETH"
+    },
+    "charts": {
+      "ordersOverTime": [
+        { "date": "2025-11-24", "orders": 45 },
+        { "date": "2025-11-25", "orders": 52 }
+      ],
+      "revenueOverTime": [
+        { "date": "2025-11-24", "revenue": "4.5 ETH" },
+        { "date": "2025-11-25", "revenue": "5.2 ETH" }
+      ]
+    }
+  }
+  ```
+
+**2. GET /api/analytics/orders**
+- Analytics commandes dans le temps
+- Query params : `?period=week` (day/week/month/year)
+- Response :
+  ```json
+  {
+    "period": "week",
+    "data": [
+      { "date": "2025-11-24", "orders": 45, "avgValue": "0.5 ETH" },
+      { "date": "2025-11-25", "orders": 52, "avgValue": "0.52 ETH" }
+    ],
+    "total": 297,
+    "growth": "+15%"
+  }
+  ```
+
+**3. GET /api/analytics/revenue**
+- Analytics revenus plateforme
+- Query params : `?startDate=2025-11-01&endDate=2025-11-30`
+- Response :
+  ```json
+  {
+    "totalRevenue": "15 ETH",
+    "breakdown": {
+      "platformFee": "15 ETH",
+      "restaurants": "105 ETH",
+      "deliverers": "30 ETH"
+    },
+    "timeline": [
+      { "date": "2025-11-24", "revenue": "1.5 ETH" },
+      { "date": "2025-11-25", "revenue": "1.8 ETH" }
+    ]
+  }
+  ```
+- Source données : Blockchain events `PaymentSplit`
+
+**4. GET /api/analytics/users**
+- Analytics utilisateurs (growth, distribution)
+- Response :
+  ```json
+  {
+    "growth": {
+      "clients": [100, 150, 200, 250],
+      "restaurants": [10, 15, 18, 20],
+      "deliverers": [20, 25, 30, 35]
+    },
+    "activeToday": {
+      "clients": 50,
+      "restaurants": 8,
+      "deliverers": 12
+    },
+    "topSpenders": [
+      { "address": "0xabc...", "spent": "10 ETH" }
+    ]
+  }
+  ```
+
+---
+
 ## Middleware (src/middleware/)
 
 ### auth.js
@@ -925,6 +1160,58 @@ GET    /api/deliverers/:address/earnings
 **3. validateAddress(req, res, next)**
 - Vérifie address est valide via ethers.isAddress(address)
 - Next() si valide, sinon error 400 Bad Request
+
+---
+
+### verifyAdminRole.js (Sprint 8 - À CRÉER)
+
+**Rôle** : Middleware pour vérifier rôle PLATFORM/ADMIN via blockchain.
+
+**Méthodes** :
+
+**1. verifyAdminRole(req, res, next)**
+- Récupère address wallet depuis header `x-wallet-address`
+- Vérifie signature Web3 si fournie
+- Appelle smart contract pour vérifier rôle PLATFORM via `hasRole(PLATFORM_ROLE, address)`
+- Si rôle valide : `next()`
+- Sinon : retourne error 403 Forbidden
+
+**Pseudo-code** :
+```javascript
+async function verifyAdminRole(req, res, next) {
+  try {
+    const walletAddress = req.headers['x-wallet-address'];
+
+    if (!walletAddress || !ethers.isAddress(walletAddress)) {
+      return res.status(401).json({ error: 'Invalid wallet address' });
+    }
+
+    // Vérifier rôle PLATFORM via blockchain
+    const hasRole = await blockchainService.hasRole('PLATFORM_ROLE', walletAddress);
+
+    if (!hasRole) {
+      return res.status(403).json({
+        error: 'Access denied: PLATFORM/ADMIN role required'
+      });
+    }
+
+    req.adminAddress = walletAddress;
+    next();
+  } catch (error) {
+    console.error('Admin role verification failed:', error);
+    res.status(500).json({ error: 'Role verification failed' });
+  }
+}
+```
+
+**Utilisation dans routes admin** :
+```javascript
+const verifyAdminRole = require('../middleware/verifyAdminRole');
+
+// Toutes les routes admin protégées
+router.get('/stats', verifyAdminRole, adminController.getStats);
+router.get('/disputes', verifyAdminRole, adminController.getDisputes);
+```
 
 ---
 
@@ -1092,6 +1379,146 @@ npm test
 
 # Seed database
 npm run seed
+```
+
+---
+
+## Résumé des Routes API
+
+### Routes Existantes (Sprint 2-7)
+
+**Orders** (`/api/orders`) - 10 routes :
+```
+POST   /create
+GET    /:id
+GET    /client/:address
+POST   /:id/confirm-preparation
+POST   /:id/assign-deliverer
+POST   /:id/confirm-pickup
+POST   /:id/update-gps
+POST   /:id/confirm-delivery
+POST   /:id/dispute
+GET    /history/:address
+```
+
+**Users** (`/api/users`) - 5 routes :
+```
+POST   /register
+GET    /:address
+PUT    /:address
+GET    /:address/orders
+GET    /:address/tokens
+```
+
+**Restaurants** (`/api/restaurants`) - 7 routes :
+```
+POST   /register
+GET    /
+GET    /:id
+PUT    /:id
+GET    /:id/orders
+GET    /:id/analytics
+PUT    /:id/menu
+```
+
+**Deliverers** (`/api/deliverers`) - 8 routes :
+```
+POST   /register
+GET    /:address
+GET    /available
+PUT    /:address/status
+POST   /stake
+POST   /unstake
+GET    /:address/orders
+GET    /:address/earnings
+```
+
+**Total routes existantes** : **30 routes**
+
+---
+
+### Routes Sprint 8 (À CRÉER)
+
+**Admin** (`/api/admin`) - 6 routes ⚠️ :
+```
+GET    /stats                    ← Statistiques globales plateforme
+GET    /disputes                 ← Liste tous litiges
+POST   /resolve-dispute/:id      ← Résolution manuelle litige
+GET    /users                    ← Liste tous clients
+GET    /restaurants              ← Liste tous restaurants
+GET    /deliverers               ← Liste tous livreurs
+```
+- **Middleware requis** : `verifyAdminRole` (vérification rôle PLATFORM via blockchain)
+- **Fichier à créer** : `backend/src/routes/admin.js`
+- **Controller à créer** : `backend/src/controllers/adminController.js`
+
+**Analytics** (`/api/analytics`) - 4 routes ⚠️ :
+```
+GET    /dashboard                ← Dashboard analytics complet
+GET    /orders                   ← Analytics commandes (croissance, tendances)
+GET    /revenue                  ← Analytics revenus plateforme
+GET    /users                    ← Analytics utilisateurs (growth, distribution)
+```
+- **Fichier à créer** : `backend/src/routes/analytics.js`
+- **Controller à créer** : `backend/src/controllers/analyticsController.js`
+
+**Total routes Sprint 8** : **10 routes**
+
+---
+
+### Statut Global des Routes
+
+| Sprint | Routes | Status | Fichiers |
+|--------|--------|--------|----------|
+| Sprint 2-7 | 30 routes | ✅ Planifiées | orders.js, users.js, restaurants.js, deliverers.js |
+| Sprint 8 | 10 routes | ⚠️ À CRÉER | admin.js, analytics.js |
+| **TOTAL** | **40 routes** | 30 ✅ / 10 ⚠️ | **6 fichiers routes** |
+
+---
+
+### Middleware Sprint 8
+
+**À créer** :
+- `verifyAdminRole.js` : Vérification rôle PLATFORM/ADMIN via blockchain
+  - Utilisé par toutes les routes `/api/admin/*`
+  - Appelle `blockchainService.hasRole('PLATFORM_ROLE', address)`
+  - Retourne 403 si accès refusé
+
+---
+
+### Controllers Sprint 8
+
+**À créer** :
+1. `adminController.js` :
+   - `getStats()` : Statistiques plateforme
+   - `getDisputes()` : Liste litiges
+   - `resolveDispute()` : Résolution manuelle
+   - `getUsers()` : Liste clients
+   - `getRestaurants()` : Liste restaurants
+   - `getDeliverers()` : Liste livreurs
+
+2. `analyticsController.js` :
+   - `getDashboard()` : Dashboard complet
+   - `getOrdersAnalytics()` : Analytics commandes
+   - `getRevenueAnalytics()` : Analytics revenus
+   - `getUsersAnalytics()` : Analytics utilisateurs
+
+---
+
+### Intégration dans server.js
+
+**À ajouter** :
+```javascript
+// Routes Sprint 8
+const adminRoutes = require('./routes/admin');
+const analyticsRoutes = require('./routes/analytics');
+
+// Middleware admin
+const verifyAdminRole = require('./middleware/verifyAdminRole');
+
+// Monter les routes
+app.use('/api/admin', adminRoutes);
+app.use('/api/analytics', analyticsRoutes);
 ```
 
 ---
