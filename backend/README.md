@@ -1093,3 +1093,467 @@ npm test
 # Seed database
 npm run seed
 ```
+
+---
+
+## Tolérance aux Pannes et Redondance
+
+Ce document guide les développeurs pour implémenter les mécanismes de tolérance aux pannes dans le backend DONE Food Delivery.
+
+### 📁 Structure des Fichiers
+
+```
+backend/src/
+├── services/
+│   ├── rpcService.js              ← Failover RPC Polygon (à implémenter)
+│   ├── alertService.js            ← Système d'alertes (à implémenter)
+│   ├── ipfsCacheService.js        ← Cache IPFS local (à implémenter)
+│   ├── priceOracleService.js      ← Prix avec failover (à implémenter)
+│   ├── blockchainService.js       ← Déjà existant
+│   ├── ipfsService.js             ← Déjà existant
+│   ├── chainlinkService.js        ← Déjà existant
+│   └── gpsOracleService.js        ← Déjà existant
+│
+├── cron/
+│   ├── healthCheckCron.js         ← Health checks périodiques (à implémenter)
+│   ├── backupCron.js              ← Backups MongoDB (à implémenter)
+│   └── oracleSyncCron.js          ← Sync oracles (à implémenter)
+│
+├── middleware/
+│   ├── performanceMonitoring.js   ← Monitoring temps réponse (à implémenter)
+│   ├── rateLimit.js               ← Protection DDoS (à implémenter)
+│   ├── auth.js                    ← Déjà existant
+│   └── validation.js              ← Déjà existant
+│
+├── routes/
+│   ├── health.js                  ← Endpoint /health (à implémenter)
+│   ├── orders.js                  ← Déjà existant
+│   ├── users.js                   ← Déjà existant
+│   └── ...
+│
+├── utils/
+│   ├── circuitBreaker.js          ← Pattern isolation pannes (à implémenter)
+│   ├── priceOracle.js             ← Déjà existant
+│   └── gpsTracker.js              ← Déjà existant
+│
+└── config/
+    ├── database.js                ← Déjà existant
+    ├── blockchain.js              ← Déjà existant
+    └── ipfs.js                    ← Déjà existant
+```
+
+### 🚀 Plan d'Implémentation
+
+#### Sprint 1 : Fondations (Priorité Haute)
+
+##### 1. RPC Service avec Failover
+**Fichier** : `services/rpcService.js`
+
+**Objectif** : Éviter la dépendance à un seul endpoint RPC Polygon.
+
+**Étapes** :
+1. Installer `ethers` (déjà fait normalement)
+2. Créer classe `RPCService` avec liste d'endpoints
+3. Implémenter `executeWithRetry(operation, maxRetries)`
+4. Implémenter `switchToNextEndpoint()`
+5. Tester avec `provider.getBlockNumber()`
+
+**Variables .env requises** :
+```env
+MUMBAI_RPC_URL=https://rpc-mumbai.maticvigil.com
+ALCHEMY_API_KEY=your_key
+INFURA_API_KEY=your_key
+```
+
+**Test** :
+```bash
+node -e "const rpc = require('./src/services/rpcService'); rpc.executeWithRetry(p => p.getBlockNumber()).then(console.log)"
+```
+
+##### 2. Health Check Endpoint
+**Fichier** : `routes/health.js`
+
+**Objectif** : Permettre monitoring externe et load balancer de vérifier l'état.
+
+**Étapes** :
+1. Créer route GET `/health`
+2. Check MongoDB : `mongoose.connection.readyState === 1`
+3. Check Blockchain : `provider.getBlockNumber()`
+4. Check IPFS : `ipfsService.testConnection()`
+5. Return 200 si OK, 503 sinon
+
+**Test** :
+```bash
+curl http://localhost:3000/health
+```
+
+**Intégration server.js** :
+```javascript
+const healthRouter = require('./routes/health');
+app.use('/', healthRouter);
+```
+
+##### 3. Performance Monitoring Middleware
+**Fichier** : `middleware/performanceMonitoring.js`
+
+**Objectif** : Détecter les requêtes lentes.
+
+**Étapes** :
+1. Installer `npm install response-time`
+2. Créer middleware avec `response-time()`
+3. Logger si temps > 1000ms
+4. Send alert via `alertService` si critique
+
+**Intégration server.js** :
+```javascript
+const performanceMonitoring = require('./middleware/performanceMonitoring');
+app.use(performanceMonitoring);
+```
+
+---
+
+#### Sprint 2 : Alertes et Monitoring (Priorité Haute)
+
+##### 4. Alert Service
+**Fichier** : `services/alertService.js`
+
+**Objectif** : Notifier l'équipe en cas de problème.
+
+**Étapes** :
+1. Installer `npm install nodemailer axios`
+2. Implémenter `sendEmail(severity, message, details)`
+3. Implémenter `sendSlack(severity, message, details)` (optionnel)
+4. Niveaux : INFO, WARNING, CRITICAL
+
+**Variables .env requises** :
+```env
+ALERT_EMAIL=alerts@donefood.com
+ALERT_EMAIL_PASSWORD=your_password
+ADMIN_EMAIL=admin@donefood.com
+SLACK_WEBHOOK_URL=https://hooks.slack.com/... (optionnel)
+```
+
+**Test** :
+```javascript
+const alertService = require('./services/alertService');
+alertService.sendAlert('WARNING', 'Test Alert', { test: true });
+```
+
+##### 5. Health Check Cron
+**Fichier** : `cron/healthCheckCron.js`
+
+**Objectif** : Surveillance continue automatique.
+
+**Étapes** :
+1. Installer `npm install node-cron`
+2. Schedule toutes les 5 minutes : `cron.schedule('*/5 * * * *', ...)`
+3. Appeler health checks (MongoDB, RPC, IPFS)
+4. Send alert si échec
+
+**Intégration server.js** :
+```javascript
+// Démarrer les cron jobs
+require('./cron/healthCheckCron');
+```
+
+---
+
+#### Sprint 3 : Optimisations et Cache (Priorité Moyenne)
+
+##### 6. IPFS Cache Service
+**Fichier** : `services/ipfsCacheService.js`
+
+**Objectif** : Réduire latence et dépendance aux gateways IPFS.
+
+**Étapes** :
+1. Installer `npm install node-cache`
+2. Créer cache avec TTL 1 heure
+3. Implémenter `getFile(ipfsHash)` avec cache-first
+4. Implémenter `invalidate(ipfsHash)`
+
+**Utilisation** :
+```javascript
+const ipfsCacheService = require('./services/ipfsCacheService');
+const image = await ipfsCacheService.getFile('QmHash...');
+```
+
+##### 7. Price Oracle Service avec Failover
+**Fichier** : `services/priceOracleService.js`
+
+**Objectif** : Prix MATIC/USD fiable même si Chainlink échoue.
+
+**Étapes** :
+1. Primary : Fetch depuis Chainlink on-chain
+2. Fallback : CoinGecko API
+3. Cache local avec TTL 5 minutes
+4. Validation fraîcheur (< 1 heure)
+
+**Test** :
+```javascript
+const priceService = require('./services/priceOracleService');
+const price = await priceService.getMaticUsdPrice();
+console.log(`1 MATIC = $${price}`);
+```
+
+##### 8. Rate Limiting
+**Fichier** : `middleware/rateLimit.js`
+
+**Objectif** : Protection contre abus et DDoS.
+
+**Étapes** :
+1. Installer `npm install express-rate-limit`
+2. Créer `apiLimiter` : 100 req/min par IP
+3. Créer `authLimiter` : 5 req/min pour login
+4. Créer `userLimiter` : 1000 req/min pour users authentifiés
+
+**Intégration server.js** :
+```javascript
+const rateLimit = require('./middleware/rateLimit');
+app.use('/api', rateLimit.apiLimiter);
+app.use('/api/auth', rateLimit.authLimiter);
+```
+
+---
+
+#### Sprint 4 : Backups et Resilience (Priorité Moyenne)
+
+##### 9. Backup Cron
+**Fichier** : `cron/backupCron.js`
+
+**Objectif** : Sauvegardes automatiques MongoDB.
+
+**Étapes** :
+1. Schedule : Tous les jours à 3h00
+2. Utiliser `mongodump` via `child_process.exec`
+3. Compression gzip
+4. Cleanup backups > 30 jours
+
+**Test manuel** :
+```bash
+node src/cron/backupCron.js
+```
+
+**Vérifier backup** :
+```bash
+ls -lh backups/
+```
+
+##### 10. Circuit Breaker Utility
+**Fichier** : `utils/circuitBreaker.js`
+
+**Objectif** : Isolation des services défaillants.
+
+**Étapes** :
+1. Implémenter classe avec états CLOSED/OPEN/HALF_OPEN
+2. Threshold : 5 échecs → OPEN
+3. Timeout : 60 secondes avant retry
+4. Méthode `call(...args)`
+
+**Utilisation** :
+```javascript
+const CircuitBreaker = require('./utils/circuitBreaker');
+const ipfsBreaker = new CircuitBreaker(ipfsService.uploadFile, 5, 60000);
+
+try {
+  const hash = await ipfsBreaker.call(fileBuffer);
+} catch (error) {
+  // Fallback logic
+}
+```
+
+##### 11. Oracle Sync Cron
+**Fichier** : `cron/oracleSyncCron.js`
+
+**Objectif** : Mise à jour périodique des oracles.
+
+**Étapes** :
+1. Schedule : Toutes les heures
+2. Fetch prix MATIC/USD
+3. Fetch météo (si DoneWeatherOracle implémenté)
+4. Update cache local
+
+---
+
+### 📊 Configuration MongoDB Replica Set
+
+Pour bénéficier du failover automatique MongoDB, utiliser MongoDB Atlas avec Replica Set.
+
+#### Étapes (MongoDB Atlas) :
+
+1. **Créer cluster M10+ minimum** (M0 gratuit ne supporte pas replica set complet)
+2. **Configuration** :
+   - Replica Set : 3 nœuds (1 Primary + 2 Secondary)
+   - Régions : Multi-régions recommandé (ex: US-East, US-West, EU-West)
+3. **Connection String dans .env** :
+   ```env
+   MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/done_food_delivery?retryWrites=true&w=majority
+   ```
+
+#### Vérifier Replica Set :
+
+```javascript
+// backend/scripts/check-replica-status.js
+const mongoose = require('mongoose');
+require('dotenv').config();
+
+mongoose.connect(process.env.MONGODB_URI);
+
+mongoose.connection.on('connected', async () => {
+  const admin = mongoose.connection.db.admin();
+  const status = await admin.replSetGetStatus();
+
+  console.log('Replica Set Members:');
+  status.members.forEach(member => {
+    console.log(`- ${member.name}: ${member.stateStr} (health: ${member.health})`);
+  });
+
+  process.exit(0);
+});
+```
+
+---
+
+### 🧪 Tests de Résilience
+
+#### Test 1 : Simuler panne RPC
+
+```javascript
+// Test dans services/rpcService.test.js
+test('should failover to next RPC endpoint', async () => {
+  // Mock primary endpoint to fail
+  const rpcService = require('./rpcService');
+
+  // Should switch to backup endpoint automatically
+  const blockNumber = await rpcService.executeWithRetry(
+    async (provider) => provider.getBlockNumber()
+  );
+
+  expect(blockNumber).toBeGreaterThan(0);
+});
+```
+
+#### Test 2 : Vérifier Health Endpoint
+
+```bash
+# Backend running
+curl http://localhost:3000/health
+
+# Expected response:
+{
+  "uptime": 12345,
+  "message": "OK",
+  "checks": {
+    "database": "connected",
+    "blockchain": "connected",
+    "ipfs": "connected"
+  }
+}
+```
+
+#### Test 3 : Load Test
+
+```bash
+# Installer Apache Bench
+sudo apt install apache2-utils
+
+# Test 1000 requêtes, 100 concurrent
+ab -n 1000 -c 100 http://localhost:3000/api/restaurants
+
+# Métriques à vérifier :
+# - Requests per second > 100
+# - Failed requests = 0
+# - 95th percentile < 500ms
+```
+
+---
+
+### 📚 Dépendances NPM à Installer
+
+```bash
+# Services
+npm install ethers dotenv axios form-data
+
+# Monitoring et Alertes
+npm install node-cron nodemailer
+
+# Performance et Sécurité
+npm install response-time express-rate-limit
+
+# Cache
+npm install node-cache
+
+# Testing (dev dependencies)
+npm install --save-dev jest supertest
+```
+
+---
+
+### ⚠️ Variables d'Environnement Complètes
+
+Ajouter dans `backend/.env` :
+
+```env
+# Existing variables...
+
+# === TOLÉRANCE AUX PANNES ===
+
+# RPC Failover
+MUMBAI_RPC_URL=https://rpc-mumbai.maticvigil.com
+ALCHEMY_API_KEY=your_alchemy_key
+INFURA_API_KEY=your_infura_key
+
+# Alertes
+ALERT_EMAIL=alerts@donefood.com
+ALERT_EMAIL_PASSWORD=your_email_password
+ADMIN_EMAIL=admin@donefood.com
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/... (optionnel)
+
+# Oracles
+COINGECKO_API_KEY=your_coingecko_key (optionnel)
+OPENWEATHERMAP_API_KEY=your_weather_key (optionnel)
+
+# Backups
+BACKUP_DIR=./backups
+S3_BUCKET=done-backups (optionnel pour cloud backup)
+
+# Performance
+PERFORMANCE_THRESHOLD_MS=1000
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_MAX_REQUESTS=100
+```
+
+---
+
+### 🎯 Métriques de Succès
+
+Une fois tous les fichiers implémentés, le système devrait atteindre :
+
+✅ **Uptime** : 99.9%+
+✅ **RTO** (Recovery Time Objective) : < 5 minutes
+✅ **RPO** (Recovery Point Objective) : < 1 seconde
+✅ **API Response Time** : < 200ms (95th percentile)
+✅ **Blockchain TX Confirmation** : < 5 secondes
+✅ **Zero downtime** lors des mises à jour (blue-green deployment)
+
+---
+
+### 📖 Références
+
+- **ARCHITECTURE.md** - Section "Tolérance aux Pannes et Redondance"
+- **contracts/oracles/README.md** - Documentation oracles
+- **contracts/governance/README.md** - Système d'arbitrage
+- **Infrastructure best practices** : [12factor.net](https://12factor.net/)
+- **Circuit Breaker Pattern** : [Martin Fowler](https://martinfowler.com/bliki/CircuitBreaker.html)
+
+---
+
+### 🆘 Aide et Support
+
+Si vous avez des questions lors de l'implémentation :
+
+1. Consultez les commentaires détaillés dans chaque fichier
+2. Référez-vous à la documentation dans `ARCHITECTURE.md`
+3. Testez chaque composant individuellement avant intégration
+4. Utilisez les scripts de test fournis
+
+Bon développement ! 🚀
