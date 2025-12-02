@@ -1,13 +1,4 @@
-// TODO: Importer ethers pour la vérification de signatures
-// const { ethers } = require("ethers");
-
-// TODO: Importer les modèles MongoDB si nécessaire pour vérifier les rôles
-// const User = require("../models/User");
-// const Restaurant = require("../models/Restaurant");
-// const Deliverer = require("../models/Deliverer");
-
-// TODO: Importer le service blockchain pour vérifier les rôles on-chain
-// const { getContractInstance } = require("../config/blockchain");
+const { ethers } = require("ethers");
 
 /**
  * Middleware d'authentification Web3
@@ -39,77 +30,77 @@
  */
 async function verifySignature(req, res, next) {
   try {
-    // TODO: Récupérer le header Authorization
-    // const authHeader = req.headers.authorization;
+    // Récupérer le header Authorization
+    const authHeader = req.headers.authorization;
     
-    // TODO: Vérifier que le header existe et commence par "Bearer "
-    // if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    //   return res.status(401).json({
-    //     error: "Unauthorized",
-    //     message: "Missing or invalid Authorization header. Expected: Bearer <signature>"
-    //   });
-    // }
+    // Vérifier que le header existe et commence par "Bearer "
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Missing or invalid Authorization header. Expected: Bearer <signature>"
+      });
+    }
     
-    // TODO: Extraire la signature (après "Bearer ")
-    // const signature = authHeader.substring(7); // Enlever "Bearer "
+    // Extraire la signature (après "Bearer ")
+    const signature = authHeader.substring(7); // Enlever "Bearer "
     
-    // TODO: Récupérer le message signé
+    // Récupérer le message signé
     // Option 1: Depuis header x-message
-    // const message = req.headers['x-message'];
-    
     // Option 2: Depuis body
-    // const message = req.body.message;
+    const message = req.headers['x-message'] || req.body.message;
     
-    // TODO: Vérifier que le message existe
-    // if (!message) {
-    //   return res.status(400).json({
-    //     error: "Bad Request",
-    //     message: "Message to verify is required. Provide it in header 'x-message' or body.message"
-    //   });
-    // }
+    // Vérifier que le message existe
+    if (!message) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Message to verify is required. Provide it in header 'x-message' or body.message"
+      });
+    }
     
-    // TODO: Vérifier que la signature est valide (format hex)
-    // if (!/^0x[a-fA-F0-9]{130}$/.test(signature)) {
-    //   return res.status(400).json({
-    //     error: "Bad Request",
-    //     message: "Invalid signature format"
-    //   });
-    // }
+    // Vérifier que la signature est valide (format hex - 65 bytes = 130 caractères hex)
+    if (!/^0x[a-fA-F0-9]{130}$/.test(signature)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid signature format"
+      });
+    }
     
-    // TODO: Vérifier la signature avec ethers.verifyMessage()
-    // const recoveredAddress = ethers.utils.verifyMessage(message, signature);
-    // Note: Pour ethers v6, utiliser: ethers.verifyMessage(message, signature)
+    // Vérifier la signature avec ethers.verifyMessage()
+    // Note: ethers v6 utilise verifyMessage directement
+    const recoveredAddress = ethers.verifyMessage(message, signature);
     
-    // TODO: Normaliser l'adresse en minuscules pour comparaison
-    // const normalizedAddress = recoveredAddress.toLowerCase();
+    // Normaliser l'adresse en minuscules pour comparaison
+    const normalizedAddress = recoveredAddress.toLowerCase();
     
-    // TODO: Optionnel: Vérifier que l'adresse correspond à celle dans le body/header
-    // const expectedAddress = req.body.address || req.headers['x-address'];
-    // if (expectedAddress && expectedAddress.toLowerCase() !== normalizedAddress) {
-    //   return res.status(401).json({
-    //     error: "Unauthorized",
-    //     message: "Signature does not match the provided address"
-    //   });
-    // }
+    // Optionnel: Vérifier que l'adresse correspond à celle dans le body/header
+    const expectedAddress = req.body.address || req.headers['x-address'];
+    if (expectedAddress && expectedAddress.toLowerCase() !== normalizedAddress) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Signature does not match the provided address"
+      });
+    }
     
-    // TODO: Ajouter l'adresse récupérée à req pour les controllers
-    // req.userAddress = normalizedAddress;
+    // Ajouter l'adresse récupérée à req pour les controllers
+    req.userAddress = normalizedAddress;
     
-    // TODO: Logger pour debug (optionnel)
-    // console.log(`Signature verified for address: ${normalizedAddress}`);
+    // Logger pour debug (optionnel, seulement en développement)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Signature verified for address: ${normalizedAddress}`);
+    }
     
-    // TODO: Appeler next() pour passer au middleware suivant
-    // next();
+    // Appeler next() pour passer au middleware suivant
+    next();
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error verifying signature:", error);
+    // Logger l'erreur
+    console.error("Error verifying signature:", error);
     
-    // TODO: Retourner erreur 401
-    // return res.status(401).json({
-    //   error: "Unauthorized",
-    //   message: "Signature verification failed",
-    //   details: error.message
-    // });
+    // Retourner erreur 401
+    return res.status(401).json({
+      error: "Unauthorized",
+      message: "Signature verification failed",
+      details: error.message
+    });
   }
 }
 
@@ -127,46 +118,83 @@ async function verifySignature(req, res, next) {
 function requireRole(role) {
   return async function(req, res, next) {
     try {
-      // TODO: Vérifier que req.userAddress existe (doit être appelé après verifySignature)
-      // if (!req.userAddress) {
-      //   return res.status(401).json({
-      //     error: "Unauthorized",
-      //     message: "User address not found. verifySignature middleware must be called first."
-      //   });
-      // }
+      // Vérifier que req.userAddress existe (doit être appelé après verifySignature)
+      if (!req.userAddress) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          message: "User address not found. verifySignature middleware must be called first."
+        });
+      }
       
-      // TODO: Récupérer l'adresse normalisée
-      // const userAddress = req.userAddress.toLowerCase();
+      // Récupérer l'adresse normalisée
+      const userAddress = req.userAddress.toLowerCase();
       
-      // TODO: Option 1: Vérifier le rôle depuis MongoDB
-      // const User = require("../models/User");
-      // const Restaurant = require("../models/Restaurant");
-      // const Deliverer = require("../models/Deliverer");
-      // 
-      // let hasRole = false;
-      // 
-      // if (role === 'CLIENT_ROLE') {
-      //   const user = await User.findOne({ address: userAddress });
-      //   hasRole = !!user; // Tout utilisateur enregistré est un client
-      // } else if (role === 'RESTAURANT_ROLE') {
-      //   const restaurant = await Restaurant.findOne({ address: userAddress });
-      //   hasRole = !!restaurant;
-      // } else if (role === 'DELIVERER_ROLE') {
-      //   const deliverer = await Deliverer.findOne({ address: userAddress });
-      //   hasRole = !!deliverer;
-      // }
+      // Option 1: Vérifier le rôle depuis MongoDB (temporaire, avant blockchain)
+      try {
+        const User = require("../models/User");
+        const Restaurant = require("../models/Restaurant");
+        const Deliverer = require("../models/Deliverer");
+        
+        let hasRole = false;
+        
+        if (role === 'CLIENT_ROLE') {
+          const user = await User.findByAddress(userAddress);
+          hasRole = !!user; // Tout utilisateur enregistré est un client
+        } else if (role === 'RESTAURANT_ROLE') {
+          const restaurant = await Restaurant.findByAddress(userAddress);
+          hasRole = !!restaurant;
+        } else if (role === 'DELIVERER_ROLE') {
+          const deliverer = await Deliverer.findByAddress(userAddress);
+          hasRole = !!deliverer;
+        } else {
+          // Pour les autres rôles (PLATFORM_ROLE, ARBITRATOR_ROLE), nécessite blockchain
+          console.warn(`Role ${role} requires blockchain verification (not implemented yet)`);
+          return res.status(403).json({
+            error: "Forbidden",
+            message: `Role ${role} verification requires blockchain (not implemented yet)`
+          });
+        }
+        
+        // Vérifier si l'utilisateur a le rôle requis
+        if (!hasRole) {
+          return res.status(403).json({
+            error: "Forbidden",
+            message: `Access denied. Required role: ${role}`
+          });
+        }
+        
+        // Ajouter le rôle à req pour utilisation dans les controllers
+        req.userRole = role;
+        
+        // Logger pour debug (optionnel)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Role ${role} verified for address: ${userAddress}`);
+        }
+        
+        // Appeler next() pour passer au middleware suivant
+        next();
+      } catch (modelError) {
+        // Si les modèles n'existent pas encore, on ne peut pas vérifier les rôles
+        console.warn("Models not found, cannot verify role:", modelError.message);
+        return res.status(500).json({
+          error: "Internal Server Error",
+          message: "Role verification failed - models not available",
+          details: modelError.message
+        });
+      }
       
       // TODO: Option 2: Vérifier le rôle depuis la blockchain (plus sécurisé)
+      // À implémenter quand blockchain.js sera disponible
       // const { getContractInstance } = require("../config/blockchain");
       // const orderManager = getContractInstance("orderManager");
       // 
       // // Définir les rôles bytes32
       // const roles = {
-      //   CLIENT_ROLE: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("CLIENT_ROLE")),
-      //   RESTAURANT_ROLE: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("RESTAURANT_ROLE")),
-      //   DELIVERER_ROLE: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("DELIVERER_ROLE")),
-      //   PLATFORM_ROLE: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("PLATFORM_ROLE")),
-      //   ARBITRATOR_ROLE: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("ARBITRATOR_ROLE"))
+      //   CLIENT_ROLE: ethers.keccak256(ethers.toUtf8Bytes("CLIENT_ROLE")),
+      //   RESTAURANT_ROLE: ethers.keccak256(ethers.toUtf8Bytes("RESTAURANT_ROLE")),
+      //   DELIVERER_ROLE: ethers.keccak256(ethers.toUtf8Bytes("DELIVERER_ROLE")),
+      //   PLATFORM_ROLE: ethers.keccak256(ethers.toUtf8Bytes("PLATFORM_ROLE")),
+      //   ARBITRATOR_ROLE: ethers.keccak256(ethers.toUtf8Bytes("ARBITRATOR_ROLE"))
       // };
       // 
       // const roleHash = roles[role];
@@ -178,33 +206,16 @@ function requireRole(role) {
       // }
       // 
       // const hasRole = await orderManager.hasRole(roleHash, userAddress);
-      
-      // TODO: Vérifier si l'utilisateur a le rôle requis
-      // if (!hasRole) {
-      //   return res.status(403).json({
-      //     error: "Forbidden",
-      //     message: `Access denied. Required role: ${role}`
-      //   });
-      // }
-      
-      // TODO: Ajouter le rôle à req pour utilisation dans les controllers
-      // req.userRole = role;
-      
-      // TODO: Logger pour debug (optionnel)
-      // console.log(`Role ${role} verified for address: ${userAddress}`);
-      
-      // TODO: Appeler next() pour passer au middleware suivant
-      // next();
     } catch (error) {
-      // TODO: Logger l'erreur
-      // console.error("Error verifying role:", error);
+      // Logger l'erreur
+      console.error("Error verifying role:", error);
       
-      // TODO: Retourner erreur 500
-      // return res.status(500).json({
-      //   error: "Internal Server Error",
-      //   message: "Role verification failed",
-      //   details: error.message
-      // });
+      // Retourner erreur 500
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Role verification failed",
+        details: error.message
+      });
     }
   };
 }
@@ -223,61 +234,107 @@ function requireRole(role) {
 function requireOwnership(resourceType, ownerField) {
   return async function(req, res, next) {
     try {
-      // TODO: Vérifier que req.userAddress existe
-      // if (!req.userAddress) {
-      //   return res.status(401).json({
-      //     error: "Unauthorized",
-      //     message: "User address not found"
-      //   });
-      // }
+      // Vérifier que req.userAddress existe
+      if (!req.userAddress) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          message: "User address not found"
+        });
+      }
       
-      // TODO: Récupérer l'ID de la ressource depuis params
-      // const resourceId = req.params[`${resourceType}Id`] || req.params.id;
+      // Récupérer l'ID de la ressource depuis params
+      const resourceId = req.params[`${resourceType}Id`] || req.params.id || req.params.orderId;
       
-      // TODO: Charger la ressource depuis MongoDB
-      // const Order = require("../models/Order");
-      // const resource = await Order.findById(resourceId);
+      if (!resourceId) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: `${resourceType}Id is required in URL parameters`
+        });
+      }
       
-      // TODO: Vérifier que la ressource existe
-      // if (!resource) {
-      //   return res.status(404).json({
-      //     error: "Not Found",
-      //     message: `${resourceType} not found`
-      //   });
-      // }
-      
-      // TODO: Vérifier que l'utilisateur est le propriétaire
-      // const ownerAddress = resource[ownerField]?.address || resource[ownerField];
-      // if (ownerAddress.toLowerCase() !== req.userAddress.toLowerCase()) {
-      //   return res.status(403).json({
-      //     error: "Forbidden",
-      //     message: "You are not the owner of this resource"
-      //   });
-      // }
-      
-      // TODO: Ajouter la ressource à req pour utilisation dans les controllers
-      // req[resourceType] = resource;
-      
-      // TODO: Appeler next()
-      // next();
+      // Charger la ressource depuis MongoDB
+      try {
+        const Order = require("../models/Order");
+        
+        // Essayer de trouver par orderId (blockchain ID) ou _id (MongoDB)
+        let resource;
+        const orderIdNumber = parseInt(resourceId, 10);
+        if (!isNaN(orderIdNumber)) {
+          resource = await Order.findOne({ orderId: orderIdNumber });
+        } else {
+          resource = await Order.findById(resourceId);
+        }
+        
+        // Vérifier que la ressource existe
+        if (!resource) {
+          return res.status(404).json({
+            error: "Not Found",
+            message: `${resourceType} not found`
+          });
+        }
+        
+        // Vérifier que l'utilisateur est le propriétaire
+        // Le ownerField peut être une référence (ObjectId) ou une adresse directe
+        let ownerAddress;
+        if (resource[ownerField]) {
+          // Si c'est une référence MongoDB, on doit populate ou accéder à l'adresse
+          if (typeof resource[ownerField] === 'object' && resource[ownerField].address) {
+            ownerAddress = resource[ownerField].address;
+          } else if (typeof resource[ownerField] === 'string') {
+            ownerAddress = resource[ownerField];
+          } else {
+            // Si c'est un ObjectId, on doit fetch le document
+            const ownerDoc = await resource.populate(ownerField);
+            ownerAddress = ownerDoc[ownerField]?.address || ownerDoc[ownerField];
+          }
+        }
+        
+        if (!ownerAddress) {
+          return res.status(500).json({
+            error: "Internal Server Error",
+            message: `Could not determine owner address for field: ${ownerField}`
+          });
+        }
+        
+        if (ownerAddress.toLowerCase() !== req.userAddress.toLowerCase()) {
+          return res.status(403).json({
+            error: "Forbidden",
+            message: "You are not the owner of this resource"
+          });
+        }
+        
+        // Ajouter la ressource à req pour utilisation dans les controllers
+        req[resourceType] = resource;
+        
+        // Appeler next()
+        next();
+      } catch (modelError) {
+        // Si le modèle Order n'existe pas encore, on ne peut pas vérifier la propriété
+        console.warn("Order model not found, cannot verify ownership:", modelError.message);
+        return res.status(500).json({
+          error: "Internal Server Error",
+          message: "Ownership verification failed - Order model not available",
+          details: modelError.message
+        });
+      }
     } catch (error) {
-      // TODO: Logger l'erreur
-      // console.error("Error verifying ownership:", error);
+      // Logger l'erreur
+      console.error("Error verifying ownership:", error);
       
-      // TODO: Retourner erreur 500
-      // return res.status(500).json({
-      //   error: "Internal Server Error",
-      //   message: "Ownership verification failed",
-      //   details: error.message
-      // });
+      // Retourner erreur 500
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Ownership verification failed",
+        details: error.message
+      });
     }
   };
 }
 
-// TODO: Exporter les fonctions
-// module.exports = {
-//   verifySignature,
-//   requireRole,
-//   requireOwnership
-// };
+// Exporter les fonctions
+module.exports = {
+  verifySignature,
+  requireRole,
+  requireOwnership
+};
 

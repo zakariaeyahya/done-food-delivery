@@ -1,11 +1,5 @@
-// TODO: Importer socket.io pour les notifications temps réel
-// const { Server } = require("socket.io");
-
-// TODO: Importer nodemailer pour l'envoi d'emails
-// const nodemailer = require("nodemailer");
-
-// TODO: Importer dotenv pour les variables d'environnement
-// require("dotenv").config();
+const nodemailer = require("nodemailer");
+require("dotenv").config();
 
 /**
  * Service de gestion des notifications (Socket.io + Email)
@@ -22,14 +16,14 @@ let emailTransporter = null; // Transporter nodemailer
  * @param {Server} socketIOServer - Instance Socket.io depuis server.js
  */
 function initNotificationService(socketIOServer) {
-  // TODO: Stocker l'instance Socket.io
-  // io = socketIOServer;
+  // Stocker l'instance Socket.io
+  io = socketIOServer;
   
-  // TODO: Initialiser le transporter email
-  // initEmailTransporter();
+  // Initialiser le transporter email
+  initEmailTransporter();
   
-  // TODO: Logger l'initialisation
-  // console.log("Notification service initialized");
+  // Logger l'initialisation
+  console.log("✅ Notification service initialized");
 }
 
 /**
@@ -42,34 +36,41 @@ function initNotificationService(socketIOServer) {
  */
 function initEmailTransporter() {
   try {
-    // TODO: Vérifier si SendGrid est configuré
-    // if (process.env.SENDGRID_API_KEY) {
-    //   // TODO: Configurer SendGrid transporter
-    //   emailTransporter = nodemailer.createTransport({
-    //     service: 'SendGrid',
-    //     auth: {
-    //       user: 'apikey',
-    //       pass: process.env.SENDGRID_API_KEY
-    //     }
-    //   });
-    // } else {
-    //   // TODO: Configurer SMTP standard
-    //   emailTransporter = nodemailer.createTransport({
-    //     host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    //     port: process.env.SMTP_PORT || 587,
-    //     secure: false, // true pour 465, false pour autres ports
-    //     auth: {
-    //       user: process.env.SMTP_USER,
-    //       pass: process.env.SMTP_PASSWORD
-    //     }
-    //   });
-    // }
-    
-    // TODO: Logger la configuration
-    // console.log("Email transporter initialized");
+    // Vérifier si SendGrid est configuré
+    if (process.env.SENDGRID_API_KEY) {
+      // Configurer SendGrid transporter
+      emailTransporter = nodemailer.createTransport({
+        service: 'SendGrid',
+        auth: {
+          user: 'apikey',
+          pass: process.env.SENDGRID_API_KEY
+        }
+      });
+      console.log("Email transporter initialized with SendGrid");
+    } else if (process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+      // Configurer SMTP standard
+      emailTransporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_PORT === '465', // true pour 465, false pour autres ports
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASSWORD
+        },
+        // Ignorer les certificats auto-signés en développement
+        tls: {
+          rejectUnauthorized: process.env.NODE_ENV === 'production' // Rejeter seulement en production
+        }
+      });
+      console.log("Email transporter initialized with SMTP");
+    } else {
+      console.warn("⚠️  Email transporter not configured. Email notifications will be disabled.");
+      console.warn("💡 Configure SENDGRID_API_KEY or SMTP_USER/SMTP_PASSWORD in .env");
+    }
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error initializing email transporter:", error);
+    // Logger l'erreur
+    console.error("Error initializing email transporter:", error);
+    emailTransporter = null;
   }
 }
 
@@ -84,31 +85,38 @@ function initEmailTransporter() {
  */
 async function notifyOrderCreated(orderId, restaurantId, orderData = {}) {
   try {
-    // TODO: Émettre un event Socket.io vers la room du restaurant
-    // io.to(`restaurant_${restaurantId}`).emit('orderCreated', {
-    //   orderId,
-    //   ...orderData
-    // });
+    // Émettre un event Socket.io vers la room du restaurant
+    if (io) {
+      io.to(`restaurant_${restaurantId}`).emit('orderCreated', {
+        orderId,
+        ...orderData
+      });
+    }
     
-    // TODO: Récupérer les informations du restaurant depuis MongoDB
-    // const Restaurant = require("../models/Restaurant");
-    // const restaurant = await Restaurant.findById(restaurantId);
+    // Récupérer les informations du restaurant depuis MongoDB (si le modèle existe)
+    try {
+      const Restaurant = require("../models/Restaurant");
+      const restaurant = await Restaurant.findById(restaurantId);
+      
+      // Si le restaurant a un email, envoyer un email
+      if (restaurant && restaurant.email && emailTransporter) {
+        await sendEmail(
+          restaurant.email,
+          "Nouvelle commande reçue",
+          `Vous avez reçu une nouvelle commande #${orderId}. Connectez-vous pour la traiter.`
+        );
+      }
+    } catch (modelError) {
+      // Le modèle Restaurant n'existe peut-être pas encore, continuer sans email
+      console.warn("Could not send email notification (Restaurant model may not exist):", modelError.message);
+    }
     
-    // TODO: Si le restaurant a un email, envoyer un email
-    // if (restaurant && restaurant.email) {
-    //   await sendEmail(
-    //     restaurant.email,
-    //     "Nouvelle commande reçue",
-    //     `Vous avez reçu une nouvelle commande #${orderId}. Connectez-vous pour la traiter.`
-    //   );
-    // }
-    
-    // TODO: Retourner succès
-    // return { success: true };
+    // Retourner succès
+    return { success: true };
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error notifying order created:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error notifying order created:", error);
+    throw error;
   }
 }
 
@@ -123,26 +131,31 @@ async function notifyOrderCreated(orderId, restaurantId, orderData = {}) {
  */
 async function notifyDeliverersAvailable(orderId, delivererAddresses, orderData = {}) {
   try {
-    // TODO: Parcourir chaque adresse de livreur
-    // for (const delivererAddress of delivererAddresses) {
-    //   // TODO: Émettre un event Socket.io vers la room du livreur
-    //   io.to(`deliverer_${delivererAddress.toLowerCase()}`).emit('orderAvailable', {
-    //     orderId,
-    //     ...orderData
-    //   });
-    // }
+    if (!io) {
+      console.warn("Socket.io not initialized. Cannot send real-time notifications.");
+      return { success: false, message: "Socket.io not initialized" };
+    }
     
-    // TODO: Optionnel: Envoyer des push notifications (FCM/APNS)
+    // Parcourir chaque adresse de livreur
+    for (const delivererAddress of delivererAddresses) {
+      // Émettre un event Socket.io vers la room du livreur
+      io.to(`deliverer_${delivererAddress.toLowerCase()}`).emit('orderAvailable', {
+        orderId,
+        ...orderData
+      });
+    }
+    
+    // Optionnel: Envoyer des push notifications (FCM/APNS) - à implémenter plus tard
     // if (process.env.FCM_SERVER_KEY) {
     //   // TODO: Implémenter push notifications
     // }
     
-    // TODO: Retourner succès
-    // return { success: true };
+    // Retourner succès
+    return { success: true };
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error notifying deliverers:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error notifying deliverers:", error);
+    throw error;
   }
 }
 
@@ -158,42 +171,49 @@ async function notifyDeliverersAvailable(orderId, delivererAddresses, orderData 
  */
 async function notifyClientOrderUpdate(orderId, clientAddress, status, additionalData = {}) {
   try {
-    // TODO: Émettre un event Socket.io vers la room du client
-    // io.to(`client_${clientAddress.toLowerCase()}`).emit('orderStatusUpdate', {
-    //   orderId,
-    //   status,
-    //   ...additionalData
-    // });
+    // Émettre un event Socket.io vers la room du client
+    if (io) {
+      io.to(`client_${clientAddress.toLowerCase()}`).emit('orderStatusUpdate', {
+        orderId,
+        status,
+        ...additionalData
+      });
+    }
     
-    // TODO: Récupérer les informations du client depuis MongoDB
-    // const User = require("../models/User");
-    // const client = await User.findOne({ address: clientAddress.toLowerCase() });
+    // Récupérer les informations du client depuis MongoDB
+    try {
+      const User = require("../models/User");
+      const client = await User.findByAddress(clientAddress);
+      
+      // Si status = DELIVERED, envoyer email de confirmation
+      if (status === 'DELIVERED' && client && client.email && emailTransporter) {
+        await sendEmail(
+          client.email,
+          "Commande livrée",
+          `Votre commande #${orderId} a été livrée avec succès. Merci pour votre confiance!`
+        );
+      }
+      
+      // Si status = IN_DELIVERY, envoyer email avec lien tracking
+      if (status === 'IN_DELIVERY' && client && client.email && emailTransporter) {
+        const trackingUrl = `${process.env.FRONTEND_URL || 'http://localhost:3001'}/orders/${orderId}/tracking`;
+        await sendEmail(
+          client.email,
+          "Votre commande est en route",
+          `Votre commande #${orderId} est en cours de livraison. Suivez-la ici: ${trackingUrl}`
+        );
+      }
+    } catch (modelError) {
+      // Le modèle User n'existe peut-être pas encore, continuer sans email
+      console.warn("Could not send email notification (User model may not exist):", modelError.message);
+    }
     
-    // TODO: Si status = DELIVERED, envoyer email de confirmation
-    // if (status === 'DELIVERED' && client && client.email) {
-    //   await sendEmail(
-    //     client.email,
-    //     "Commande livrée",
-    //     `Votre commande #${orderId} a été livrée avec succès. Merci pour votre confiance!`
-    //   );
-    // }
-    
-    // TODO: Si status = IN_DELIVERY, envoyer email avec lien tracking
-    // if (status === 'IN_DELIVERY' && client && client.email) {
-    //   const trackingUrl = `${process.env.FRONTEND_URL}/orders/${orderId}/tracking`;
-    //   await sendEmail(
-    //     client.email,
-    //     "Votre commande est en route",
-    //     `Votre commande #${orderId} est en cours de livraison. Suivez-la ici: ${trackingUrl}`
-    //   );
-    // }
-    
-    // TODO: Retourner succès
-    // return { success: true };
+    // Retourner succès
+    return { success: true };
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error notifying client:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error notifying client:", error);
+    throw error;
   }
 }
 
@@ -208,34 +228,36 @@ async function notifyClientOrderUpdate(orderId, clientAddress, status, additiona
  */
 async function notifyArbitrators(disputeId, orderId, disputeData = {}) {
   try {
-    // TODO: Récupérer la liste des arbitres depuis MongoDB ou blockchain
+    // Émettre un event Socket.io vers la room des arbitres
+    if (io) {
+      io.to('arbitrators').emit('newDispute', {
+        disputeId,
+        orderId,
+        ...disputeData
+      });
+    }
+    
+    // Récupérer les emails des arbitres et envoyer des emails
     // Note: Les arbitres peuvent être stockés dans une collection MongoDB ou récupérés depuis le contrat
+    // Pour l'instant, on utilise une liste d'emails depuis les variables d'environnement
+    if (process.env.ARBITRATOR_EMAILS && emailTransporter) {
+      const arbitratorEmails = process.env.ARBITRATOR_EMAILS.split(',').map(email => email.trim());
+      
+      for (const email of arbitratorEmails) {
+        await sendEmail(
+          email,
+          "Nouveau litige à résoudre",
+          `Un nouveau litige #${disputeId} a été ouvert pour la commande #${orderId}. Connectez-vous pour le résoudre.`
+        );
+      }
+    }
     
-    // TODO: Émettre un event Socket.io vers la room des arbitres
-    // io.to('arbitrators').emit('newDispute', {
-    //   disputeId,
-    //   orderId,
-    //   ...disputeData
-    // });
-    
-    // TODO: Récupérer les emails des arbitres et envoyer des emails
-    // const arbitrators = await getArbitratorsList(); // Fonction à implémenter
-    // for (const arbitrator of arbitrators) {
-    //   if (arbitrator.email) {
-    //     await sendEmail(
-    //       arbitrator.email,
-    //       "Nouveau litige à résoudre",
-    //       `Un nouveau litige #${disputeId} a été ouvert pour la commande #${orderId}. Connectez-vous pour le résoudre.`
-    //     );
-    //   }
-    // }
-    
-    // TODO: Retourner succès
-    // return { success: true };
+    // Retourner succès
+    return { success: true };
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error notifying arbitrators:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error notifying arbitrators:", error);
+    throw error;
   }
 }
 
@@ -251,40 +273,41 @@ async function notifyArbitrators(disputeId, orderId, disputeData = {}) {
  */
 async function sendEmail(to, subject, body, options = {}) {
   try {
-    // TODO: Vérifier que le transporter est initialisé
-    // if (!emailTransporter) {
-    //   throw new Error("Email transporter not initialized");
-    // }
+    // Vérifier que le transporter est initialisé
+    if (!emailTransporter) {
+      console.warn("Email transporter not initialized. Cannot send email.");
+      return { success: false, message: "Email transporter not initialized" };
+    }
     
-    // TODO: Préparer les options de l'email
-    // const mailOptions = {
-    //   from: process.env.EMAIL_FROM || 'noreply@donefood.com',
-    //   to: to,
-    //   subject: subject,
-    //   text: options.html ? undefined : body,
-    //   html: options.html || body // Si HTML fourni, utiliser HTML, sinon utiliser body comme texte
-    // };
+    // Préparer les options de l'email
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || 'noreply@donefood.com',
+      to: to,
+      subject: subject,
+      text: options.html ? undefined : body,
+      html: options.html || body // Si HTML fourni, utiliser HTML, sinon utiliser body comme texte
+    };
     
-    // TODO: Ajouter les pièces jointes si fournies
-    // if (options.attachments) {
-    //   mailOptions.attachments = options.attachments;
-    // }
+    // Ajouter les pièces jointes si fournies
+    if (options.attachments) {
+      mailOptions.attachments = options.attachments;
+    }
     
-    // TODO: Envoyer l'email
-    // const info = await emailTransporter.sendMail(mailOptions);
+    // Envoyer l'email
+    const info = await emailTransporter.sendMail(mailOptions);
     
-    // TODO: Logger le succès
-    // console.log("Email sent:", info.messageId);
+    // Logger le succès
+    console.log("Email sent:", info.messageId);
     
-    // TODO: Retourner le résultat
-    // return {
-    //   success: true,
-    //   messageId: info.messageId
-    // };
+    // Retourner le résultat
+    return {
+      success: true,
+      messageId: info.messageId
+    };
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error sending email:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error sending email:", error);
+    throw error;
   }
 }
 
@@ -294,17 +317,17 @@ async function sendEmail(to, subject, body, options = {}) {
  * @returns {Server|null} Instance Socket.io ou null
  */
 function getSocketIO() {
-  // TODO: return io;
+  return io;
 }
 
-// TODO: Exporter toutes les fonctions
-// module.exports = {
-//   initNotificationService,
-//   notifyOrderCreated,
-//   notifyDeliverersAvailable,
-//   notifyClientOrderUpdate,
-//   notifyArbitrators,
-//   sendEmail,
-//   getSocketIO
-// };
+// Exporter toutes les fonctions
+module.exports = {
+  initNotificationService,
+  notifyOrderCreated,
+  notifyDeliverersAvailable,
+  notifyClientOrderUpdate,
+  notifyArbitrators,
+  sendEmail,
+  getSocketIO
+};
 

@@ -1,5 +1,4 @@
-// TODO: Importer les constantes mathématiques si nécessaire
-// const Math = require("math");
+// Pas besoin d'importer Math, c'est un objet global en JavaScript
 
 /**
  * Service de simulation de tracking GPS
@@ -21,46 +20,50 @@
  * @param {number} lng2 - Longitude du deuxième point (degrés)
  * @returns {number} Distance en kilomètres
  */
+/**
+ * Fonction helper pour convertir degrés en radians
+ * @param {number} degrees - Angle en degrés
+ * @returns {number} Angle en radians
+ */
+function toRadians(degrees) {
+  return degrees * (Math.PI / 180);
+}
+
 function calculateDistance(lat1, lng1, lat2, lng2) {
   try {
-    // TODO: Vérifier que les coordonnées sont valides
-    // if (lat1 < -90 || lat1 > 90 || lat2 < -90 || lat2 > 90) {
-    //   throw new Error("Latitude must be between -90 and 90");
-    // }
-    // if (lng1 < -180 || lng1 > 180 || lng2 < -180 || lng2 > 180) {
-    //   throw new Error("Longitude must be between -180 and 180");
-    // }
+    // Vérifier que les coordonnées sont valides
+    if (lat1 < -90 || lat1 > 90 || lat2 < -90 || lat2 > 90) {
+      throw new Error("Latitude must be between -90 and 90");
+    }
+    if (lng1 < -180 || lng1 > 180 || lng2 < -180 || lng2 > 180) {
+      throw new Error("Longitude must be between -180 and 180");
+    }
     
-    // TODO: Convertir les degrés en radians
-    // const R = 6371; // Rayon de la Terre en kilomètres
-    // const dLat = toRadians(lat2 - lat1);
-    // const dLng = toRadians(lng2 - lng1);
-    // 
-    // const lat1Rad = toRadians(lat1);
-    // const lat2Rad = toRadians(lat2);
+    // Convertir les degrés en radians
+    const R = 6371; // Rayon de la Terre en kilomètres
+    const dLat = toRadians(lat2 - lat1);
+    const dLng = toRadians(lng2 - lng1);
     
-    // TODO: Calculer a (partie de la formule Haversine)
-    // const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    //           Math.cos(lat1Rad) * Math.cos(lat2Rad) *
-    //           Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const lat1Rad = toRadians(lat1);
+    const lat2Rad = toRadians(lat2);
     
-    // TODO: Calculer c (angle central)
-    // const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    // Calculer a (partie de la formule Haversine)
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
     
-    // TODO: Calculer la distance
-    // const distance = R * c;
+    // Calculer c (angle central)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     
-    // TODO: Retourner la distance arrondie à 2 décimales
-    // return Math.round(distance * 100) / 100;
+    // Calculer la distance
+    const distance = R * c;
     
-    // TODO: Fonction helper pour convertir degrés en radians
-    // function toRadians(degrees) {
-    //   return degrees * (Math.PI / 180);
-    // }
+    // Retourner la distance arrondie à 2 décimales
+    return Math.round(distance * 100) / 100;
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error calculating distance:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error calculating distance:", error);
+    throw error;
   }
 }
 
@@ -75,25 +78,29 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
  */
 function isNearby(delivererLocation, targetLocation, radiusKm) {
   try {
-    // TODO: Vérifier que les paramètres sont valides
-    // if (!delivererLocation || !targetLocation || typeof radiusKm !== 'number') {
-    //   throw new Error("Invalid parameters for isNearby");
-    // }
+    // Vérifier que les paramètres sont valides
+    if (!delivererLocation || !targetLocation || typeof radiusKm !== 'number') {
+      throw new Error("Invalid parameters for isNearby");
+    }
     
-    // TODO: Calculer la distance entre les deux points
-    // const distance = calculateDistance(
-    //   delivererLocation.lat,
-    //   delivererLocation.lng,
-    //   targetLocation.lat,
-    //   targetLocation.lng
-    // );
+    if (radiusKm < 0) {
+      throw new Error("radiusKm must be positive");
+    }
     
-    // TODO: Vérifier si la distance est <= radiusKm
-    // return distance <= radiusKm;
+    // Calculer la distance entre les deux points
+    const distance = calculateDistance(
+      delivererLocation.lat,
+      delivererLocation.lng,
+      targetLocation.lat,
+      targetLocation.lng
+    );
+    
+    // Vérifier si la distance est <= radiusKm
+    return distance <= radiusKm;
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error checking if nearby:", error);
-    // return false;
+    // Logger l'erreur
+    console.error("Error checking if nearby:", error);
+    return false;
   }
 }
 
@@ -108,39 +115,39 @@ function isNearby(delivererLocation, targetLocation, radiusKm) {
  */
 function getETA(currentLocation, destinationLocation, speedKmh = 30) {
   try {
-    // TODO: Vérifier que les paramètres sont valides
-    // if (!currentLocation || !destinationLocation) {
-    //   throw new Error("Invalid locations for ETA calculation");
-    // }
+    // Vérifier que les paramètres sont valides
+    if (!currentLocation || !destinationLocation) {
+      throw new Error("Invalid locations for ETA calculation");
+    }
     
-    // TODO: Vérifier que speedKmh est positif
-    // if (speedKmh <= 0) {
-    //   speedKmh = 30; // Valeur par défaut
-    // }
+    // Vérifier que speedKmh est positif
+    if (speedKmh <= 0) {
+      speedKmh = 30; // Valeur par défaut
+    }
     
-    // TODO: Calculer la distance en kilomètres
-    // const distanceKm = calculateDistance(
-    //   currentLocation.lat,
-    //   currentLocation.lng,
-    //   destinationLocation.lat,
-    //   destinationLocation.lng
-    // );
+    // Calculer la distance en kilomètres
+    const distanceKm = calculateDistance(
+      currentLocation.lat,
+      currentLocation.lng,
+      destinationLocation.lat,
+      destinationLocation.lng
+    );
     
-    // TODO: Calculer le temps en heures
-    // const timeHours = distanceKm / speedKmh;
+    // Calculer le temps en heures
+    const timeHours = distanceKm / speedKmh;
     
-    // TODO: Convertir en minutes
-    // const timeMinutes = timeHours * 60;
+    // Convertir en minutes
+    const timeMinutes = timeHours * 60;
     
-    // TODO: Arrondir à l'entier supérieur (toujours surestimer)
-    // const etaMinutes = Math.ceil(timeMinutes);
+    // Arrondir à l'entier supérieur (toujours surestimer)
+    const etaMinutes = Math.ceil(timeMinutes);
     
-    // TODO: Retourner l'ETA en minutes
-    // return etaMinutes;
+    // Retourner l'ETA en minutes (minimum 1 minute)
+    return Math.max(1, etaMinutes);
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error calculating ETA:", error);
-    // return null; // ou throw error selon le besoin
+    // Logger l'erreur
+    console.error("Error calculating ETA:", error);
+    return null;
   }
 }
 
@@ -158,62 +165,63 @@ function getETA(currentLocation, destinationLocation, speedKmh = 30) {
  */
 function generateMockRoute(startLocation, endLocation, steps = 10) {
   try {
-    // TODO: Vérifier que les paramètres sont valides
-    // if (!startLocation || !endLocation) {
-    //   throw new Error("Invalid locations for route generation");
-    // }
+    // Vérifier que les paramètres sont valides
+    if (!startLocation || !endLocation) {
+      throw new Error("Invalid locations for route generation");
+    }
     
-    // TODO: Vérifier que steps est un nombre positif
-    // if (steps <= 0) {
-    //   steps = 10; // Valeur par défaut
-    // }
+    // Vérifier que steps est un nombre positif
+    if (steps <= 0) {
+      steps = 10; // Valeur par défaut
+    }
     
-    // TODO: Créer un tableau pour stocker les points
-    // const route = [];
+    // Créer un tableau pour stocker les points
+    const route = [];
+    const startTime = Date.now();
     
-    // TODO: Ajouter le point de départ
-    // route.push({
-    //   lat: startLocation.lat,
-    //   lng: startLocation.lng,
-    //   timestamp: new Date()
-    // });
+    // Ajouter le point de départ
+    route.push({
+      lat: startLocation.lat,
+      lng: startLocation.lng,
+      timestamp: new Date(startTime)
+    });
     
-    // TODO: Générer les points intermédiaires par interpolation linéaire
-    // for (let i = 1; i < steps; i++) {
-    //   const ratio = i / steps; // Ratio de progression (0 à 1)
-    //   
-    //   // TODO: Interpoler la latitude
-    //   const lat = startLocation.lat + (endLocation.lat - startLocation.lat) * ratio;
-    //   
-    //   // TODO: Interpoler la longitude
-    //   const lng = startLocation.lng + (endLocation.lng - startLocation.lng) * ratio;
-    //   
-    //   // TODO: Ajouter un peu de variation aléatoire pour simuler un trajet réel
-    //   const randomVariation = 0.001; // Variation de ~100m
-    //   const latVariation = (Math.random() - 0.5) * randomVariation;
-    //   const lngVariation = (Math.random() - 0.5) * randomVariation;
-    //   
-    //   // TODO: Ajouter le point à la route
-    //   route.push({
-    //     lat: lat + latVariation,
-    //     lng: lng + lngVariation,
-    //     timestamp: new Date(Date.now() + (i * 60000)) // +1 minute par point
-    //   });
-    // }
+    // Générer les points intermédiaires par interpolation linéaire
+    for (let i = 1; i < steps; i++) {
+      const ratio = i / steps; // Ratio de progression (0 à 1)
+      
+      // Interpoler la latitude
+      const lat = startLocation.lat + (endLocation.lat - startLocation.lat) * ratio;
+      
+      // Interpoler la longitude
+      const lng = startLocation.lng + (endLocation.lng - startLocation.lng) * ratio;
+      
+      // Ajouter un peu de variation aléatoire pour simuler un trajet réel
+      const randomVariation = 0.001; // Variation de ~100m
+      const latVariation = (Math.random() - 0.5) * randomVariation;
+      const lngVariation = (Math.random() - 0.5) * randomVariation;
+      
+      // Ajouter le point à la route
+      route.push({
+        lat: lat + latVariation,
+        lng: lng + lngVariation,
+        timestamp: new Date(startTime + (i * 60000)) // +1 minute par point
+      });
+    }
     
-    // TODO: Ajouter le point d'arrivée
-    // route.push({
-    //   lat: endLocation.lat,
-    //   lng: endLocation.lng,
-    //   timestamp: new Date(Date.now() + (steps * 60000))
-    // });
+    // Ajouter le point d'arrivée
+    route.push({
+      lat: endLocation.lat,
+      lng: endLocation.lng,
+      timestamp: new Date(startTime + (steps * 60000))
+    });
     
-    // TODO: Retourner la route
-    // return route;
+    // Retourner la route
+    return route;
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error generating mock route:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error generating mock route:", error);
+    throw error;
   }
 }
 
@@ -312,13 +320,13 @@ function findNearestPoint(targetLocation, points) {
   }
 }
 
-// TODO: Exporter toutes les fonctions
-// module.exports = {
-//   calculateDistance,
-//   isNearby,
-//   getETA,
-//   generateMockRoute,
-//   calculateSpeed,
-//   findNearestPoint
-// };
+// Exporter toutes les fonctions
+module.exports = {
+  calculateDistance,
+  isNearby,
+  getETA,
+  generateMockRoute
+  // calculateSpeed et findNearestPoint ne sont pas dans les spécifications Priorité 3
+  // mais peuvent être ajoutés plus tard si nécessaire
+};
 
