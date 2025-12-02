@@ -1,11 +1,6 @@
-// TODO: Importer les configurations IPFS
-// const { getIPFSClient, getPinataAPI, getIPFSGateway, isPinataConfigured } = require("../config/ipfs");
-
-// TODO: Importer axios pour les requêtes HTTP vers le gateway IPFS
-// const axios = require("axios");
-
-// TODO: Importer fs pour la gestion de fichiers si nécessaire
-// const fs = require("fs");
+const { getPinataAPI, getIPFSGateway, isPinataConfigured } = require("../config/ipfs");
+const axios = require("axios");
+const { Readable } = require("stream");
 
 /**
  * Service de gestion IPFS (upload/download de fichiers)
@@ -27,44 +22,29 @@
  */
 async function uploadJSON(data) {
   try {
-    // TODO: Convertir l'objet en JSON string
-    // const jsonString = JSON.stringify(data);
-    // const jsonBuffer = Buffer.from(jsonString, 'utf-8');
-    
-    // TODO: Vérifier si Pinata est configuré
-    // if (isPinataConfigured()) {
-    //   // TODO: Utiliser Pinata SDK pour upload
-    //   const pinata = getPinataAPI();
-    //   
-    //   // TODO: Upload vers Pinata
-    //   const result = await pinata.pinJSONToIPFS(data);
-    //   const ipfsHash = result.IpfsHash;
-    //   
-    //   // TODO: Construire l'URL complète
-    //   const gateway = getIPFSGateway();
-    //   const url = gateway + ipfsHash;
-    //   
-    //   // TODO: Retourner le résultat
-    //   return { ipfsHash, url };
-    // } else {
-    //   // TODO: Utiliser client IPFS local
-    //   const ipfs = getIPFSClient();
-    //   
-    //   // TODO: Upload vers IPFS
-    //   const result = await ipfs.add(jsonBuffer);
-    //   const ipfsHash = result.path;
-    //   
-    //   // TODO: Construire l'URL complète
-    //   const gateway = getIPFSGateway();
-    //   const url = gateway + ipfsHash;
-    //   
-    //   // TODO: Retourner le résultat
-    //   return { ipfsHash, url };
-    // }
+    // Vérifier si Pinata est configuré
+    if (isPinataConfigured()) {
+      // Utiliser Pinata SDK pour upload
+      const pinata = getPinataAPI();
+      
+      // Upload vers Pinata (Pinata gère automatiquement le JSON)
+      const result = await pinata.pinJSONToIPFS(data);
+      const ipfsHash = result.IpfsHash;
+      
+      // Construire l'URL complète
+      const gateway = getIPFSGateway();
+      const url = gateway + ipfsHash;
+      
+      // Retourner le résultat
+      return { ipfsHash, url };
+    } else {
+      // Si Pinata n'est pas configuré, on ne peut pas uploader
+      throw new Error("Pinata not configured. Cannot upload to IPFS without Pinata.");
+    }
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error uploading JSON to IPFS:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error uploading JSON to IPFS:", error);
+    throw error;
   }
 }
 
@@ -78,54 +58,46 @@ async function uploadJSON(data) {
  */
 async function uploadImage(fileBuffer, fileName = "image") {
   try {
-    // TODO: Vérifier si Pinata est configuré
-    // if (isPinataConfigured()) {
-    //   // TODO: Utiliser Pinata SDK pour upload image
-    //   const pinata = getPinataAPI();
-    //   
-    //   // TODO: Créer un stream depuis le buffer
-    //   const readableStream = require('stream').Readable.from(fileBuffer);
-    //   
-    //   // TODO: Upload vers Pinata avec options
-    //   const options = {
-    //     pinataMetadata: {
-    //       name: fileName
-    //     },
-    //     pinataOptions: {
-    //       cidVersion: 0
-    //     }
-    //   };
-    //   
-    //   const result = await pinata.pinFileToIPFS(readableStream, options);
-    //   const ipfsHash = result.IpfsHash;
-    //   
-    //   // TODO: Construire l'URL complète
-    //   const gateway = getIPFSGateway();
-    //   const url = gateway + ipfsHash;
-    //   
-    //   // TODO: Retourner le résultat
-    //   return { ipfsHash, url };
-    // } else {
-    //   // TODO: Utiliser client IPFS local
-    //   const ipfs = getIPFSClient();
-    //   
-    //   // TODO: Upload vers IPFS
-    //   const result = await ipfs.add(fileBuffer, {
-    //     pin: true // Pin automatiquement
-    //   });
-    //   const ipfsHash = result.path;
-    //   
-    //   // TODO: Construire l'URL complète
-    //   const gateway = getIPFSGateway();
-    //   const url = gateway + ipfsHash;
-    //   
-    //   // TODO: Retourner le résultat
-    //   return { ipfsHash, url };
-    // }
+    // Vérifier que fileBuffer est valide
+    if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
+      throw new Error("fileBuffer must be a valid Buffer");
+    }
+    
+    // Vérifier si Pinata est configuré
+    if (isPinataConfigured()) {
+      // Utiliser Pinata SDK pour upload image
+      const pinata = getPinataAPI();
+      
+      // Créer un stream depuis le buffer
+      const readableStream = Readable.from(fileBuffer);
+      
+      // Upload vers Pinata avec options
+      const options = {
+        pinataMetadata: {
+          name: fileName
+        },
+        pinataOptions: {
+          cidVersion: 0
+        }
+      };
+      
+      const result = await pinata.pinFileToIPFS(readableStream, options);
+      const ipfsHash = result.IpfsHash;
+      
+      // Construire l'URL complète
+      const gateway = getIPFSGateway();
+      const url = gateway + ipfsHash;
+      
+      // Retourner le résultat
+      return { ipfsHash, url };
+    } else {
+      // Si Pinata n'est pas configuré, on ne peut pas uploader
+      throw new Error("Pinata not configured. Cannot upload to IPFS without Pinata.");
+    }
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error uploading image to IPFS:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error uploading image to IPFS:", error);
+    throw error;
   }
 }
 
@@ -139,25 +111,25 @@ async function uploadImage(fileBuffer, fileName = "image") {
  */
 async function uploadMultipleImages(files, fileNames = []) {
   try {
-    // TODO: Créer un tableau pour stocker les résultats
-    // const results = [];
+    // Créer un tableau pour stocker les résultats
+    const results = [];
     
-    // TODO: Parcourir chaque fichier et uploader
-    // for (let i = 0; i < files.length; i++) {
-    //   const file = files[i];
-    //   const fileName = fileNames[i] || `image_${i}`;
-    //   
-    //   // TODO: Appeler uploadImage pour chaque fichier
-    //   const result = await uploadImage(file, fileName);
-    //   results.push(result);
-    // }
+    // Parcourir chaque fichier et uploader
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fileName = fileNames[i] || `image_${i}`;
+      
+      // Appeler uploadImage pour chaque fichier
+      const result = await uploadImage(file, fileName);
+      results.push(result);
+    }
     
-    // TODO: Retourner le tableau de résultats
-    // return results;
+    // Retourner le tableau de résultats
+    return results;
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error uploading multiple images to IPFS:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error uploading multiple images to IPFS:", error);
+    throw error;
   }
 }
 
@@ -170,22 +142,24 @@ async function uploadMultipleImages(files, fileNames = []) {
  */
 async function getJSON(ipfsHash) {
   try {
-    // TODO: Construire l'URL complète du gateway
-    // const gateway = getIPFSGateway();
-    // const url = gateway + ipfsHash;
+    // Construire l'URL complète du gateway
+    const gateway = getIPFSGateway();
+    const url = gateway + ipfsHash;
     
-    // TODO: Faire une requête HTTP GET vers le gateway
-    // const response = await axios.get(url);
+    // Faire une requête HTTP GET vers le gateway
+    const response = await axios.get(url, {
+      timeout: 10000 // 10 secondes timeout
+    });
     
-    // TODO: Parser le JSON
-    // const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+    // Parser le JSON
+    const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
     
-    // TODO: Retourner l'objet JavaScript
-    // return data;
+    // Retourner l'objet JavaScript
+    return data;
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error getting JSON from IPFS:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error getting JSON from IPFS:", error);
+    throw error;
   }
 }
 
@@ -197,9 +171,9 @@ async function getJSON(ipfsHash) {
  * @returns {string} URL complète du gateway
  */
 function getImage(ipfsHash) {
-  // TODO: Construire l'URL complète du gateway
-  // const gateway = getIPFSGateway();
-  // return gateway + ipfsHash;
+  // Construire l'URL complète du gateway
+  const gateway = getIPFSGateway();
+  return gateway + ipfsHash;
 }
 
 /**
@@ -213,25 +187,25 @@ function getImage(ipfsHash) {
  */
 async function pinFile(ipfsHash) {
   try {
-    // TODO: Vérifier si Pinata est configuré
-    // if (isPinataConfigured()) {
-    //   // TODO: Utiliser Pinata SDK pour pinner
-    //   const pinata = getPinataAPI();
-    //   
-    //   // TODO: Pin le fichier par hash
-    //   await pinata.pinByHash(ipfsHash);
-    //   
-    //   // TODO: Retourner succès
-    //   return { success: true };
-    // } else {
-    //   // TODO: Si IPFS local, le fichier est déjà piné lors de l'upload
-    //   // Retourner succès
-    //   return { success: true };
-    // }
+    // Vérifier si Pinata est configuré
+    if (isPinataConfigured()) {
+      // Utiliser Pinata SDK pour pinner
+      const pinata = getPinataAPI();
+      
+      // Pin le fichier par hash
+      await pinata.pinByHash(ipfsHash);
+      
+      // Retourner succès
+      return { success: true };
+    } else {
+      // Si Pinata n'est pas configuré, on ne peut pas pinner
+      console.warn("Pinata not configured. Cannot pin file without Pinata.");
+      return { success: false, message: "Pinata not configured" };
+    }
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error pinning file to IPFS:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error pinning file to IPFS:", error);
+    throw error;
   }
 }
 
@@ -243,25 +217,25 @@ async function pinFile(ipfsHash) {
  */
 async function testConnection() {
   try {
-    // TODO: Tester avec un upload simple
-    // const testData = { test: "connection" };
-    // await uploadJSON(testData);
-    // return true;
+    // Tester avec un upload simple
+    const testData = { test: "connection", timestamp: Date.now() };
+    await uploadJSON(testData);
+    return true;
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("IPFS connection test failed:", error);
-    // return false;
+    // Logger l'erreur
+    console.error("IPFS connection test failed:", error);
+    return false;
   }
 }
 
-// TODO: Exporter toutes les fonctions
-// module.exports = {
-//   uploadJSON,
-//   uploadImage,
-//   uploadMultipleImages,
-//   getJSON,
-//   getImage,
-//   pinFile,
-//   testConnection
-// };
+// Exporter toutes les fonctions
+module.exports = {
+  uploadJSON,
+  uploadImage,
+  uploadMultipleImages,
+  getJSON,
+  getImage,
+  pinFile,
+  testConnection
+};
 
