@@ -1,30 +1,22 @@
-// TODO: Importer dotenv pour charger les variables d'environnement
-// require("dotenv").config();
+require("dotenv").config();
 
-// TODO: Importer Express
-// const express = require("express");
+const express = require("express");
+const { Server } = require("socket.io");
+const http = require("http");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
 
-// TODO: Importer Socket.io pour les notifications temps réel
-// const { Server } = require("socket.io");
+// Importer les configurations
+const { connectDB, disconnectDB } = require("./config/database");
+// const { initBlockchain, listenEvents } = require("./config/blockchain"); // Commenté temporairement
+const { initIPFS } = require("./config/ipfs");
 
-// TODO: Importer http pour créer le serveur HTTP
-// const http = require("http");
-
-// TODO: Importer les middlewares
-// const cors = require("cors");
-// const helmet = require("helmet");
-// const morgan = require("morgan");
-
-// TODO: Importer les configurations
-// const { connectDB, disconnectDB } = require("./config/database");
-// const { initBlockchain, listenEvents } = require("./config/blockchain");
-// const { initIPFS } = require("./config/ipfs");
-
-// TODO: Importer les services
+// Importer les services (commentés temporairement car nécessitent blockchain)
 // const notificationService = require("./services/notificationService");
 // const blockchainService = require("./services/blockchainService");
 
-// TODO: Importer les routes
+// Importer les routes (commentées temporairement car nécessitent les controllers)
 // const orderRoutes = require("./routes/orders");
 // const userRoutes = require("./routes/users");
 // const restaurantRoutes = require("./routes/restaurants");
@@ -36,74 +28,74 @@
  * @dev Gère les middlewares globaux, routes, erreurs et notifications temps réel
  */
 
-// TODO: Créer l'application Express
-// const app = express();
+// Créer l'application Express
+const app = express();
 
-// TODO: Créer le serveur HTTP
-// const server = http.createServer(app);
+// Créer le serveur HTTP
+const server = http.createServer(app);
 
-// TODO: Initialiser Socket.io avec CORS configuré
-// const io = new Server(server, {
-//   cors: {
-//     origin: process.env.FRONTEND_URL || "http://localhost:3001",
-//     methods: ["GET", "POST"],
-//     credentials: true
-//   }
-// });
+// Initialiser Socket.io avec CORS configuré
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "http://localhost:3001",
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 
-// TODO: Récupérer le port depuis les variables d'environnement
-// const PORT = process.env.PORT || 3000;
-// const NODE_ENV = process.env.NODE_ENV || "development";
+// Récupérer le port depuis les variables d'environnement
+const PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV || "development";
 
 // === MIDDLEWARES GLOBAUX ===
 
-// TODO: Middleware CORS pour autoriser les requêtes cross-origin
-// app.use(cors({
-//   origin: process.env.FRONTEND_URL || "http://localhost:3001",
-//   credentials: true
-// }));
+// Middleware CORS pour autoriser les requêtes cross-origin
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:3001",
+  credentials: true
+}));
 
-// TODO: Middleware Helmet pour la sécurité HTTP
-// app.use(helmet());
+// Middleware Helmet pour la sécurité HTTP
+app.use(helmet());
 
-// TODO: Middleware Morgan pour le logging des requêtes HTTP
-// if (NODE_ENV === "development") {
-//   app.use(morgan("dev"));
-// } else {
-//   app.use(morgan("combined"));
-// }
+// Middleware Morgan pour le logging des requêtes HTTP
+if (NODE_ENV === "development") {
+  app.use(morgan("dev"));
+} else {
+  app.use(morgan("combined"));
+}
 
-// TODO: Middleware pour parser le body JSON
-// app.use(express.json({ limit: "10mb" }));
+// Middleware pour parser le body JSON
+app.use(express.json({ limit: "10mb" }));
 
-// TODO: Middleware pour parser les URL encodées
-// app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// Middleware pour parser les URL encodées
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // === ROUTE HEALTH CHECK ===
 
-// TODO: Route de santé pour vérifier que le serveur fonctionne
-// app.get("/health", (req, res) => {
-//   res.status(200).json({
-//     status: "OK",
-//     timestamp: new Date().toISOString(),
-//     uptime: process.uptime()
-//   });
-// });
+// Route de santé pour vérifier que le serveur fonctionne
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
 
-// TODO: Route API info
-// app.get("/api", (req, res) => {
-//   res.status(200).json({
-//     name: "Done Food Delivery API",
-//     version: "1.0.0",
-//     description: "API Backend pour la plateforme de livraison de nourriture décentralisée",
-//     endpoints: {
-//       orders: "/api/orders",
-//       users: "/api/users",
-//       restaurants: "/api/restaurants",
-//       deliverers: "/api/deliverers"
-//     }
-//   });
-// });
+// Route API info
+app.get("/api", (req, res) => {
+  res.status(200).json({
+    name: "Done Food Delivery API",
+    version: "1.0.0",
+    description: "API Backend pour la plateforme de livraison de nourriture décentralisée",
+    endpoints: {
+      orders: "/api/orders",
+      users: "/api/users",
+      restaurants: "/api/restaurants",
+      deliverers: "/api/deliverers"
+    }
+  });
+});
 
 // === CONNEXIONS AUX SERVICES EXTERNES ===
 
@@ -113,73 +105,73 @@
  */
 async function initializeConnections() {
   try {
-    // TODO: Établir la connexion MongoDB
-    // console.log("Connecting to MongoDB...");
-    // await connectDB();
-    // console.log("✅ MongoDB connected");
+    // Établir la connexion MongoDB
+    console.log("Connecting to MongoDB...");
+    await connectDB();
+    console.log("✅ MongoDB connected");
 
-    // TODO: Initialiser la connexion blockchain
+    // Initialiser la connexion blockchain (commenté temporairement)
     // console.log("Initializing blockchain connection...");
     // await initBlockchain();
     // console.log("✅ Blockchain connected");
 
-    // TODO: Initialiser IPFS
-    // console.log("Initializing IPFS...");
-    // await initIPFS();
-    // console.log("✅ IPFS initialized");
+    // Initialiser IPFS
+    console.log("Initializing IPFS...");
+    await initIPFS();
+    console.log("✅ IPFS initialized");
 
-    // TODO: Initialiser le service de notifications avec Socket.io
+    // Initialiser le service de notifications avec Socket.io (commenté temporairement)
     // notificationService.initNotificationService(io);
     // console.log("✅ Notification service initialized");
 
-    // TODO: Démarrer l'écoute des events blockchain
+    // Démarrer l'écoute des events blockchain (commenté temporairement)
     // await blockchainService.listenEvents();
     // console.log("✅ Blockchain events listener started");
 
-    // TODO: Configurer les rooms Socket.io pour les notifications
-    // io.on("connection", (socket) => {
-    //   console.log(`Client connected: ${socket.id}`);
-    //   
-    //   // TODO: Rejoindre la room client
-    //   socket.on("join-client-room", (address) => {
-    //     socket.join(`client_${address.toLowerCase()}`);
-    //     console.log(`Client ${address} joined room`);
-    //   });
-    //   
-    //   // TODO: Rejoindre la room restaurant
-    //   socket.on("join-restaurant-room", (restaurantId) => {
-    //     socket.join(`restaurant_${restaurantId}`);
-    //     console.log(`Restaurant ${restaurantId} joined room`);
-    //   });
-    //   
-    //   // TODO: Rejoindre la room deliverer
-    //   socket.on("join-deliverer-room", (address) => {
-    //     socket.join(`deliverer_${address.toLowerCase()}`);
-    //     console.log(`Deliverer ${address} joined room`);
-    //   });
-    //   
-    //   // TODO: Rejoindre la room arbitrators
-    //   socket.on("join-arbitrators-room", () => {
-    //     socket.join("arbitrators");
-    //     console.log(`Arbitrator joined room`);
-    //   });
-    //   
-    //   // TODO: Gérer la déconnexion
-    //   socket.on("disconnect", () => {
-    //     console.log(`Client disconnected: ${socket.id}`);
-    //   });
-    // });
+    // Configurer les rooms Socket.io pour les notifications
+    io.on("connection", (socket) => {
+      console.log(`Client connected: ${socket.id}`);
+      
+      // Rejoindre la room client
+      socket.on("join-client-room", (address) => {
+        socket.join(`client_${address.toLowerCase()}`);
+        console.log(`Client ${address} joined room`);
+      });
+      
+      // Rejoindre la room restaurant
+      socket.on("join-restaurant-room", (restaurantId) => {
+        socket.join(`restaurant_${restaurantId}`);
+        console.log(`Restaurant ${restaurantId} joined room`);
+      });
+      
+      // Rejoindre la room deliverer
+      socket.on("join-deliverer-room", (address) => {
+        socket.join(`deliverer_${address.toLowerCase()}`);
+        console.log(`Deliverer ${address} joined room`);
+      });
+      
+      // Rejoindre la room arbitrators
+      socket.on("join-arbitrators-room", () => {
+        socket.join("arbitrators");
+        console.log(`Arbitrator joined room`);
+      });
+      
+      // Gérer la déconnexion
+      socket.on("disconnect", () => {
+        console.log(`Client disconnected: ${socket.id}`);
+      });
+    });
 
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error initializing connections:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error initializing connections:", error);
+    throw error;
   }
 }
 
 // === ROUTES API ===
 
-// TODO: Monter les routes API
+// Monter les routes API (commentées temporairement car nécessitent les controllers)
 // app.use("/api/orders", orderRoutes);
 // app.use("/api/users", userRoutes);
 // app.use("/api/restaurants", restaurantRoutes);
@@ -187,27 +179,27 @@ async function initializeConnections() {
 
 // === GESTION DES ERREURS ===
 
-// TODO: Middleware pour gérer les routes non trouvées (404)
-// app.use((req, res, next) => {
-//   res.status(404).json({
-//     error: "Not Found",
-//     message: `Route ${req.method} ${req.path} not found`
-//   });
-// });
+// Middleware pour gérer les routes non trouvées (404)
+app.use((req, res, next) => {
+  res.status(404).json({
+    error: "Not Found",
+    message: `Route ${req.method} ${req.path} not found`
+  });
+});
 
-// TODO: Middleware global de gestion d'erreurs
-// app.use((err, req, res, next) => {
-//   console.error("Error:", err);
-//   
-//   // TODO: Déterminer le code de statut
-//   const statusCode = err.statusCode || 500;
-//   
-//   // TODO: Retourner l'erreur (masquer les détails en production)
-//   res.status(statusCode).json({
-//     error: err.message || "Internal Server Error",
-//     ...(NODE_ENV === "development" && { stack: err.stack })
-//   });
-// });
+// Middleware global de gestion d'erreurs
+app.use((err, req, res, next) => {
+  console.error("Error:", err);
+  
+  // Déterminer le code de statut
+  const statusCode = err.statusCode || 500;
+  
+  // Retourner l'erreur (masquer les détails en production)
+  res.status(statusCode).json({
+    error: err.message || "Internal Server Error",
+    ...(NODE_ENV === "development" && { stack: err.stack })
+  });
+});
 
 // === DÉMARRAGE DU SERVEUR ===
 
@@ -217,21 +209,21 @@ async function initializeConnections() {
  */
 async function startServer() {
   try {
-    // TODO: Initialiser toutes les connexions
-    // await initializeConnections();
+    // Initialiser toutes les connexions
+    await initializeConnections();
 
-    // TODO: Démarrer le serveur HTTP
-    // server.listen(PORT, () => {
-    //   console.log(`🚀 Server running on port ${PORT}`);
-    //   console.log(`📡 Environment: ${NODE_ENV}`);
-    //   console.log(`🌐 API: http://localhost:${PORT}/api`);
-    //   console.log(`🔌 Socket.io: http://localhost:${PORT}`);
-    // });
+    // Démarrer le serveur HTTP
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📡 Environment: ${NODE_ENV}`);
+      console.log(`🌐 API: http://localhost:${PORT}/api`);
+      console.log(`🔌 Socket.io: http://localhost:${PORT}`);
+    });
 
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Failed to start server:", error);
-    // process.exit(1);
+    // Logger l'erreur
+    console.error("Failed to start server:", error);
+    process.exit(1);
   }
 }
 
@@ -242,51 +234,51 @@ async function startServer() {
  * @dev TODO: Implémenter la fonction gracefulShutdown
  */
 async function gracefulShutdown(signal) {
-  // TODO: Logger le signal
-  // console.log(`\n${signal} received. Shutting down gracefully...`);
+  // Logger le signal
+  console.log(`\n${signal} received. Shutting down gracefully...`);
 
   try {
-    // TODO: Fermer le serveur HTTP
-    // server.close(() => {
-    //   console.log("HTTP server closed");
-    // });
+    // Fermer le serveur HTTP
+    server.close(() => {
+      console.log("HTTP server closed");
+    });
 
-    // TODO: Fermer la connexion MongoDB
-    // await disconnectDB();
-    // console.log("MongoDB connection closed");
+    // Fermer la connexion MongoDB
+    await disconnectDB();
+    console.log("MongoDB connection closed");
 
-    // TODO: Fermer Socket.io
-    // io.close(() => {
-    //   console.log("Socket.io server closed");
-    // });
+    // Fermer Socket.io
+    io.close(() => {
+      console.log("Socket.io server closed");
+    });
 
-    // TODO: Exit proprement
-    // process.exit(0);
+    // Exit proprement
+    process.exit(0);
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error during shutdown:", error);
-    // process.exit(1);
+    // Logger l'erreur
+    console.error("Error during shutdown:", error);
+    process.exit(1);
   }
 }
 
-// TODO: Écouter les signaux de shutdown
-// process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-// process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+// Écouter les signaux de shutdown
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
-// TODO: Gérer les erreurs non capturées
-// process.on("unhandledRejection", (reason, promise) => {
-//   console.error("Unhandled Rejection at:", promise, "reason:", reason);
-//   gracefulShutdown("unhandledRejection");
-// });
+// Gérer les erreurs non capturées
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+  gracefulShutdown("unhandledRejection");
+});
 
-// process.on("uncaughtException", (error) => {
-//   console.error("Uncaught Exception:", error);
-//   gracefulShutdown("uncaughtException");
-// });
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
+  gracefulShutdown("uncaughtException");
+});
 
-// TODO: Démarrer le serveur
-// startServer();
+// Démarrer le serveur
+startServer();
 
-// TODO: Exporter app et io pour les tests
-// module.exports = { app, server, io };
+// Exporter app et io pour les tests
+module.exports = { app, server, io };
 

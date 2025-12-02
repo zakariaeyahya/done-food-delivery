@@ -1,8 +1,5 @@
-// TODO: Importer mongoose pour la connexion MongoDB
-// const mongoose = require("mongoose");
-
-// TODO: Importer dotenv pour charger les variables d'environnement
-// require("dotenv").config();
+const mongoose = require("mongoose");
+require("dotenv").config();
 
 /**
  * Configuration de la connexion MongoDB
@@ -34,63 +31,62 @@ let connectionStatus = 0; // 0=disconnected, 1=connected, 2=connecting, 3=discon
  */
 async function connectDB() {
   try {
-    // TODO: Vérifier que MONGODB_URI existe dans .env
-    // if (!process.env.MONGODB_URI) {
-    //   throw new Error("MONGODB_URI is not defined in .env");
-    // }
+    // Vérifier que MONGODB_URI existe dans .env
+    if (!process.env.MONGODB_URI) {
+      throw new Error("MONGODB_URI is not defined in .env");
+    }
 
-    // TODO: Vérifier si déjà connecté
-    // if (mongoose.connection.readyState === 1) {
-    //   console.log("MongoDB already connected");
-    //   return;
-    // }
+    // Vérifier si déjà connecté
+    if (mongoose.connection.readyState === 1) {
+      console.log("MongoDB already connected");
+      return;
+    }
 
-    // TODO: Mettre à jour le statut de connexion à "connecting"
-    // connectionStatus = 2; // connecting
+    // Mettre à jour le statut de connexion à "connecting"
+    connectionStatus = 2; // connecting
 
-    // TODO: Configurer les options de connexion
-    // const options = {
-    //   useNewUrlParser: true,
-    //   useUnifiedTopology: true,
-    //   // Optionnel: ajouter d'autres options
-    //   // maxPoolSize: 10, // Nombre max de connexions dans le pool
-    //   // serverSelectionTimeoutMS: 5000, // Timeout pour sélectionner un serveur
-    //   // socketTimeoutMS: 45000, // Timeout pour les opérations socket
-    // };
+    // Configurer les options de connexion
+    const options = {
+      // Note: useNewUrlParser et useUnifiedTopology sont dépréciés dans Mongoose 7+
+      // mais on les garde pour compatibilité si version antérieure
+      maxPoolSize: 10, // Nombre max de connexions dans le pool
+      serverSelectionTimeoutMS: 5000, // Timeout pour sélectionner un serveur
+      socketTimeoutMS: 45000, // Timeout pour les opérations socket
+    };
 
-    // TODO: Établir la connexion
-    // await mongoose.connect(process.env.MONGODB_URI, options);
+    // Établir la connexion
+    await mongoose.connect(process.env.MONGODB_URI, options);
 
-    // TODO: Gérer l'événement 'connected'
-    // mongoose.connection.on('connected', () => {
-    //   connectionStatus = 1; // connected
-    //   console.log(`MongoDB connected successfully to: ${mongoose.connection.host}`);
-    //   console.log(`Database: ${mongoose.connection.name}`);
-    // });
+    // Gérer l'événement 'connected'
+    mongoose.connection.on('connected', () => {
+      connectionStatus = 1; // connected
+      console.log(`MongoDB connected successfully to: ${mongoose.connection.host}`);
+      console.log(`Database: ${mongoose.connection.name}`);
+    });
 
-    // TODO: Gérer l'événement 'error'
-    // mongoose.connection.on('error', (err) => {
-    //   connectionStatus = 0; // disconnected
-    //   console.error("MongoDB connection error:", err);
-    // });
+    // Gérer l'événement 'error'
+    mongoose.connection.on('error', (err) => {
+      connectionStatus = 0; // disconnected
+      console.error("MongoDB connection error:", err);
+    });
 
-    // TODO: Gérer l'événement 'disconnected'
-    // mongoose.connection.on('disconnected', () => {
-    //   connectionStatus = 0; // disconnected
-    //   console.log("MongoDB disconnected");
-    // });
+    // Gérer l'événement 'disconnected'
+    mongoose.connection.on('disconnected', () => {
+      connectionStatus = 0; // disconnected
+      console.log("MongoDB disconnected");
+    });
 
-    // TODO: Gérer le processus de fermeture de l'application
-    // process.on('SIGINT', async () => {
-    //   await disconnectDB();
-    //   process.exit(0);
-    // });
+    // Gérer le processus de fermeture de l'application
+    process.on('SIGINT', async () => {
+      await disconnectDB();
+      process.exit(0);
+    });
 
   } catch (error) {
-    // TODO: Logger l'erreur
-    // connectionStatus = 0; // disconnected
-    // console.error("Error connecting to MongoDB:", error);
-    // throw error;
+    // Logger l'erreur
+    connectionStatus = 0; // disconnected
+    console.error("Error connecting to MongoDB:", error);
+    throw error;
   }
 }
 
@@ -104,27 +100,27 @@ async function connectDB() {
  */
 async function disconnectDB() {
   try {
-    // TODO: Vérifier si connecté
-    // if (mongoose.connection.readyState === 0) {
-    //   console.log("MongoDB already disconnected");
-    //   return;
-    // }
+    // Vérifier si connecté
+    if (mongoose.connection.readyState === 0) {
+      console.log("MongoDB already disconnected");
+      return;
+    }
 
-    // TODO: Mettre à jour le statut à "disconnecting"
-    // connectionStatus = 3; // disconnecting
+    // Mettre à jour le statut à "disconnecting"
+    connectionStatus = 3; // disconnecting
 
-    // TODO: Fermer la connexion
-    // await mongoose.connection.close();
+    // Fermer la connexion
+    await mongoose.connection.close();
 
-    // TODO: Mettre à jour le statut à "disconnected"
-    // connectionStatus = 0; // disconnected
+    // Mettre à jour le statut à "disconnected"
+    connectionStatus = 0; // disconnected
 
-    // TODO: Logger le succès
-    // console.log("MongoDB disconnected successfully");
+    // Logger le succès
+    console.log("MongoDB disconnected successfully");
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error disconnecting from MongoDB:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error disconnecting from MongoDB:", error);
+    throw error;
   }
 }
 
@@ -141,8 +137,8 @@ async function disconnectDB() {
  * @returns {number} État de la connexion (0, 1, 2, ou 3)
  */
 function getConnectionStatus() {
-  // TODO: Retourner l'état de connexion depuis mongoose.connection.readyState
-  // return mongoose.connection.readyState;
+  // Retourner l'état de connexion depuis mongoose.connection.readyState
+  return mongoose.connection.readyState;
   // Note: mongoose.connection.readyState retourne directement l'état
 }
 
@@ -153,8 +149,8 @@ function getConnectionStatus() {
  * @returns {boolean} True si connecté (readyState === 1), false sinon
  */
 function isConnected() {
-  // TODO: Vérifier si readyState === 1
-  // return mongoose.connection.readyState === 1;
+  // Vérifier si readyState === 1
+  return mongoose.connection.readyState === 1;
 }
 
 /**
@@ -163,7 +159,7 @@ function isConnected() {
  * @returns {Object} Instance mongoose
  */
 function getMongoose() {
-  // TODO: return mongoose;
+  return mongoose;
 }
 
 /**
@@ -172,7 +168,7 @@ function getMongoose() {
  * @returns {Object} Objet de connexion mongoose
  */
 function getConnection() {
-  // TODO: return mongoose.connection;
+  return mongoose.connection;
 }
 
 /**
@@ -181,7 +177,7 @@ function getConnection() {
  * @returns {string} Nom de la base de données
  */
 function getDatabaseName() {
-  // TODO: return mongoose.connection.name;
+  return mongoose.connection.name;
 }
 
 /**
@@ -190,20 +186,20 @@ function getDatabaseName() {
  * @returns {string} URI masquée
  */
 function getConnectionURI() {
-  // TODO: Masquer le mot de passe dans l'URI pour sécurité
-  // const uri = process.env.MONGODB_URI || "";
-  // return uri.replace(/:[^:@]+@/, ":****@"); // Masquer le mot de passe
+  // Masquer le mot de passe dans l'URI pour sécurité
+  const uri = process.env.MONGODB_URI || "";
+  return uri.replace(/:[^:@]+@/, ":****@"); // Masquer le mot de passe
 }
 
-// TODO: Exporter les fonctions
-// module.exports = {
-//   connectDB,
-//   disconnectDB,
-//   getConnectionStatus,
-//   isConnected,
-//   getMongoose,
-//   getConnection,
-//   getDatabaseName,
-//   getConnectionURI,
-//   mongoose
-// };
+// Exporter les fonctions
+module.exports = {
+  connectDB,
+  disconnectDB,
+  getConnectionStatus,
+  isConnected,
+  getMongoose,
+  getConnection,
+  getDatabaseName,
+  getConnectionURI,
+  mongoose
+};
