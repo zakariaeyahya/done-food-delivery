@@ -510,37 +510,33 @@ async function runTests() {
       
       log(`   ✅ canBeUpdated fonctionne`, 'reset');
     });
+// ============================================
+// NETTOYAGE
+// ============================================
+// log('\n' + '='.repeat(70), 'yellow');
+// log('🧹 NETTOYAGE DES DONNÉES DE TEST', 'yellow');
+// log('='.repeat(70), 'yellow');
 
-    // ============================================
-    // NETTOYAGE
-    // ============================================
-    log('\n' + '='.repeat(70), 'yellow');
-    log('🧹 NETTOYAGE DES DONNÉES DE TEST', 'yellow');
-    log('='.repeat(70), 'yellow');
+// try {
+//   if (createdOrderIds.length > 0) {
+//     await Order.deleteMany({ _id: { $in: createdOrderIds } });
+//   }
+  
+//   if (createdDelivererIds.length > 0) {
+//     await Deliverer.deleteMany({ _id: { $in: createdDelivererIds } });
+//   }
+  
+//   if (createdRestaurantIds.length > 0) {
+//     await Restaurant.deleteMany({ _id: { $in: createdRestaurantIds } });
+//   }
+  
+//   if (createdUserIds.length > 0) {
+//     await User.deleteMany({ _id: { $in: createdUserIds } });
+//   }
+// } catch (cleanupError) {
+//   ...
+// }
 
-    try {
-      if (createdOrderIds.length > 0) {
-        await Order.deleteMany({ _id: { $in: createdOrderIds } });
-        log(`   🗑️  ${createdOrderIds.length} commande(s) supprimée(s)`, 'reset');
-      }
-      
-      if (createdDelivererIds.length > 0) {
-        await Deliverer.deleteMany({ _id: { $in: createdDelivererIds } });
-        log(`   🗑️  ${createdDelivererIds.length} livreur(s) supprimé(s)`, 'reset');
-      }
-      
-      if (createdRestaurantIds.length > 0) {
-        await Restaurant.deleteMany({ _id: { $in: createdRestaurantIds } });
-        log(`   🗑️  ${createdRestaurantIds.length} restaurant(s) supprimé(s)`, 'reset');
-      }
-      
-      if (createdUserIds.length > 0) {
-        await User.deleteMany({ _id: { $in: createdUserIds } });
-        log(`   🗑️  ${createdUserIds.length} utilisateur(s) supprimé(s)`, 'reset');
-      }
-    } catch (cleanupError) {
-      log(`   ⚠️  Erreur lors du nettoyage: ${cleanupError.message}`, 'yellow');
-    }
 
     // ============================================
     // RÉSUMÉ
