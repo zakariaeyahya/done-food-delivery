@@ -108,5 +108,50 @@ router.put(
   restaurantController.updateMenu
 );
 
+// Route POST /api/restaurants/:id/menu/item - Ajouter un nouvel item au menu
+router.post(
+  "/:id/menu/item",
+  auth.verifySignature,                    // Vérifier signature
+  auth.requireRole("RESTAURANT_ROLE"),     // Vérifier rôle restaurant
+  upload.single("image"),                   // Upload image de l'item
+  restaurantController.addMenuItem
+);
+
+// Route PUT /api/restaurants/:id/menu/item/:itemId - Modifier un item existant du menu
+router.put(
+  "/:id/menu/item/:itemId",
+  auth.verifySignature,                    // Vérifier signature
+  auth.requireRole("RESTAURANT_ROLE"),     // Vérifier rôle restaurant
+  upload.single("image"),                   // Upload nouvelle image si fournie
+  restaurantController.updateMenuItem
+);
+
+// Route DELETE /api/restaurants/:id/menu/item/:itemId - Supprimer un item du menu
+router.delete(
+  "/:id/menu/item/:itemId",
+  auth.verifySignature,                    // Vérifier signature
+  auth.requireRole("RESTAURANT_ROLE"),     // Vérifier rôle restaurant
+  restaurantController.deleteMenuItem
+);
+
+// Route GET /api/restaurants/:id/earnings - Récupérer les revenus on-chain du restaurant
+router.get(
+  "/:id/earnings",
+  auth.verifySignature,                    // Vérifier signature
+  auth.requireRole("RESTAURANT_ROLE"),     // Vérifier rôle restaurant
+  restaurantController.getRestaurantEarnings
+);
+
+// Route POST /api/restaurants/:id/withdraw - Retirer les fonds du PaymentSplitter
+// NOTE: Cette route est pour documentation. Le PaymentSplitter actuel utilise un pattern "push"
+// (transfert immédiat lors de splitPayment). Si un pattern "pull" est nécessaire (balance en attente),
+// il faudra modifier le contrat PaymentSplitter pour ajouter un système de balance.
+router.post(
+  "/:id/withdraw",
+  auth.verifySignature,                    // Vérifier signature
+  auth.requireRole("RESTAURANT_ROLE"),     // Vérifier rôle restaurant
+  restaurantController.withdrawEarnings
+);
+
 // Exporter le router
 module.exports = router;
