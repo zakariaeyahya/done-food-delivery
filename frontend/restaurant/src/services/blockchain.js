@@ -270,6 +270,10 @@
  * 
  * @example
  * const pending = await getPendingBalance('0x...');
+ * 
+ * @notice IMPORTANT: Le contrat PaymentSplitter actuel utilise un pattern PUSH (transfert immédiat).
+ * Si le contrat n'a pas de fonction balances() ou withdraw(), cette fonction retournera 0.
+ * Voir contracts/PAYMENT_SPLITTER_NOTES.md pour plus de détails.
  */
 // TODO: Implémenter getPendingBalance(restaurantAddress)
 // async function getPendingBalance(restaurantAddress) {
@@ -281,11 +285,16 @@
 //     SI !paymentSplitterContract:
 //       paymentSplitterContract = new ethers.Contract(PAYMENT_SPLITTER_ADDRESS, DonePaymentSplitterABI.abi, provider);
 //     
-//     // Appeler balances(restaurantAddress) sur le contrat
-//     const balance = await paymentSplitterContract.balances(restaurantAddress);
-//     
-//     // Convertir wei en MATIC
-//     RETOURNER parseFloat(ethers.formatEther(balance));
+//     // Vérifier si le contrat a une fonction balances()
+//     // Si le contrat utilise pattern PUSH, cette fonction n'existe pas
+//     ESSAYER:
+//       const balance = await paymentSplitterContract.balances(restaurantAddress);
+//       RETOURNER parseFloat(ethers.formatEther(balance));
+//     CATCH error:
+//       // Si balances() n'existe pas, le contrat utilise pattern PUSH
+//       // Les fonds sont déjà transférés, donc balance = 0
+//       console.warn('PaymentSplitter uses PUSH pattern. Funds are transferred immediately.');
+//       RETOURNER 0;
 //   CATCH error:
 //     throw new Error(`Failed to get pending balance: ${error.message}`);
 // }
@@ -296,6 +305,10 @@
  * 
  * @example
  * const { txHash, amount } = await withdraw();
+ * 
+ * @notice IMPORTANT: Le contrat PaymentSplitter actuel utilise un pattern PUSH (transfert immédiat).
+ * Si le contrat n'a pas de fonction withdraw(), cette fonction lancera une erreur.
+ * Voir contracts/PAYMENT_SPLITTER_NOTES.md pour plus de détails.
  */
 // TODO: Implémenter withdraw()
 // async function withdraw() {
@@ -306,21 +319,28 @@
 //     SI !paymentSplitterContract:
 //       paymentSplitterContract = new ethers.Contract(PAYMENT_SPLITTER_ADDRESS, DonePaymentSplitterABI.abi, signer);
 //     
-//     // Récupérer le solde avant retrait
 //     const address = await signer.getAddress();
-//     const balance = await paymentSplitterContract.balances(address);
-//     const amount = parseFloat(ethers.formatEther(balance));
 //     
-//     SI amount <= 0:
-//       throw new Error('No funds available to withdraw');
-//     
-//     // Appeler withdraw() sur le contrat
-//     const tx = await paymentSplitterContract.withdraw();
-//     
-//     // Attendre confirmation
-//     const receipt = await tx.wait();
-//     
-//     RETOURNER { txHash: receipt.hash, amount, receipt };
+//     // Vérifier si le contrat a une fonction withdraw()
+//     // Si le contrat utilise pattern PUSH, cette fonction n'existe pas
+//     ESSAYER:
+//       // Vérifier balance avant retrait
+//       const balance = await paymentSplitterContract.balances(address);
+//       const amount = parseFloat(ethers.formatEther(balance));
+//       
+//       SI amount <= 0:
+//         throw new Error('No funds available to withdraw');
+//       
+//       // Appeler withdraw() sur le contrat
+//       const tx = await paymentSplitterContract.withdraw();
+//       
+//       // Attendre confirmation
+//       const receipt = await tx.wait();
+//       
+//       RETOURNER { txHash: receipt.hash, amount, receipt };
+//     CATCH error:
+//       // Si withdraw() n'existe pas, le contrat utilise pattern PUSH
+//       throw new Error('PaymentSplitter uses PUSH pattern. Funds are already transferred. No withdraw() function available.');
 //   CATCH error:
 //     throw new Error(`Failed to withdraw: ${error.message}`);
 // }
