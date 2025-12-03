@@ -1,0 +1,81 @@
+# ============================================
+# Configuration Frontend Client - DONE Food Delivery
+# ============================================
+# 
+# Instructions:
+# 1. Copier ce contenu dans un fichier nommé .env.example
+# 2. Créer ensuite .env en copiant .env.example
+# 3. Remplacer les valeurs par vos vraies adresses et clés
+# 4. Ne jamais commiter le fichier .env dans Git
+#
+# ============================================
+
+# URL de l'API Backend
+# Format: http://localhost:3000/api (développement)
+#         https://api.votredomaine.com/api (production)
+VITE_API_URL=http://localhost:3000/api
+
+# URL du serveur Socket.io
+# Format: http://localhost:3000 (développement)
+#         https://api.votredomaine.com (production)
+VITE_SOCKET_URL=http://localhost:3000
+
+# ============================================
+# Adresses des Smart Contracts (Polygon Mumbai)
+# ============================================
+# 
+# Obtenez ces adresses après le déploiement des contrats
+# Vérifiez sur https://mumbai.polygonscan.com
+
+# Adresse du contrat DoneOrderManager
+# Exemple: 0x1234567890123456789012345678901234567890
+VITE_ORDER_MANAGER_ADDRESS=0x...
+
+# Adresse du contrat DoneToken (tokens DONE)
+# Exemple: 0xabcdefabcdefabcdefabcdefabcdefabcdefabcd
+VITE_TOKEN_ADDRESS=0x...
+
+# ============================================
+# Configuration IPFS
+# ============================================
+# 
+# Gateway IPFS pour accéder aux fichiers uploadés
+# Options:
+# - https://gateway.pinata.cloud/ipfs/ (Pinata - recommandé)
+# - https://ipfs.io/ipfs/ (IPFS public)
+# - https://cloudflare-ipfs.com/ipfs/ (Cloudflare)
+
+VITE_IPFS_GATEWAY=https://gateway.pinata.cloud/ipfs/
+
+# ============================================
+# Google Maps API
+# ============================================
+# 
+# Clé API Google Maps pour:
+# - Autocomplete adresses (Checkout)
+# - Carte de suivi GPS (OrderTracking)
+# 
+# Obtenir une clé: https://console.cloud.google.com/google/maps-apis
+# Activer: Places API, Maps JavaScript API, Geocoding API
+
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+
+# ============================================
+# Configuration Réseau Blockchain
+# ============================================
+# 
+# Chain ID de Polygon Mumbai (défaut: 80001)
+# Ne pas modifier sauf si vous utilisez un autre réseau de test
+VITE_CHAIN_ID=80001
+
+# RPC URL pour Polygon Mumbai (optionnel, MetaMask utilise son propre RPC)
+# Format: https://rpc-mumbai.maticvigil.com
+# VITE_MUMBAI_RPC_URL=https://rpc-mumbai.maticvigil.com
+
+# ============================================
+# Configuration Environnement
+# ============================================
+# 
+# Environnement: development, production, test
+# VITE_NODE_ENV=development
+
