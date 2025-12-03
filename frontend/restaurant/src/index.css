@@ -1,8 +1,10 @@
+/* TODO: Directives Tailwind */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  /* TODO: Styles de base */
   * {
     @apply border-border;
   }
@@ -16,7 +18,23 @@
     @apply font-display font-semibold;
   }
 
-  /* Scrollbar personnalisée */
+  h1 {
+    @apply text-4xl md:text-5xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl;
+  }
+
+  h4 {
+    @apply text-xl md:text-2xl;
+  }
+
+  /* TODO: Scrollbar personnalisée */
   ::-webkit-scrollbar {
     @apply w-2 h-2;
   }
@@ -35,7 +53,7 @@
 }
 
 @layer components {
-  /* Boutons */
+  /* TODO: Boutons pour dashboard */
   .btn {
     @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
@@ -44,107 +62,140 @@
     @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-800;
   }
 
-  .btn-restaurant {
-    @apply bg-restaurant-500 text-white hover:bg-restaurant-600 focus:ring-restaurant-500 active:bg-restaurant-700;
+  .btn-secondary {
+    @apply bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500 active:bg-gray-400;
   }
 
   .btn-success {
     @apply bg-success-600 text-white hover:bg-success-700 focus:ring-success-500 active:bg-success-800;
   }
 
-  .btn-warning {
-    @apply bg-warning-500 text-white hover:bg-warning-600 focus:ring-warning-500 active:bg-warning-700;
+  .btn-danger {
+    @apply bg-error-600 text-white hover:bg-error-700 focus:ring-error-500 active:bg-error-800;
   }
 
   .btn-outline {
     @apply border-2 border-primary-600 text-primary-600 hover:bg-primary-50 focus:ring-primary-500;
   }
 
-  /* Cards */
+  .btn-ghost {
+    @apply text-gray-700 hover:bg-gray-100 focus:ring-gray-500;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+
+  .btn-lg {
+    @apply px-6 py-3 text-lg;
+  }
+
+  .btn-disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* TODO: Cards pour dashboard */
   .card {
     @apply bg-white rounded-xl shadow-soft p-6 transition-all duration-200 hover:shadow-medium;
   }
 
-  /* Order cards */
-  .order-card {
-    @apply card p-4 border-l-4;
+  .card-hover {
+    @apply hover:scale-[1.02] cursor-pointer;
   }
 
-  .order-card.new {
-    @apply border-primary-500 bg-primary-50;
+  /* TODO: Inputs */
+  .input {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all;
   }
 
-  .order-card.preparing {
-    @apply border-warning-500 bg-warning-50;
+  .input-error {
+    @apply border-error-500 focus:ring-error-500;
   }
 
-  .order-card.ready {
-    @apply border-success-500 bg-success-50;
+  .input-success {
+    @apply border-success-500 focus:ring-success-500;
   }
 
-  /* Menu items */
-  .menu-item-card {
-    @apply card p-4 hover:scale-[1.02] cursor-pointer;
+  /* TODO: Labels */
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
   }
 
-  .menu-item-image {
-    @apply w-full h-32 object-cover rounded-lg mb-2;
-  }
-
-  /* Orders queue */
-  .orders-queue {
-    @apply space-y-4;
-  }
-
-  .order-queue-item {
-    @apply order-card transition-all duration-200;
-  }
-
-  .order-queue-item:hover {
-    @apply shadow-medium;
-  }
-
-  /* Stats cards */
-  .stat-card {
-    @apply card p-6;
-  }
-
-  .stat-value {
-    @apply text-3xl font-bold text-gray-900;
-  }
-
-  .stat-label {
-    @apply text-sm font-medium text-gray-500 mt-1;
-  }
-
-  /* Charts container */
-  .chart-container {
-    @apply card p-6;
-  }
-
-  /* Status badges */
-  .status-badge {
+  /* TODO: Badges pour statuts commandes */
+  .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
 
-  .status-new {
+  .badge-primary {
     @apply bg-primary-100 text-primary-800;
   }
 
-  .status-preparing {
+  .badge-success {
+    @apply bg-success-100 text-success-800;
+  }
+
+  .badge-warning {
     @apply bg-warning-100 text-warning-800;
   }
 
-  .status-ready {
-    @apply bg-success-100 text-success-800;
+  .badge-error {
+    @apply bg-error-100 text-error-800;
+  }
+
+  .badge-gray {
+    @apply bg-gray-100 text-gray-800;
+  }
+
+  /* TODO: Container */
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* TODO: Skeleton loader */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
+  }
+
+  /* TODO: Modal backdrop */
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4;
+  }
+
+  .modal-content {
+    @apply bg-white rounded-xl shadow-strong max-w-md w-full p-6 max-h-[90vh] overflow-y-auto;
+  }
+
+  /* TODO: Loading spinner */
+  .spinner {
+    @apply inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin;
+  }
+
+  /* TODO: Styles spécifiques dashboard restaurant */
+  .dashboard-sidebar {
+    @apply fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-30;
+  }
+
+  .dashboard-header {
+    @apply fixed top-0 right-0 left-64 h-16 bg-white shadow-sm z-20;
+  }
+
+  .dashboard-content {
+    @apply ml-64 mt-16 p-6;
   }
 }
 
 @layer utilities {
+  /* TODO: Text utilities */
   .text-balance {
     text-wrap: balance;
   }
 
+  /* TODO: Gradient text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600;
+  }
+
+  /* TODO: Truncate with ellipsis */
   .truncate-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -158,5 +209,107 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* TODO: Smooth scroll */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+  }
+
+  /* TODO: Hide scrollbar but keep functionality */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
+/* TODO: Animations personnalisées */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* TODO: Styles pour les cartes de commande */
+.order-card {
+  @apply card overflow-hidden;
+}
+
+.order-card-header {
+  @apply flex items-center justify-between p-4 border-b border-gray-200;
+}
+
+.order-card-body {
+  @apply p-4;
+}
+
+.order-card-footer {
+  @apply p-4 border-t border-gray-200 bg-gray-50;
+}
+
+/* TODO: Styles pour le menu manager */
+.menu-item-card {
+  @apply card card-hover overflow-hidden;
+}
+
+.menu-item-card img {
+  @apply w-full h-48 object-cover transition-transform duration-300;
+}
+
+.menu-item-card:hover img {
+  @apply scale-110;
+}
+
+/* TODO: Styles pour les graphiques analytics */
+.chart-container {
+  @apply bg-white rounded-xl shadow-soft p-6;
+}
+
+/* TODO: Styles pour les notifications */
+.notification {
+  @apply fixed top-4 right-4 z-50 p-4 rounded-lg shadow-strong animate-slide-down;
+}
+
+.notification-success {
+  @apply bg-success-500 text-white;
+}
+
+.notification-error {
+  @apply bg-error-500 text-white;
+}
+
+.notification-warning {
+  @apply bg-warning-500 text-white;
+}
+
+.notification-info {
+  @apply bg-primary-500 text-white;
+}
