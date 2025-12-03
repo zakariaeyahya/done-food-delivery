@@ -279,7 +279,20 @@ const io = socketio(server)
 - Notifie arbitrators via notificationService.notifyArbitrators()
 - Retourne : { success: true, txHash, disputeId }
 
-**10. getOrderHistory(req, res)**
+**10. submitReview(req, res)**
+- Entrée : orderId (params), { rating, comment, clientAddress } (body)
+- Valide que rating est entre 1 et 5
+- Vérifie que clientAddress == order.client (seul le client peut laisser un avis)
+- Vérifie que order.status == DELIVERED (seulement après livraison)
+- Vérifie qu'un avis n'existe pas déjà pour cette commande
+- Crée/update review dans MongoDB Order.reviews[] :
+  - { rating, comment, clientAddress, createdAt }
+- Calcule nouvelle averageRating du restaurant :
+  - averageRating = avg(all reviews.rating)
+- Update Restaurant.averageRating dans MongoDB
+- Retourne : { success: true, review }
+
+**11. getOrderHistory(req, res)**
 - Entrée : address (query), role (query - client/restaurant/deliverer)
 - Fetch orders depuis MongoDB selon role :
   - Si role=client : where client = address
@@ -829,6 +842,7 @@ POST   /api/orders/:id/confirm-pickup
 POST   /api/orders/:id/update-gps
 POST   /api/orders/:id/confirm-delivery
 POST   /api/orders/:id/dispute
+POST   /api/orders/:id/review
 GET    /api/orders/history/:address
 ```
 

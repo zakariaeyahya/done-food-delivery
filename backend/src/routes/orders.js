@@ -91,6 +91,16 @@
 //   orderController.openDispute
 // );
 
+// TODO: Route POST /api/orders/:id/review - Soumettre un avis sur une commande
+// router.post(
+//   "/:id/review",
+//   auth.verifySignature,                    // Vérifier signature wallet Web3
+//   auth.requireRole("CLIENT_ROLE"),         // Vérifier rôle client
+//   validation.validateOrderId,              // Valider orderId
+//   validation.validateReview,               // Valider body { rating (1-5), comment, clientAddress }
+//   orderController.submitReview
+// );
+
 // TODO: Route GET /api/orders/history/:address - Récupérer l'historique des commandes
 // router.get(
 //   "/history/:address",
