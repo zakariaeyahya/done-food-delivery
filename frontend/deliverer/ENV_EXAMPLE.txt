@@ -1,0 +1,21 @@
+# Variables d'environnement pour frontend/deliverer
+# Copier ce fichier vers .env et remplir les valeurs
+
+# URL de l'API backend
+VITE_API_URL=http://localhost:3000/api
+
+# Adresse du contrat DoneOrderManager (déployé sur Polygon Mumbai)
+VITE_ORDER_MANAGER_ADDRESS=0x...
+
+# Adresse du contrat DoneStaking (déployé sur Polygon Mumbai)
+VITE_STAKING_ADDRESS=0x...
+
+# URL Socket.io pour notifications temps réel
+VITE_SOCKET_URL=http://localhost:3000
+
+# Clé API Google Maps (pour navigation et cartes)
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
+# Optionnel: Adresse du contrat DonePaymentSplitter (pour events earnings)
+VITE_PAYMENT_SPLITTER_ADDRESS=0x...
+
