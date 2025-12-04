@@ -2,6 +2,26 @@
 
 Ce dossier contient l'API Backend Node.js/Express qui orchestre les interactions off-chain, gère la base de données MongoDB et sert d'interface API entre les frontends et la blockchain.
 
+## 📊 Statut de Développement
+
+### ✅ Phase 6 : Controllers Simples (Sans Blockchain) - TERMINÉE
+
+**Tests** : ✅ 19/19 tests réussis (100%)
+
+**Fichiers développés** :
+- ✅ `userController.js` - 100% MongoDB (registerUser, getUserProfile, updateUserProfile, getUserOrders, getUserTokens)
+- ✅ `restaurantController.js` - 100% MongoDB (registerRestaurant, getRestaurant, getAllRestaurants, updateRestaurant, getRestaurantOrders, getRestaurantAnalytics, updateMenu)
+- ✅ `delivererController.js` - 100% MongoDB (registerDeliverer, getDeliverer, getAvailableDeliverers, updateDelivererStatus, stakeAsDeliverer, getDelivererOrders, getDelivererEarnings)
+- ✅ `routes/users.js` - Routes API utilisateurs
+- ✅ `routes/restaurants.js` - Routes API restaurants
+- ✅ `routes/deliverers.js` - Routes API livreurs
+
+**Prochaine étape** : Phase 7 - Controllers avec IPFS (`orderController.js` + `routes/orders.js`)
+
+**Après Phase 7** : ⚠️ Nécessite les smart contracts pour activer `blockchainService.js`
+
+---
+
 ## Structure
 
 ```
@@ -205,6 +225,8 @@ const io = socketio(server)
 
 ### orderController.js
 
+**Status** : ⏳ EN DÉVELOPPEMENT (Phase 7 - Fonctions MongoDB/IPFS uniquement, sans blockchain)
+
 **Rôle** : Gérer toutes les requêtes HTTP liées aux commandes.
 
 **Méthodes** :
@@ -212,17 +234,19 @@ const io = socketio(server)
 **1. createOrder(req, res)**
 - Entrée : { restaurantId, items[], deliveryAddress, clientAddress }
 - Valide les données (items non vide, prices > 0)
-- Upload items[] vers IPFS via ipfsService.uploadJSON()
+- ⏳ Upload items[] vers IPFS via ipfsService.uploadJSON() (Phase 7)
 - Calcule foodPrice total = somme(item.price * item.quantity)
-- Appelle blockchainService.createOrder()
+- ⚠️ **Mock temporaire** : Génère orderId mock, sauvegarde dans MongoDB uniquement
+- ⏳ **Après smart contracts** : Appelle blockchainService.createOrder()
 - Sauvegarde order dans MongoDB avec status CREATED
-- Retourne : { success: true, orderId, txHash, ipfsHash }
+- Retourne : { success: true, orderId, txHash: "mock-tx-hash", ipfsHash } (mock) ou { success: true, orderId, txHash, ipfsHash } (blockchain)
 
 **2. getOrder(req, res)**
 - Entrée : orderId (params)
-- Fetch order depuis blockchain via blockchainService.getOrder()
-- Fetch details depuis IPFS via ipfsService.getJSON(ipfsHash)
+- ⏳ **Phase 7** : Fetch order depuis MongoDB (sans blockchain pour l'instant)
+- ⏳ **Phase 7** : Fetch details depuis IPFS via ipfsService.getJSON(ipfsHash)
 - Fetch order MongoDB pour GPS tracking
+- ⏳ **Après smart contracts** : Fetch order depuis blockchain via blockchainService.getOrder()
 - Merge toutes les données (on-chain + off-chain)
 - Retourne : full order data
 
@@ -234,26 +258,30 @@ const io = socketio(server)
 **4. confirmPreparation(req, res)**
 - Entrée : orderId (params), restaurantAddress (body)
 - Vérifie que restaurantAddress == order.restaurant
-- Appelle blockchainService.confirmPreparation(orderId)
+- ⚠️ **Mock temporaire** : Update MongoDB uniquement (status = PREPARING)
+- ⏳ **Après smart contracts** : Appelle blockchainService.confirmPreparation(orderId)
 - Update MongoDB : status = PREPARING
 - Notifie livreurs disponibles via notificationService.notifyDeliverersAvailable()
-- Retourne : { success: true, txHash }
+- Retourne : { success: true, txHash: "mock-tx-hash" } (mock) ou { success: true, txHash } (blockchain)
 
 **5. assignDeliverer(req, res)**
 - Entrée : orderId (params), delivererAddress (body)
-- Vérifie que deliverer est staké via blockchainService.isStaked(delivererAddress)
-- Appelle blockchainService.assignDeliverer(orderId, delivererAddress)
+- ⚠️ **Mock temporaire** : Vérifie staking via MongoDB `isStaked`
+- ⏳ **Après smart contracts** : Vérifie que deliverer est staké via blockchainService.isStaked(delivererAddress)
+- ⚠️ **Mock temporaire** : Update MongoDB uniquement (status = IN_DELIVERY, deliverer = delivererAddress)
+- ⏳ **Après smart contracts** : Appelle blockchainService.assignDeliverer(orderId, delivererAddress)
 - Update MongoDB : status = IN_DELIVERY, deliverer = delivererAddress
 - Notifie deliverer via notificationService.sendNotification()
-- Retourne : { success: true, txHash, deliverer }
+- Retourne : { success: true, txHash: "mock-tx-hash", deliverer } (mock) ou { success: true, txHash, deliverer } (blockchain)
 
 **6. confirmPickup(req, res)**
 - Entrée : orderId (params), delivererAddress (body)
 - Vérifie que delivererAddress == order.deliverer
-- Appelle blockchainService.confirmPickup(orderId)
+- ⚠️ **Mock temporaire** : Update MongoDB uniquement
+- ⏳ **Après smart contracts** : Appelle blockchainService.confirmPickup(orderId)
 - Start GPS tracking : initialize gpsTracking[] dans MongoDB
 - Notifie client via notificationService.notifyClientOrderUpdate()
-- Retourne : { success: true, txHash }
+- Retourne : { success: true, txHash: "mock-tx-hash" } (mock) ou { success: true, txHash } (blockchain)
 
 **7. updateGPSLocation(req, res)**
 - Entrée : orderId (params), { lat, lng } (body)
@@ -265,19 +293,21 @@ const io = socketio(server)
 **8. confirmDelivery(req, res)**
 - Entrée : orderId (params), clientAddress (body)
 - Vérifie que clientAddress == order.client
-- Appelle blockchainService.confirmDelivery(orderId)
-- Trigger payment split automatique (géré dans le smart contract)
-- Mint DONE tokens pour client (géré dans le smart contract)
+- ⚠️ **Mock temporaire** : Update MongoDB uniquement (status = DELIVERED, completedAt = Date.now())
+- ⏳ **Après smart contracts** : Appelle blockchainService.confirmDelivery(orderId)
+- ⏳ **Après smart contracts** : Trigger payment split automatique (géré dans le smart contract)
+- ⏳ **Après smart contracts** : Mint DONE tokens pour client (géré dans le smart contract)
 - Update MongoDB : status = DELIVERED, completedAt = Date.now()
-- Retourne : { success: true, txHash, tokensEarned }
+- Retourne : { success: true, txHash: "mock-tx-hash", tokensEarned: 0 } (mock) ou { success: true, txHash, tokensEarned } (blockchain)
 
 **9. openDispute(req, res)**
 - Entrée : orderId (params), { reason, evidence } (body)
-- Upload evidence (images) vers IPFS via ipfsService.uploadImage()
-- Appelle blockchainService.openDispute(orderId)
+- ⏳ **Phase 7** : Upload evidence (images) vers IPFS via ipfsService.uploadImage()
+- ⚠️ **Mock temporaire** : Update MongoDB uniquement (status = DISPUTED, disputeReason, disputeEvidence)
+- ⏳ **Après smart contracts** : Appelle blockchainService.openDispute(orderId)
 - Update MongoDB : status = DISPUTED, disputeReason, disputeEvidence (ipfsHash)
 - Notifie arbitrators via notificationService.notifyArbitrators()
-- Retourne : { success: true, txHash, disputeId }
+- Retourne : { success: true, txHash: "mock-tx-hash", disputeId: "mock-dispute-id" } (mock) ou { success: true, txHash, disputeId } (blockchain)
 
 **10. submitReview(req, res)**
 - Entrée : orderId (params), { rating, comment, clientAddress } (body)
@@ -304,6 +334,8 @@ const io = socketio(server)
 ---
 
 ### userController.js
+
+**Status** : ✅ DÉVELOPPÉ ET TESTÉ (Phase 6)
 
 **Rôle** : Gérer les utilisateurs (clients).
 
@@ -333,13 +365,16 @@ const io = socketio(server)
 
 **5. getUserTokens(req, res)**
 - Entrée : address (params)
-- Fetch balance via blockchainService.getTokenBalance(address)
-- Fetch transaction history via blockchain events (token.Transfer)
+- ⚠️ **Mock temporaire** : Retourne `{ balance: "0", transactions: [] }` (sans blockchain)
+- ⏳ **Après smart contracts** : Fetch balance via blockchainService.getTokenBalance(address)
+- ⏳ **Après smart contracts** : Fetch transaction history via blockchain events (token.Transfer)
 - Retourne : { balance, transactions[] }
 
 ---
 
 ### restaurantController.js
+
+**Status** : ✅ DÉVELOPPÉ ET TESTÉ (Phase 6)
 
 **Rôle** : Gérer les restaurants.
 
@@ -347,10 +382,10 @@ const io = socketio(server)
 
 **1. registerRestaurant(req, res)**
 - Entrée : { address, name, cuisine, location, images[], menu[] }
-- Upload images[] vers IPFS via ipfsService.uploadMultipleImages()
-- Upload menu items images vers IPFS
-- Crée Restaurant dans MongoDB avec IPFS hashes
-- Assign RESTAURANT_ROLE via blockchain (optionnel si géré manuellement)
+- ⏳ Upload images[] vers IPFS via ipfsService.uploadMultipleImages() (Phase 7)
+- ⏳ Upload menu items images vers IPFS (Phase 7)
+- Crée Restaurant dans MongoDB avec IPFS hashes (ou sans images pour l'instant)
+- ⚠️ Assign RESTAURANT_ROLE via blockchain (à activer après smart contracts)
 - Retourne : { success: true, restaurant }
 
 **2. getRestaurant(req, res)**
@@ -398,6 +433,8 @@ const io = socketio(server)
 
 ### delivererController.js
 
+**Status** : ✅ DÉVELOPPÉ ET TESTÉ (Phase 6)
+
 **Rôle** : Gérer les livreurs.
 
 **Méthodes** :
@@ -410,15 +447,17 @@ const io = socketio(server)
 **2. getDeliverer(req, res)**
 - Entrée : address (params)
 - Fetch Deliverer depuis MongoDB
-- Fetch staking status via blockchainService.isStaked(address)
-- Fetch stakedAmount via blockchain
+- ⚠️ **Mock temporaire** : Utilise `isStaked` et `stakedAmount` depuis MongoDB (sans blockchain)
+- ⏳ **Après smart contracts** : Fetch staking status via blockchainService.isStaked(address)
+- ⏳ **Après smart contracts** : Fetch stakedAmount via blockchain
 - Retourne : { deliverer, isStaked, stakedAmount }
 
 **3. getAvailableDeliverers(req, res)**
 - Entrée : { location } (query)
 - Fetch deliverers avec isAvailable=true depuis MongoDB
 - Filter par distance via gpsTracker.calculateDistance()
-- Vérifie staking via blockchainService.isStaked() pour chaque deliverer
+- ⚠️ **Mock temporaire** : Vérifie staking via MongoDB `isStaked` (sans blockchain)
+- ⏳ **Après smart contracts** : Vérifie staking via blockchainService.isStaked() pour chaque deliverer
 - Retourne : array of available deliverers triés par distance
 
 **4. updateDelivererStatus(req, res)**
@@ -429,16 +468,18 @@ const io = socketio(server)
 **5. stakeAsDeliverer(req, res)**
 - Entrée : address (body), amount (body)
 - Valide amount >= 0.1 ETH
-- Appelle blockchainService.stakeDeliverer(address, amount)
+- ⚠️ **Mock temporaire** : Sauvegarde dans MongoDB uniquement (isStaked=true, stakedAmount=amount)
+- ⏳ **Après smart contracts** : Appelle blockchainService.stakeDeliverer(address, amount)
 - Update Deliverer dans MongoDB : isStaked=true, stakedAmount=amount
-- Retourne : { success: true, txHash }
+- Retourne : { success: true, txHash: "mock-tx-hash" } (mock) ou { success: true, txHash } (blockchain)
 
 **6. unstake(req, res)**
 - Entrée : address (body)
 - Vérifie pas de livraisons actives (order.status IN_DELIVERY where deliverer = address)
-- Appelle blockchainService.unstake(address)
+- ⚠️ **Mock temporaire** : Update MongoDB uniquement (isStaked=false, stakedAmount=0)
+- ⏳ **Après smart contracts** : Appelle blockchainService.unstake(address)
 - Update Deliverer dans MongoDB : isStaked=false, stakedAmount=0
-- Retourne : { success: true, txHash }
+- Retourne : { success: true, txHash: "mock-tx-hash" } (mock) ou { success: true, txHash } (blockchain)
 
 **7. getDelivererOrders(req, res)**
 - Entrée : address (params), { status } (query optionnel)
@@ -448,11 +489,12 @@ const io = socketio(server)
 
 **8. getDelivererEarnings(req, res)**
 - Entrée : address (params), { startDate, endDate } (query)
-- Calcule earnings depuis blockchain events PaymentSplit :
+- ⚠️ **Mock temporaire** : Calcule depuis MongoDB uniquement (orders DELIVERED)
+- ⏳ **Après smart contracts** : Calcule earnings depuis blockchain events PaymentSplit :
   - Filter events where deliverer = address
   - Sum delivererAmount (20% de chaque commande)
 - Calcule stats :
-  - totalEarnings = sum(delivererAmount)
+  - totalEarnings = sum(delivererAmount) ou 0 (mock)
   - completedDeliveries = count(orders DELIVERED)
   - averageEarning = totalEarnings / completedDeliveries
 - Retourne : { totalEarnings, completedDeliveries, averageEarning }
@@ -828,6 +870,8 @@ const io = socketio(server)
 
 ### orders.js
 
+**Status** : ⏳ EN DÉVELOPPEMENT (Phase 7)
+
 **Rôle** : Routes API pour les commandes.
 
 **Routes définies** :
@@ -855,6 +899,8 @@ GET    /api/orders/history/:address
 
 ### users.js
 
+**Status** : ✅ DÉVELOPPÉ (Phase 6)
+
 **Rôle** : Routes API pour les utilisateurs (clients).
 
 **Routes définies** :
@@ -870,6 +916,8 @@ GET    /api/users/:address/tokens
 ---
 
 ### restaurants.js
+
+**Status** : ✅ DÉVELOPPÉ (Phase 6)
 
 **Rôle** : Routes API pour les restaurants.
 
@@ -888,6 +936,8 @@ PUT    /api/restaurants/:id/menu
 ---
 
 ### deliverers.js
+
+**Status** : ✅ DÉVELOPPÉ (Phase 6)
 
 **Rôle** : Routes API pour les livreurs.
 
@@ -1484,9 +1534,10 @@ GET    /users                    ← Analytics utilisateurs (growth, distributio
 
 | Sprint | Routes | Status | Fichiers |
 |--------|--------|--------|----------|
-| Sprint 2-7 | 30 routes | ✅ Planifiées | orders.js, users.js, restaurants.js, deliverers.js |
+| Phase 6 | 20 routes | ✅ DÉVELOPPÉES | users.js (5 routes), restaurants.js (7 routes), deliverers.js (8 routes) |
+| Phase 7 | 10 routes | ⏳ EN DÉVELOPPEMENT | orders.js |
 | Sprint 8 | 10 routes | ⚠️ À CRÉER | admin.js, analytics.js |
-| **TOTAL** | **40 routes** | 30 ✅ / 10 ⚠️ | **6 fichiers routes** |
+| **TOTAL** | **40 routes** | 20 ✅ / 10 ⏳ / 10 ⚠️ | **6 fichiers routes** |
 
 ---
 
