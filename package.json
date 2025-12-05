@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Blockchain-based food delivery platform",
   "private": true,
+  "type": "module",
   "workspaces": [
     "contracts",
     "backend",
