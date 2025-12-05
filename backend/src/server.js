@@ -16,11 +16,13 @@ const { initIPFS } = require("./config/ipfs");
 // const notificationService = require("./services/notificationService");
 // const blockchainService = require("./services/blockchainService");
 
-// Importer les routes (commentées temporairement car nécessitent les controllers)
+// Importer les routes
 // const orderRoutes = require("./routes/orders");
 // const userRoutes = require("./routes/users");
 // const restaurantRoutes = require("./routes/restaurants");
 // const delivererRoutes = require("./routes/deliverers");
+const adminRoutes = require("./routes/admin");
+const analyticsRoutes = require("./routes/analytics");
 
 /**
  * Serveur principal de l'application backend
@@ -171,11 +173,13 @@ async function initializeConnections() {
 
 // === ROUTES API ===
 
-// Monter les routes API (commentées temporairement car nécessitent les controllers)
+// Monter les routes API
 // app.use("/api/orders", orderRoutes);
 // app.use("/api/users", userRoutes);
 // app.use("/api/restaurants", restaurantRoutes);
 // app.use("/api/deliverers", delivererRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // === GESTION DES ERREURS ===
 

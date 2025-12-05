@@ -108,6 +108,8 @@ app.use('/api/orders', orderRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/restaurants', restaurantRoutes)
 app.use('/api/deliverers', delivererRoutes)
+app.use('/api/admin', adminRoutes)        // Sprint 8
+app.use('/api/analytics', analyticsRoutes) // Sprint 8
 
 // Error handling
 app.use(errorHandler)
@@ -498,6 +500,70 @@ const io = socketio(server)
   - completedDeliveries = count(orders DELIVERED)
   - averageEarning = totalEarnings / completedDeliveries
 - Retourne : { totalEarnings, completedDeliveries, averageEarning }
+
+---
+
+### adminController.js (Sprint 8 - À CRÉER)
+
+**Status** : ⚠️ À CRÉER
+
+**Rôle** : Gérer toutes les requêtes HTTP liées à l'administration de la plateforme.
+
+**Méthodes** :
+
+**1. getStats(req, res)**
+- Statistiques globales plateforme
+- Pseudo-code : Voir section détaillée ci-dessous
+
+**2. getDisputes(req, res)**
+- Liste tous les litiges avec statut
+- Pseudo-code : Voir section détaillée ci-dessous
+
+**3. resolveDispute(req, res)**
+- Résolution manuelle d'un litige par admin
+- Pseudo-code : Voir section détaillée ci-dessous
+
+**4. getAllUsers(req, res)**
+- Liste tous les utilisateurs (clients)
+- Pseudo-code : Voir section détaillée ci-dessous
+
+**5. getAllRestaurants(req, res)**
+- Liste tous les restaurants
+- Pseudo-code : Voir section détaillée ci-dessous
+
+**6. getAllDeliverers(req, res)**
+- Liste tous les livreurs
+- Pseudo-code : Voir section détaillée ci-dessous
+
+**Pseudo-codes détaillés** : Voir `Sprint/sprint2.md` section ÉTAPE 9 pour les pseudocodes complets.
+
+---
+
+### analyticsController.js (Sprint 8 - À CRÉER)
+
+**Status** : ⚠️ À CRÉER
+
+**Rôle** : Gérer toutes les requêtes HTTP liées aux analytics et statistiques avancées.
+
+**Méthodes** :
+
+**1. getDashboard(req, res)**
+- Dashboard analytics complet
+- Pseudo-code : Voir section détaillée ci-dessous
+
+**2. getOrdersAnalytics(req, res)**
+- Analytics commandes dans le temps
+- Pseudo-code : Voir section détaillée ci-dessous
+
+**3. getRevenueAnalytics(req, res)**
+- Analytics revenus plateforme
+- Pseudo-code : Voir section détaillée ci-dessous
+
+**4. getUsersAnalytics(req, res)**
+- Analytics utilisateurs (growth, distribution)
+- Pseudo-code : Voir section détaillée ci-dessous
+
+**Pseudo-codes détaillés** : Voir `Sprint/sprint2.md` section ÉTAPE 9 pour les pseudocodes complets.
 
 ---
 
@@ -1178,6 +1244,40 @@ GET    /api/analytics/users
     ]
   }
   ```
+
+**Pseudo-code routes admin.js** :
+```javascript
+const express = require('express')
+const router = express.Router()
+const adminController = require('../controllers/adminController')
+const verifyAdminRole = require('../middleware/verifyAdminRole')
+
+// Toutes les routes admin protégées par verifyAdminRole
+router.get('/stats', verifyAdminRole, adminController.getStats)
+router.get('/disputes', verifyAdminRole, adminController.getDisputes)
+router.post('/resolve-dispute/:id', verifyAdminRole, adminController.resolveDispute)
+router.get('/users', verifyAdminRole, adminController.getAllUsers)
+router.get('/restaurants', verifyAdminRole, adminController.getAllRestaurants)
+router.get('/deliverers', verifyAdminRole, adminController.getAllDeliverers)
+
+module.exports = router
+```
+
+**Pseudo-code routes analytics.js** :
+```javascript
+const express = require('express')
+const router = express.Router()
+const analyticsController = require('../controllers/analyticsController')
+const verifyAdminRole = require('../middleware/verifyAdminRole')
+
+// Routes analytics (protégées par verifyAdminRole)
+router.get('/dashboard', verifyAdminRole, analyticsController.getDashboard)
+router.get('/orders', verifyAdminRole, analyticsController.getOrdersAnalytics)
+router.get('/revenue', verifyAdminRole, analyticsController.getRevenueAnalytics)
+router.get('/users', verifyAdminRole, analyticsController.getUsersAnalytics)
+
+module.exports = router
+```
 
 ---
 

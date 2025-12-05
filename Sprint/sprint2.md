@@ -243,6 +243,369 @@ backend/
      * `getDelivererOrders()` - Livraisons
      * `getDelivererEarnings()` - Revenus depuis blockchain events
 
+5. **`backend/src/controllers/adminController.js`** (Sprint 8 - À CRÉER)
+   - Gestion administration plateforme
+   - Méthodes:
+     * `getStats()` - Statistiques globales plateforme
+     * `getDisputes()` - Liste tous les litiges
+     * `resolveDispute()` - Résolution manuelle litige
+     * `getAllUsers()` - Liste tous les clients
+     * `getAllRestaurants()` - Liste tous les restaurants
+     * `getAllDeliverers()` - Liste tous les livreurs
+
+   **Pseudo-code adminController.js** :
+   ```javascript
+   // 1. getStats(req, res)
+   async function getStats(req, res) {
+     TRY {
+       // Aggrégations MongoDB
+       totalOrders = Order.countDocuments()
+       totalUsers = User.countDocuments()
+       totalRestaurants = Restaurant.countDocuments()
+       totalDeliverers = Deliverer.countDocuments()
+       
+       // Calcul GMV depuis blockchain events PaymentSplit
+       gmv = await blockchainService.getTotalGMV()
+       
+       // Calcul revenus plateforme (10% de toutes les commandes)
+       platformRevenue = await blockchainService.getPlatformRevenue()
+       
+       // Temps moyen livraison depuis MongoDB
+       avgDeliveryTime = Order.aggregate([
+         { $match: { status: 'DELIVERED' } },
+         { $project: { duration: { $subtract: ['$completedAt', '$createdAt'] } } },
+         { $group: { _id: null, avg: { $avg: '$duration' } } }
+       ])
+       
+       // Satisfaction moyenne depuis reviews
+       satisfaction = Order.aggregate([
+         { $match: { review: { $exists: true } } },
+         { $group: { _id: null, avg: { $avg: '$review.rating' } } }
+       ])
+       
+       RETURN {
+         totalOrders,
+         gmv,
+         activeUsers: { clients: totalUsers, restaurants: totalRestaurants, deliverers: totalDeliverers },
+         platformRevenue,
+         avgDeliveryTime,
+         satisfaction
+       }
+     } CATCH (error) {
+       RETURN error 500
+     }
+   }
+   
+   // 2. getDisputes(req, res)
+   async function getDisputes(req, res) {
+     TRY {
+       status = req.query.status // Optionnel: VOTING, RESOLVED, etc.
+       
+       // Fetch disputes depuis MongoDB
+       query = { disputed: true }
+       IF (status) query.status = status
+       
+       disputes = await Order.find(query)
+         .populate('client', 'address name')
+         .populate('restaurant', 'address name')
+         .populate('deliverer', 'address name')
+         .sort({ createdAt: -1 })
+       
+       // Enrichir avec votes depuis blockchain (si DoneArbitration existe)
+       FOR EACH dispute IN disputes {
+         dispute.votes = await blockchainService.getDisputeVotes(dispute.orderId)
+       }
+       
+       RETURN disputes
+     } CATCH (error) {
+       RETURN error 500
+     }
+   }
+   
+   // 3. resolveDispute(req, res)
+   async function resolveDispute(req, res) {
+     TRY {
+       disputeId = req.params.id
+       winner = req.body.winner // CLIENT, RESTAURANT, ou DELIVERER
+       
+       // Vérifier dispute existe
+       order = await Order.findOne({ orderId: disputeId, disputed: true })
+       IF (!order) RETURN error 404
+       
+       // Appeler smart contract pour résoudre
+       txHash = await blockchainService.resolveDispute(disputeId, winner)
+       
+       // Update MongoDB
+       order.disputed = false
+       order.status = 'RESOLVED'
+       order.disputeResolution = winner
+       await order.save()
+       
+       RETURN { success: true, txHash }
+     } CATCH (error) {
+       RETURN error 500
+     }
+   }
+   
+   // 4. getAllUsers(req, res)
+   async function getAllUsers(req, res) {
+     TRY {
+       status = req.query.status // Optionnel
+       
+       query = {}
+       IF (status === 'active') {
+         // Utilisateurs avec commandes récentes
+         recentDate = Date.now() - 30 days
+         activeUserIds = await Order.distinct('client', {
+           createdAt: { $gte: recentDate }
+         })
+         query._id = { $in: activeUserIds }
+       }
+       
+       users = await User.find(query)
+         .select('address name email totalOrders')
+       
+       // Enrichir avec données blockchain
+       FOR EACH user IN users {
+         user.totalSpent = await blockchainService.getUserTotalSpent(user.address)
+         user.doneBalance = await blockchainService.getTokenBalance(user.address)
+       }
+       
+       RETURN users
+     } CATCH (error) {
+       RETURN error 500
+     }
+   }
+   
+   // 5. getAllRestaurants(req, res)
+   async function getAllRestaurants(req, res) {
+     TRY {
+       cuisine = req.query.cuisine // Optionnel
+       
+       query = {}
+       IF (cuisine) query.cuisine = cuisine
+       
+       restaurants = await Restaurant.find(query)
+         .select('address name cuisine totalOrders rating')
+       
+       // Enrichir avec revenus blockchain
+       FOR EACH restaurant IN restaurants {
+         restaurant.revenue = await blockchainService.getRestaurantRevenue(restaurant.address)
+       }
+       
+       RETURN restaurants
+     } CATCH (error) {
+       RETURN error 500
+     }
+   }
+   
+   // 6. getAllDeliverers(req, res)
+   async function getAllDeliverers(req, res) {
+     TRY {
+       staked = req.query.staked // Optionnel: true/false
+       
+       query = {}
+       IF (staked === 'true') query.isStaked = true
+       
+       deliverers = await Deliverer.find(query)
+         .select('address name vehicleType stakedAmount totalDeliveries rating')
+       
+       // Enrichir avec earnings blockchain
+       FOR EACH deliverer IN deliverers {
+         deliverer.earnings = await blockchainService.getDelivererEarnings(deliverer.address)
+       }
+       
+       RETURN deliverers
+     } CATCH (error) {
+       RETURN error 500
+     }
+   }
+   ```
+
+6. **`backend/src/controllers/analyticsController.js`** (Sprint 8 - À CRÉER)
+   - Analytics et statistiques avancées
+   - Méthodes:
+     * `getDashboard()` - Dashboard analytics complet
+     * `getOrdersAnalytics()` - Analytics commandes (croissance, tendances)
+     * `getRevenueAnalytics()` - Analytics revenus plateforme
+     * `getUsersAnalytics()` - Analytics utilisateurs (growth, distribution)
+
+   **Pseudo-code analyticsController.js** :
+   ```javascript
+   // 1. getDashboard(req, res)
+   async function getDashboard(req, res) {
+     TRY {
+       // Stats globales
+       stats = {
+         totalOrders = await Order.countDocuments(),
+         gmv = await blockchainService.getTotalGMV(),
+         platformRevenue = await blockchainService.getPlatformRevenue()
+       }
+       
+       // Charts: Commandes dans le temps (7 derniers jours)
+       ordersOverTime = await Order.aggregate([
+         { $match: { createdAt: { $gte: Date.now() - 7 days } } },
+         { $group: {
+           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+           orders: { $sum: 1 }
+         }},
+         { $sort: { _id: 1 } }
+       ])
+       
+       // Charts: Revenus dans le temps
+       revenueOverTime = await blockchainService.getRevenueTimeline(7 days)
+       
+       RETURN {
+         stats,
+         charts: {
+           ordersOverTime,
+           revenueOverTime
+         }
+       }
+     } CATCH (error) {
+       RETURN error 500
+     }
+   }
+   
+   // 2. getOrdersAnalytics(req, res)
+   async function getOrdersAnalytics(req, res) {
+     TRY {
+       period = req.query.period || 'week' // day/week/month/year
+       
+       // Calculer date de début selon période
+       startDate = calculateStartDate(period) // Ex: week = Date.now() - 7 days
+       
+       // Aggrégation par date
+       data = await Order.aggregate([
+         { $match: { createdAt: { $gte: startDate } } },
+         { $group: {
+           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+           orders: { $sum: 1 },
+           avgValue: { $avg: '$totalAmount' }
+         }},
+         { $sort: { _id: 1 } }
+       ])
+       
+       // Total période
+       total = await Order.countDocuments({ createdAt: { $gte: startDate } })
+       
+       // Calcul croissance (comparer avec période précédente)
+       previousPeriodStart = startDate - (startDate - Date.now())
+       previousTotal = await Order.countDocuments({
+         createdAt: { $gte: previousPeriodStart, $lt: startDate }
+       })
+       growth = calculateGrowthPercentage(total, previousTotal)
+       
+       RETURN {
+         period,
+         data,
+         total,
+         growth
+       }
+     } CATCH (error) {
+       RETURN error 500
+     }
+   }
+   
+   // 3. getRevenueAnalytics(req, res)
+   async function getRevenueAnalytics(req, res) {
+     TRY {
+       startDate = req.query.startDate || Date.now() - 30 days
+       endDate = req.query.endDate || Date.now()
+       
+       // Fetch events PaymentSplit depuis blockchain
+       paymentEvents = await blockchainService.getPaymentSplitEvents(startDate, endDate)
+       
+       // Calculer breakdown
+       totalRevenue = 0
+       breakdown = { platformFee: 0, restaurants: 0, deliverers: 0 }
+       
+       FOR EACH event IN paymentEvents {
+         totalRevenue += event.totalAmount
+         breakdown.platformFee += event.platformAmount
+         breakdown.restaurants += event.restaurantAmount
+         breakdown.deliverers += event.delivererAmount
+       }
+       
+       // Timeline par jour
+       timeline = await blockchainService.getRevenueTimeline(startDate, endDate)
+       
+       RETURN {
+         totalRevenue,
+         breakdown,
+         timeline
+       }
+     } CATCH (error) {
+       RETURN error 500
+     }
+   }
+   
+   // 4. getUsersAnalytics(req, res)
+   async function getUsersAnalytics(req, res) {
+     TRY {
+       // Growth: Utilisateurs par mois (4 derniers mois)
+       growth = {
+         clients: [],
+         restaurants: [],
+         deliverers: []
+       }
+       
+       FOR (i = 0; i < 4; i++) {
+         monthStart = Date.now() - (i * 30 days)
+         monthEnd = Date.now() - ((i-1) * 30 days)
+         
+         growth.clients[i] = await User.countDocuments({
+           createdAt: { $gte: monthStart, $lt: monthEnd }
+         })
+         growth.restaurants[i] = await Restaurant.countDocuments({
+           createdAt: { $gte: monthStart, $lt: monthEnd }
+         })
+         growth.deliverers[i] = await Deliverer.countDocuments({
+           createdAt: { $gte: monthStart, $lt: monthEnd }
+         })
+       }
+       
+       // Actifs aujourd'hui
+       todayStart = new Date().setHours(0, 0, 0, 0)
+       activeToday = {
+         clients: await Order.distinct('client', {
+           createdAt: { $gte: todayStart }
+         }).length,
+         restaurants: await Order.distinct('restaurant', {
+           createdAt: { $gte: todayStart }
+         }).length,
+         deliverers: await Order.distinct('deliverer', {
+           createdAt: { $gte: todayStart }
+         }).length
+       }
+       
+       // Top spenders
+       topSpenders = await Order.aggregate([
+         { $group: {
+           _id: '$client',
+           spent: { $sum: '$totalAmount' }
+         }},
+         { $sort: { spent: -1 } },
+         { $limit: 10 },
+         { $lookup: {
+           from: 'users',
+           localField: '_id',
+           foreignField: '_id',
+           as: 'user'
+         }}
+       ])
+       
+       RETURN {
+         growth,
+         activeToday,
+         topSpenders
+       }
+     } CATCH (error) {
+       RETURN error 500
+     }
+   }
+   ```
+
 ### ÉTAPE 10: IMPLÉMENTATION DES ROUTES
 **Fichiers à compléter (existent mais vides):**
 
@@ -288,6 +651,56 @@ backend/
      * `GET /api/deliverers/:address/orders`
      * `GET /api/deliverers/:address/earnings`
 
+5. **`backend/src/routes/admin.js`** (Sprint 8 - À CRÉER)
+   - Routes API administration:
+     * `GET /api/admin/stats` - Statistiques globales
+     * `GET /api/admin/disputes` - Liste tous litiges
+     * `POST /api/admin/resolve-dispute/:id` - Résolution manuelle litige
+     * `GET /api/admin/users` - Liste tous clients
+     * `GET /api/admin/restaurants` - Liste tous restaurants
+     * `GET /api/admin/deliverers` - Liste tous livreurs
+   
+   **Pseudo-code admin.js** :
+   ```javascript
+   const express = require('express')
+   const router = express.Router()
+   const adminController = require('../controllers/adminController')
+   const verifyAdminRole = require('../middleware/verifyAdminRole')
+   
+   // Toutes les routes admin protégées par verifyAdminRole
+   router.get('/stats', verifyAdminRole, adminController.getStats)
+   router.get('/disputes', verifyAdminRole, adminController.getDisputes)
+   router.post('/resolve-dispute/:id', verifyAdminRole, adminController.resolveDispute)
+   router.get('/users', verifyAdminRole, adminController.getAllUsers)
+   router.get('/restaurants', verifyAdminRole, adminController.getAllRestaurants)
+   router.get('/deliverers', verifyAdminRole, adminController.getAllDeliverers)
+   
+   module.exports = router
+   ```
+
+6. **`backend/src/routes/analytics.js`** (Sprint 8 - À CRÉER)
+   - Routes API analytics:
+     * `GET /api/analytics/dashboard` - Dashboard complet
+     * `GET /api/analytics/orders` - Analytics commandes
+     * `GET /api/analytics/revenue` - Analytics revenus
+     * `GET /api/analytics/users` - Analytics utilisateurs
+   
+   **Pseudo-code analytics.js** :
+   ```javascript
+   const express = require('express')
+   const router = express.Router()
+   const analyticsController = require('../controllers/analyticsController')
+   const verifyAdminRole = require('../middleware/verifyAdminRole')
+   
+   // Routes analytics (peuvent être publiques ou protégées selon besoin)
+   router.get('/dashboard', verifyAdminRole, analyticsController.getDashboard)
+   router.get('/orders', verifyAdminRole, analyticsController.getOrdersAnalytics)
+   router.get('/revenue', verifyAdminRole, analyticsController.getRevenueAnalytics)
+   router.get('/users', verifyAdminRole, analyticsController.getUsersAnalytics)
+   
+   module.exports = router
+   ```
+
 ### ÉTAPE 11: IMPLÉMENTATION DU SERVEUR PRINCIPAL
 **Fichier à compléter:** `backend/src/server.js` (vide - à compléter)
 
@@ -295,9 +708,30 @@ backend/
 - Initialisation Express.js
 - Configuration middlewares (CORS, helmet, morgan, body-parser)
 - Connexions aux services (MongoDB, Blockchain, IPFS)
-- Montage des routes API
+- Montage des routes API (orders, users, restaurants, deliverers, admin, analytics)
 - Démarrage serveur HTTP et Socket.io
 - Gestion centralisée des erreurs
+
+**Pseudo-code server.js (avec routes admin et analytics)** :
+```javascript
+// Importer routes
+const orderRoutes = require('./routes/orders')
+const userRoutes = require('./routes/users')
+const restaurantRoutes = require('./routes/restaurants')
+const delivererRoutes = require('./routes/deliverers')
+const adminRoutes = require('./routes/admin')        // Sprint 8
+const analyticsRoutes = require('./routes/analytics') // Sprint 8
+
+// ... middlewares ...
+
+// Monter routes API
+app.use('/api/orders', orderRoutes)
+app.use('/api/users', userRoutes)
+app.use('/api/restaurants', restaurantRoutes)
+app.use('/api/deliverers', delivererRoutes)
+app.use('/api/admin', adminRoutes)        // Sprint 8
+app.use('/api/analytics', analyticsRoutes) // Sprint 8
+```
 
 ### ÉTAPE 12: CONFIGURATION DU package.json
 **Fichier à compléter:** `backend/package.json`
