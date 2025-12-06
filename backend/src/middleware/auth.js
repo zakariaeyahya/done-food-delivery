@@ -57,6 +57,26 @@ async function verifySignature(req, res, next) {
       });
     }
     
+    // En mode développement/test, accepter "mock_signature_for_testing"
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+    const isMockSignature = signature === 'mock_signature_for_testing';
+    
+    if (isMockSignature && isDevelopment) {
+      // En mode dev/test, utiliser l'adresse depuis le header x-wallet-address
+      const mockAddress = req.headers['x-wallet-address'] || req.body.address;
+      if (!mockAddress) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: "x-wallet-address header is required when using mock signature"
+        });
+      }
+      req.userAddress = mockAddress.toLowerCase();
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Mock signature accepted for address: ${req.userAddress}`);
+      }
+      return next();
+    }
+    
     // Vérifier que la signature est valide (format hex - 65 bytes = 130 caractères hex)
     if (!/^0x[a-fA-F0-9]{130}$/.test(signature)) {
       return res.status(400).json({

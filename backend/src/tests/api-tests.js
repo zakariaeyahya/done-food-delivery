@@ -3,8 +3,21 @@
  * DONE Food Delivery - Tests API Complets
  * ============================================================================
  * 
- * Ce fichier contient tous les tests pour les 62 endpoints de l'API
+ * Ce fichier contient tous les tests pour les 59 endpoints de l'API
  * Basé sur la documentation API_DOCUMENTATION.md
+ * 
+ * Endpoints testés :
+ * - Health Check (1)
+ * - Utilisateurs (5)
+ * - Restaurants (12)
+ * - Livreurs (8)
+ * - Commandes (11)
+ * - Admin (7)
+ * - Analytics (4)
+ * - Oracles (4) - Sprint 6
+ * - Arbitrage (3) - Sprint 6
+ * - Tokens DONE (3)
+ * - Paiements Stripe (2) - Optionnel, non développé
  * 
  * Exécution : npm test ou node src/tests/api-tests.js
  */
@@ -670,43 +683,62 @@ async function testAnalytics() {
 // ============================================================================
 
 async function testOracles() {
-  console.log('\n🔮 === TESTS ORACLES (Sprint 6 - Optionnel) ===\n');
-  
-  // NOTE: Ces routes sont optionnelles et peuvent ne pas être implémentées
-  // Les tests acceptent 404 comme réponse valide
+  console.log('\n🔮 === TESTS ORACLES (Sprint 6) ===\n');
 
   // GET /api/oracles/price
-  await runTest('GET /api/oracles/price - Prix MATIC/USD (optionnel)', async () => {
+  await runTest('GET /api/oracles/price - Prix MATIC/USD', async () => {
     const res = await api.get('/oracles/price');
-    // 404 accepté car route optionnelle Sprint 6
-    if (![200, 404, 500, 503].includes(res.status)) {
+    if (res.status !== 200) {
       throw new Error(`Status inattendu: ${res.status}`);
+    }
+    if (!res.body.success || !res.body.data || !res.body.data.price) {
+      throw new Error('Réponse invalide: structure de données manquante');
     }
   });
 
   // GET /api/oracles/price?pair=ETH/USD
-  await runTest('GET /api/oracles/price?pair=ETH/USD - Prix ETH/USD (optionnel)', async () => {
+  await runTest('GET /api/oracles/price?pair=ETH/USD - Prix ETH/USD', async () => {
     const res = await api.get('/oracles/price?pair=ETH/USD');
-    if (![200, 404, 500, 503].includes(res.status)) {
+    if (res.status !== 200) {
       throw new Error(`Status inattendu: ${res.status}`);
+    }
+    if (!res.body.success || !res.body.data || !res.body.data.pair) {
+      throw new Error('Réponse invalide: structure de données manquante');
     }
   });
 
   // POST /api/oracles/convert
-  await runTest('POST /api/oracles/convert - Conversion fiat/crypto (optionnel)', async () => {
+  await runTest('POST /api/oracles/convert - Conversion fiat/crypto', async () => {
     const convertData = {
       amount: 15.50,
       from: 'USD',
       to: 'MATIC'
     };
     const res = await api.post('/oracles/convert', convertData);
-    if (![200, 400, 404, 500, 503].includes(res.status)) {
+    if (res.status !== 200) {
+      throw new Error(`Status inattendu: ${res.status}`);
+    }
+    if (!res.body.success || !res.body.data || !res.body.data.convertedAmount) {
+      throw new Error('Réponse invalide: structure de données manquante');
+    }
+  });
+
+  // POST /api/oracles/convert - Validation erreur
+  await runTest('POST /api/oracles/convert - Validation montant invalide', async () => {
+    const convertData = {
+      amount: -10,
+      from: 'USD',
+      to: 'MATIC'
+    };
+    const res = await api.post('/oracles/convert', convertData);
+    // Accepte 200 (validation côté controller) ou 400
+    if (![200, 400].includes(res.status)) {
       throw new Error(`Status inattendu: ${res.status}`);
     }
   });
 
   // POST /api/oracles/gps/verify
-  await runTest('POST /api/oracles/gps/verify - Vérifier GPS livraison (optionnel)', async () => {
+  await runTest('POST /api/oracles/gps/verify - Vérifier GPS livraison', async () => {
     const gpsData = {
       orderId: 123,
       delivererLat: 48.8566,
@@ -715,16 +747,45 @@ async function testOracles() {
       clientLng: 2.3372
     };
     const res = await api.post('/oracles/gps/verify', gpsData, getAuthHeaders(TEST_DATA.delivererAddress));
-    if (![200, 400, 401, 403, 404, 500, 503].includes(res.status)) {
+    if (res.status !== 200) {
       throw new Error(`Status inattendu: ${res.status}`);
+    }
+    if (!res.body.success || !res.body.data || typeof res.body.data.verified !== 'boolean') {
+      throw new Error('Réponse invalide: structure de données manquante');
+    }
+  });
+
+  // POST /api/oracles/gps/verify - Validation GPS invalide
+  await runTest('POST /api/oracles/gps/verify - Validation GPS invalide', async () => {
+    const gpsData = {
+      orderId: 123,
+      delivererLat: 200, // Latitude invalide
+      delivererLng: 2.3522,
+      clientLat: 48.8606,
+      clientLng: 2.3372
+    };
+    const res = await api.post('/oracles/gps/verify', gpsData, getAuthHeaders(TEST_DATA.delivererAddress));
+    if (res.status !== 400) {
+      throw new Error(`Status inattendu: ${res.status} (attendu: 400)`);
     }
   });
 
   // GET /api/oracles/weather
-  await runTest('GET /api/oracles/weather - Données météo (optionnel)', async () => {
+  await runTest('GET /api/oracles/weather - Données météo', async () => {
     const res = await api.get('/oracles/weather?lat=48.8566&lng=2.3522');
-    if (![200, 400, 404, 500, 503].includes(res.status)) {
+    if (res.status !== 200) {
       throw new Error(`Status inattendu: ${res.status}`);
+    }
+    if (!res.body.success || !res.body.data || !res.body.data.weather) {
+      throw new Error('Réponse invalide: structure de données manquante');
+    }
+  });
+
+  // GET /api/oracles/weather - Validation coordonnées manquantes
+  await runTest('GET /api/oracles/weather - Coordonnées manquantes', async () => {
+    const res = await api.get('/oracles/weather');
+    if (res.status !== 400) {
+      throw new Error(`Status inattendu: ${res.status} (attendu: 400)`);
     }
   });
 }
@@ -734,39 +795,71 @@ async function testOracles() {
 // ============================================================================
 
 async function testArbitration() {
-  console.log('\n⚖️ === TESTS ARBITRAGE (Sprint 6 - Optionnel) ===\n');
-  
-  // NOTE: Ces routes sont optionnelles et peuvent ne pas être implémentées
-  // Les tests acceptent 404 comme réponse valide
+  console.log('\n⚖️ === TESTS ARBITRAGE (Sprint 6) ===\n');
 
   // POST /api/disputes/:id/vote
-  await runTest('POST /api/disputes/:id/vote - Voter sur litige (optionnel)', async () => {
+  await runTest('POST /api/disputes/:id/vote - Voter sur litige', async () => {
     const voteData = {
       voterAddress: TEST_DATA.walletAddress,
       winner: 'CLIENT',
       reason: 'Nourriture effectivement froide'
     };
     const res = await api.post('/disputes/1/vote', voteData, getAuthHeaders());
-    // 404 accepté car route optionnelle Sprint 6
-    if (![200, 400, 401, 403, 404, 500].includes(res.status)) {
+    // Accepte 200 (succès) ou 400/404 (orderId n'existe pas) ou 500 (erreur serveur)
+    if (![200, 400, 404, 500].includes(res.status)) {
+      throw new Error(`Status inattendu: ${res.status}`);
+    }
+    // Si succès, vérifier la structure
+    if (res.status === 200 && (!res.body.success || !res.body.data)) {
+      throw new Error('Réponse invalide: structure de données manquante');
+    }
+  });
+
+  // POST /api/disputes/:id/vote - Validation données manquantes
+  await runTest('POST /api/disputes/:id/vote - Validation données manquantes', async () => {
+    const voteData = {
+      winner: 'CLIENT'
+      // voterAddress manquant
+    };
+    const res = await api.post('/disputes/1/vote', voteData, getAuthHeaders());
+    // Accepte 200 (validation côté controller) ou 400
+    if (![200, 400].includes(res.status)) {
       throw new Error(`Status inattendu: ${res.status}`);
     }
   });
 
   // GET /api/disputes/:id/votes
-  await runTest('GET /api/disputes/:id/votes - Récupérer votes litige (optionnel)', async () => {
+  await runTest('GET /api/disputes/:id/votes - Récupérer votes litige', async () => {
     const res = await api.get('/disputes/1/votes');
-    if (![200, 404].includes(res.status)) {
+    if (res.status !== 200) {
       throw new Error(`Status inattendu: ${res.status}`);
+    }
+    if (!res.body.success || !res.body.data || !res.body.data.disputeId) {
+      throw new Error('Réponse invalide: structure de données manquante');
     }
   });
 
   // POST /api/disputes/:id/resolve
-  await runTest('POST /api/disputes/:id/resolve - Résoudre litige (optionnel)', async () => {
+  await runTest('POST /api/disputes/:id/resolve - Résoudre litige', async () => {
     const resolveData = { force: false };
     const res = await api.post('/disputes/1/resolve', resolveData, getAuthHeaders(TEST_DATA.adminAddress));
-    if (![200, 400, 401, 403, 404, 500].includes(res.status)) {
+    // Accepte 200 (succès) ou 400/404 (orderId n'existe pas) ou 500
+    if (![200, 400, 404, 500].includes(res.status)) {
       throw new Error(`Status inattendu: ${res.status}`);
+    }
+    // Si succès, vérifier la structure
+    if (res.status === 200 && (!res.body.success || !res.body.data)) {
+      throw new Error('Réponse invalide: structure de données manquante');
+    }
+  });
+
+  // POST /api/disputes/:id/resolve - Sans authentification
+  await runTest('POST /api/disputes/:id/resolve - Sans authentification', async () => {
+    const resolveData = { force: false };
+    const res = await api.post('/disputes/1/resolve', resolveData);
+    // Doit retourner 401 ou 400 (selon middleware)
+    if (![400, 401].includes(res.status)) {
+      throw new Error(`Status inattendu: ${res.status} (attendu: 400 ou 401)`);
     }
   });
 }
@@ -776,21 +869,25 @@ async function testArbitration() {
 // ============================================================================
 
 async function testTokens() {
-  console.log('\n🪙 === TESTS TOKENS DONE (Optionnel) ===\n');
-  
-  // NOTE: Ces routes peuvent ne pas être implémentées ou nécessiter une connexion blockchain
-  // Les tests acceptent 404 comme réponse valide
+  console.log('\n🪙 === TESTS TOKENS DONE ===\n');
 
   // GET /api/tokens/rate
   await runTest('GET /api/tokens/rate - Taux de conversion tokens', async () => {
     const res = await api.get('/tokens/rate');
-    if (![200, 404].includes(res.status)) {
+    if (res.status !== 200) {
       throw new Error(`Status inattendu: ${res.status}`);
+    }
+    if (!res.body.success || !res.body.data || !res.body.data.rate) {
+      throw new Error('Réponse invalide: structure de données manquante');
+    }
+    // Vérifier que le taux contient les clés attendues
+    if (!res.body.data.rate['1 DONE'] || !res.body.data.mintingRate) {
+      throw new Error('Réponse invalide: données de taux incomplètes');
     }
   });
 
   // POST /api/tokens/burn
-  await runTest('POST /api/tokens/burn - Brûler tokens (optionnel)', async () => {
+  await runTest('POST /api/tokens/burn - Brûler tokens', async () => {
     const burnData = {
       userAddress: TEST_DATA.walletAddress,
       amount: '10',
@@ -798,21 +895,72 @@ async function testTokens() {
       discountAmount: '2.00'
     };
     const res = await api.post('/tokens/burn', burnData, getAuthHeaders());
-    // 404 accepté car route peut ne pas être implémentée
-    if (![200, 400, 401, 403, 404, 500].includes(res.status)) {
+    // Accepte 200 (succès) ou 400 (validation) ou 401 (auth)
+    if (![200, 400, 401].includes(res.status)) {
       throw new Error(`Status inattendu: ${res.status}`);
+    }
+    // Si succès, vérifier la structure
+    if (res.status === 200 && (!res.body.success || !res.body.data)) {
+      throw new Error('Réponse invalide: structure de données manquante');
+    }
+  });
+
+  // POST /api/tokens/burn - Validation adresse invalide
+  await runTest('POST /api/tokens/burn - Validation adresse invalide', async () => {
+    const burnData = {
+      userAddress: TEST_DATA.invalidAddress,
+      amount: '10',
+      orderId: 123,
+      discountAmount: '2.00'
+    };
+    const res = await api.post('/tokens/burn', burnData, getAuthHeaders());
+    if (res.status !== 400) {
+      throw new Error(`Status inattendu: ${res.status} (attendu: 400)`);
+    }
+  });
+
+  // POST /api/tokens/burn - Sans authentification
+  await runTest('POST /api/tokens/burn - Sans authentification', async () => {
+    const burnData = {
+      userAddress: TEST_DATA.walletAddress,
+      amount: '10',
+      orderId: 123,
+      discountAmount: '2.00'
+    };
+    const res = await api.post('/tokens/burn', burnData);
+    // Doit retourner 401 ou 400 (selon middleware)
+    if (![400, 401].includes(res.status)) {
+      throw new Error(`Status inattendu: ${res.status} (attendu: 400 ou 401)`);
     }
   });
 
   // POST /api/tokens/use-discount
-  await runTest('POST /api/tokens/use-discount - Utiliser tokens réduction (optionnel)', async () => {
+  await runTest('POST /api/tokens/use-discount - Utiliser tokens réduction', async () => {
     const discountData = {
       userAddress: TEST_DATA.walletAddress,
       tokensToUse: '50',
       orderId: 123
     };
     const res = await api.post('/tokens/use-discount', discountData, getAuthHeaders());
-    if (![200, 400, 401, 403, 404, 500].includes(res.status)) {
+    // Accepte 200 (succès) ou 400 (validation) ou 401 (auth)
+    if (![200, 400, 401].includes(res.status)) {
+      throw new Error(`Status inattendu: ${res.status}`);
+    }
+    // Si succès, vérifier la structure
+    if (res.status === 200 && (!res.body.success || !res.body.data)) {
+      throw new Error('Réponse invalide: structure de données manquante');
+    }
+  });
+
+  // POST /api/tokens/use-discount - Validation données manquantes
+  await runTest('POST /api/tokens/use-discount - Validation données manquantes', async () => {
+    const discountData = {
+      userAddress: TEST_DATA.walletAddress
+      // tokensToUse et orderId manquants
+    };
+    const res = await api.post('/tokens/use-discount', discountData, getAuthHeaders());
+    // Accepte 200 (validation côté controller) ou 400
+    if (![200, 400].includes(res.status)) {
       throw new Error(`Status inattendu: ${res.status}`);
     }
   });

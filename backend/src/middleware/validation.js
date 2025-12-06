@@ -441,12 +441,100 @@ function validateReview(req, res, next) {
   }
 }
 
+/**
+ * Valide les coordonnées GPS pour la vérification de livraison
+ * @dev Valide delivererLat, delivererLng, clientLat, clientLng
+ * 
+ * @param {Object} req - Request Express
+ * @param {Object} res - Response Express
+ * @param {Function} next - Next middleware
+ */
+function validateGPSDelivery(req, res, next) {
+  try {
+    const { delivererLat, delivererLng, clientLat, clientLng } = req.body;
+    
+    // Fonction helper pour valider une coordonnée
+    const validateCoordinate = (value, name, min, max) => {
+      const coord = parseFloat(value);
+      if (isNaN(coord)) {
+        return { error: `${name} is required and must be a number` };
+      }
+      if (coord < min || coord > max) {
+        return { error: `${name} must be between ${min} and ${max}`, provided: coord };
+      }
+      return { valid: true, value: coord };
+    };
+    
+    // Valider delivererLat
+    const delivererLatResult = validateCoordinate(delivererLat, 'delivererLat', -90, 90);
+    if (delivererLatResult.error) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: delivererLatResult.error,
+        field: "delivererLat"
+      });
+    }
+    
+    // Valider delivererLng
+    const delivererLngResult = validateCoordinate(delivererLng, 'delivererLng', -180, 180);
+    if (delivererLngResult.error) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: delivererLngResult.error,
+        field: "delivererLng"
+      });
+    }
+    
+    // Valider clientLat
+    const clientLatResult = validateCoordinate(clientLat, 'clientLat', -90, 90);
+    if (clientLatResult.error) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: clientLatResult.error,
+        field: "clientLat"
+      });
+    }
+    
+    // Valider clientLng
+    const clientLngResult = validateCoordinate(clientLng, 'clientLng', -180, 180);
+    if (clientLngResult.error) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: clientLngResult.error,
+        field: "clientLng"
+      });
+    }
+    
+    // Ajouter les coordonnées validées à req
+    req.validatedGPSDelivery = {
+      delivererLat: delivererLatResult.value,
+      delivererLng: delivererLngResult.value,
+      clientLat: clientLatResult.value,
+      clientLng: clientLngResult.value
+    };
+    
+    // Appeler next()
+    next();
+  } catch (error) {
+    // Logger l'erreur
+    console.error("Error validating GPS delivery coordinates:", error);
+    
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "GPS delivery validation failed",
+      details: error.message
+    });
+  }
+}
+
 // Exporter toutes les fonctions
 module.exports = {
   validateOrderCreation,
   validateOrderId,
   validateAddress,
   validateGPS,
+  validateGPSDelivery,
   validateReview
   // validateOrderStatusUpdate peut être ajouté plus tard si nécessaire
 };

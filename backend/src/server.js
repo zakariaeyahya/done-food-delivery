@@ -23,6 +23,9 @@ const restaurantRoutes = require("./routes/restaurants");
 const delivererRoutes = require("./routes/deliverers");
 const adminRoutes = require("./routes/admin");
 const analyticsRoutes = require("./routes/analytics");
+const oracleRoutes = require("./routes/oracles");
+const disputeRoutes = require("./routes/disputes");
+const tokenRoutes = require("./routes/tokens");
 
 /**
  * Serveur principal de l'application backend
@@ -180,6 +183,9 @@ app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/deliverers", delivererRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/oracles", oracleRoutes);
+app.use("/api/disputes", disputeRoutes);
+app.use("/api/tokens", tokenRoutes);
 
 // === GESTION DES ERREURS ===
 
