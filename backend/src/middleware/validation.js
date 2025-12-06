@@ -368,12 +368,86 @@ function validateGPS(req, res, next) {
   }
 }
 
+/**
+ * Valide les données d'un avis (review)
+ * @dev Valide rating (1-5) et comment optionnel
+ * 
+ * @param {Object} req - Request Express
+ * @param {Object} res - Response Express
+ * @param {Function} next - Next middleware
+ */
+function validateReview(req, res, next) {
+  try {
+    // Récupérer rating et comment depuis body
+    const { rating, comment, clientAddress } = req.body;
+    
+    // Vérifier que rating existe
+    if (rating === undefined || rating === null) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "rating is required",
+        field: "rating"
+      });
+    }
+    
+    // Vérifier que rating est un nombre
+    const ratingNumber = parseInt(rating, 10);
+    if (isNaN(ratingNumber)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "rating must be a number",
+        field: "rating"
+      });
+    }
+    
+    // Vérifier que rating est entre 1 et 5
+    if (ratingNumber < 1 || ratingNumber > 5) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "rating must be between 1 and 5",
+        field: "rating",
+        provided: ratingNumber
+      });
+    }
+    
+    // Vérifier que clientAddress est une adresse Ethereum valide (si fournie)
+    if (clientAddress && !ethers.isAddress(clientAddress)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "clientAddress must be a valid Ethereum address",
+        field: "clientAddress"
+      });
+    }
+    
+    // Ajouter les données validées à req
+    req.validatedReview = {
+      rating: ratingNumber,
+      comment: comment || "",
+      clientAddress: clientAddress || null
+    };
+    
+    // Appeler next()
+    next();
+  } catch (error) {
+    // Logger l'erreur
+    console.error("Error validating review:", error);
+    
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Review validation failed",
+      details: error.message
+    });
+  }
+}
+
 // Exporter toutes les fonctions
 module.exports = {
   validateOrderCreation,
   validateOrderId,
   validateAddress,
-  validateGPS
+  validateGPS,
+  validateReview
   // validateOrderStatusUpdate peut être ajouté plus tard si nécessaire
 };
 

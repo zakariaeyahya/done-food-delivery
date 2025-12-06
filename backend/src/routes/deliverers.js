@@ -22,17 +22,18 @@ router.post(
   delivererController.registerDeliverer
 );
 
+// Route GET /api/deliverers/available - Récupérer les livreurs disponibles
+// IMPORTANT: Cette route doit être AVANT /:address pour éviter que "available" soit interprété comme une adresse
+router.get(
+  "/available",
+  delivererController.getAvailableDeliverers
+);
+
 // Route GET /api/deliverers/:address - Récupérer les détails d'un livreur
 router.get(
   "/:address",
   validation.validateAddress,              // Valider address dans params
   delivererController.getDeliverer
-);
-
-// Route GET /api/deliverers/available - Récupérer les livreurs disponibles
-router.get(
-  "/available",
-  delivererController.getAvailableDeliverers
 );
 
 // Route PUT /api/deliverers/:address/status - Mettre à jour le statut de disponibilité

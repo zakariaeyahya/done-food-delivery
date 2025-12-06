@@ -17,10 +17,10 @@ const { initIPFS } = require("./config/ipfs");
 // const blockchainService = require("./services/blockchainService");
 
 // Importer les routes
-// const orderRoutes = require("./routes/orders");
-// const userRoutes = require("./routes/users");
-// const restaurantRoutes = require("./routes/restaurants");
-// const delivererRoutes = require("./routes/deliverers");
+const orderRoutes = require("./routes/orders");
+const userRoutes = require("./routes/users");
+const restaurantRoutes = require("./routes/restaurants");
+const delivererRoutes = require("./routes/deliverers");
 const adminRoutes = require("./routes/admin");
 const analyticsRoutes = require("./routes/analytics");
 
@@ -174,10 +174,10 @@ async function initializeConnections() {
 // === ROUTES API ===
 
 // Monter les routes API
-// app.use("/api/orders", orderRoutes);
-// app.use("/api/users", userRoutes);
-// app.use("/api/restaurants", restaurantRoutes);
-// app.use("/api/deliverers", delivererRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/restaurants", restaurantRoutes);
+app.use("/api/deliverers", delivererRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
