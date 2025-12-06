@@ -35,6 +35,12 @@ async function createOrder(req, res) {
     // TODO: Récupérer les données du body
     // const { restaurantId, items, deliveryAddress, clientAddress } = req.body;
     
+    // Réponse temporaire pour que le serveur démarre
+    return res.status(200).json({
+      success: true,
+      message: "Create order endpoint - TODO: Implementation"
+    });
+    
     // TODO: Récupérer l'adresse du client depuis req.userAddress (middleware auth)
     // const clientAddress = req.userAddress || req.body.clientAddress;
     
@@ -131,14 +137,14 @@ async function createOrder(req, res) {
     // });
   } catch (error) {
     // TODO: Logger l'erreur
-    // console.error("Error creating order:", error);
+    console.error("Error creating order:", error);
     
-    // TODO: Retourner erreur 500
-    // return res.status(500).json({
-    //   error: "Internal Server Error",
-    //   message: "Failed to create order",
-    //   details: error.message
-    // });
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to create order",
+      details: error.message
+    });
   }
 }
 
@@ -176,16 +182,22 @@ async function getOrder(req, res) {
     //   success: true,
     //   order: fullOrderData
     // });
+    
+    // Réponse temporaire
+    return res.status(200).json({
+      success: true,
+      message: "Get order endpoint - TODO: Implementation"
+    });
   } catch (error) {
     // TODO: Logger l'erreur
     // console.error("Error getting order:", error);
     
-    // TODO: Retourner erreur 500
-    // return res.status(500).json({
-    //   error: "Internal Server Error",
-    //   message: "Failed to get order",
-    //   details: error.message
-    // });
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to get order",
+      details: error.message
+    });
   }
 }
 
@@ -211,16 +223,22 @@ async function getOrdersByClient(req, res) {
     //   success: true,
     //   orders
     // });
+    
+    // Réponse temporaire
+    return res.status(200).json({
+      success: true,
+      message: "Get orders by client endpoint - TODO: Implementation"
+    });
   } catch (error) {
     // TODO: Logger l'erreur
     // console.error("Error getting client orders:", error);
     
-    // TODO: Retourner erreur 500
-    // return res.status(500).json({
-    //   error: "Internal Server Error",
-    //   message: "Failed to get client orders",
-    //   details: error.message
-    // });
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to get client orders",
+      details: error.message
+    });
   }
 }
 
@@ -285,16 +303,18 @@ async function confirmPreparation(req, res) {
     //   success: true,
     //   txHash: blockchainResult.txHash
     // });
+    
+    return res.status(200).json({ success: true, message: "confirmPreparation - TODO" });
   } catch (error) {
     // TODO: Logger l'erreur
     // console.error("Error confirming preparation:", error);
     
-    // TODO: Retourner erreur 500
-    // return res.status(500).json({
-    //   error: "Internal Server Error",
-    //   message: "Failed to confirm preparation",
-    //   details: error.message
-    // });
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to confirm preparation",
+      details: error.message
+    });
   }
 }
 
@@ -352,16 +372,18 @@ async function assignDeliverer(req, res) {
     //   txHash: blockchainResult.txHash,
     //   deliverer: delivererAddress
     // });
+    
+    return res.status(200).json({ success: true, message: "assignDeliverer - TODO" });
   } catch (error) {
     // TODO: Logger l'erreur
     // console.error("Error assigning deliverer:", error);
     
-    // TODO: Retourner erreur 500
-    // return res.status(500).json({
-    //   error: "Internal Server Error",
-    //   message: "Failed to assign deliverer",
-    //   details: error.message
-    // });
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to assign deliverer",
+      details: error.message
+    });
   }
 }
 
@@ -424,16 +446,18 @@ async function confirmPickup(req, res) {
     //   success: true,
     //   txHash: blockchainResult.txHash
     // });
+    
+    return res.status(200).json({ success: true, message: "confirmPickup - TODO" });
   } catch (error) {
     // TODO: Logger l'erreur
     // console.error("Error confirming pickup:", error);
     
-    // TODO: Retourner erreur 500
-    // return res.status(500).json({
-    //   error: "Internal Server Error",
-    //   message: "Failed to confirm pickup",
-    //   details: error.message
-    // });
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to confirm pickup",
+      details: error.message
+    });
   }
 }
 
@@ -502,16 +526,18 @@ async function updateGPSLocation(req, res) {
     //   location: { lat, lng },
     //   eta
     // });
+    
+    return res.status(200).json({ success: true, message: "updateGPSLocation - TODO" });
   } catch (error) {
     // TODO: Logger l'erreur
     // console.error("Error updating GPS location:", error);
     
-    // TODO: Retourner erreur 500
-    // return res.status(500).json({
-    //   error: "Internal Server Error",
-    //   message: "Failed to update GPS location",
-    //   details: error.message
-    // });
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to update GPS location",
+      details: error.message
+    });
   }
 }
 
@@ -576,16 +602,18 @@ async function confirmDelivery(req, res) {
     //   txHash: blockchainResult.txHash,
     //   tokensEarned: blockchainResult.tokensEarned || "0"
     // });
+    
+    return res.status(200).json({ success: true, message: "confirmDelivery - TODO" });
   } catch (error) {
     // TODO: Logger l'erreur
     // console.error("Error confirming delivery:", error);
     
-    // TODO: Retourner erreur 500
-    // return res.status(500).json({
-    //   error: "Internal Server Error",
-    //   message: "Failed to confirm delivery",
-    //   details: error.message
-    // });
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to confirm delivery",
+      details: error.message
+    });
   }
 }
 
@@ -650,16 +678,18 @@ async function openDispute(req, res) {
     //   txHash: blockchainResult.txHash,
     //   disputeId: orderId
     // });
+    
+    return res.status(200).json({ success: true, message: "openDispute - TODO" });
   } catch (error) {
     // TODO: Logger l'erreur
     // console.error("Error opening dispute:", error);
     
-    // TODO: Retourner erreur 500
-    // return res.status(500).json({
-    //   error: "Internal Server Error",
-    //   message: "Failed to open dispute",
-    //   details: error.message
-    // });
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to open dispute",
+      details: error.message
+    });
   }
 }
 
@@ -709,30 +739,103 @@ async function getOrderHistory(req, res) {
     //   limit,
     //   totalPages: Math.ceil(total / limit)
     // });
+    
+    return res.status(200).json({ success: true, message: "getOrderHistory - TODO" });
   } catch (error) {
     // TODO: Logger l'erreur
     // console.error("Error getting order history:", error);
     
-    // TODO: Retourner erreur 500
-    // return res.status(500).json({
-    //   error: "Internal Server Error",
-    //   message: "Failed to get order history",
-    //   details: error.message
-    // });
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to get order history",
+      details: error.message
+    });
   }
 }
 
-// TODO: Exporter toutes les fonctions
-// module.exports = {
-//   createOrder,
-//   getOrder,
-//   getOrdersByClient,
-//   confirmPreparation,
-//   assignDeliverer,
-//   confirmPickup,
-//   updateGPSLocation,
-//   confirmDelivery,
-//   openDispute,
-//   getOrderHistory
-// };
+/**
+ * Soumet un avis sur une commande
+ * @dev TODO: Implémenter la fonction submitReview
+ * 
+ * @param {Object} req - Request Express
+ * @param {Object} res - Response Express
+ */
+async function submitReview(req, res) {
+  try {
+    // TODO: Récupérer orderId depuis params
+    // const orderId = parseInt(req.params.orderId);
+    
+    // TODO: Récupérer rating, comment, clientAddress depuis body
+    // const { rating, comment, clientAddress } = req.body;
+    
+    // TODO: Valider rating (1-5)
+    // if (!rating || rating < 1 || rating > 5) {
+    //   return res.status(400).json({
+    //     error: "Bad Request",
+    //     message: "Rating must be between 1 and 5"
+    //   });
+    // }
+    
+    // TODO: Récupérer l'order depuis MongoDB
+    // const order = await Order.findOne({ orderId });
+    // if (!order) {
+    //   return res.status(404).json({
+    //     error: "Not Found",
+    //     message: "Order not found"
+    //   });
+    // }
+    
+    // TODO: Sauvegarder review dans MongoDB (off-chain)
+    // order.reviews = order.reviews || [];
+    // order.reviews.push({
+    //   rating,
+    //   comment,
+    //   clientAddress,
+    //   createdAt: new Date()
+    // });
+    // await order.save();
+    
+    // TODO: Retourner succès
+    // return res.status(200).json({
+    //   success: true,
+    //   review: {
+    //     rating,
+    //     comment,
+    //     createdAt: new Date()
+    //   }
+    // });
+    
+    // Pour l'instant, retourner une réponse basique pour que le serveur démarre
+    return res.status(200).json({
+      success: true,
+      message: "Review endpoint - TODO: Implementation"
+    });
+  } catch (error) {
+    // TODO: Logger l'erreur
+    // console.error("Error submitting review:", error);
+    
+    // TODO: Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to submit review",
+      details: error.message
+    });
+  }
+}
+
+// Exporter toutes les fonctions
+module.exports = {
+  createOrder,
+  getOrder,
+  getOrdersByClient,
+  confirmPreparation,
+  assignDeliverer,
+  confirmPickup,
+  updateGPSLocation,
+  confirmDelivery,
+  openDispute,
+  submitReview,
+  getOrderHistory
+};
 

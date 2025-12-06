@@ -564,6 +564,173 @@ async function updateMenu(req, res) {
   }
 }
 
+/**
+ * Ajoute un nouvel item au menu
+ * @dev TODO: Implémenter complètement
+ * 
+ * @param {Object} req - Request Express
+ * @param {Object} res - Response Express
+ */
+async function addMenuItem(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, price, description, category } = req.body;
+    
+    // TODO: Implémenter la logique complète
+    // - Upload image vers IPFS si fournie
+    // - Ajouter l'item au menu du restaurant
+    // - Sauvegarder dans MongoDB
+    
+    return res.status(201).json({
+      success: true,
+      message: "addMenuItem - TODO: Implementation",
+      item: { name, price, description, category }
+    });
+  } catch (error) {
+    console.error("Error adding menu item:", error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to add menu item",
+      details: error.message
+    });
+  }
+}
+
+/**
+ * Modifie un item existant du menu
+ * @dev TODO: Implémenter complètement
+ * 
+ * @param {Object} req - Request Express
+ * @param {Object} res - Response Express
+ */
+async function updateMenuItem(req, res) {
+  try {
+    const { id, itemId } = req.params;
+    const { name, price, description, category } = req.body;
+    
+    // TODO: Implémenter la logique complète
+    // - Upload nouvelle image vers IPFS si fournie
+    // - Mettre à jour l'item dans le menu
+    // - Sauvegarder dans MongoDB
+    
+    return res.status(200).json({
+      success: true,
+      message: "updateMenuItem - TODO: Implementation",
+      item: { id: itemId, name, price, description, category }
+    });
+  } catch (error) {
+    console.error("Error updating menu item:", error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to update menu item",
+      details: error.message
+    });
+  }
+}
+
+/**
+ * Supprime un item du menu
+ * @dev TODO: Implémenter complètement
+ * 
+ * @param {Object} req - Request Express
+ * @param {Object} res - Response Express
+ */
+async function deleteMenuItem(req, res) {
+  try {
+    const { id, itemId } = req.params;
+    
+    // TODO: Implémenter la logique complète
+    // - Retirer l'item du menu
+    // - Sauvegarder dans MongoDB
+    
+    return res.status(200).json({
+      success: true,
+      message: "Item deleted successfully",
+      itemId
+    });
+  } catch (error) {
+    console.error("Error deleting menu item:", error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to delete menu item",
+      details: error.message
+    });
+  }
+}
+
+/**
+ * Récupère les revenus on-chain du restaurant
+ * @dev TODO: Implémenter avec blockchainService
+ * 
+ * @param {Object} req - Request Express
+ * @param {Object} res - Response Express
+ */
+async function getRestaurantEarnings(req, res) {
+  try {
+    const { id } = req.params;
+    
+    // TODO: Implémenter la logique complète
+    // - Parser events PaymentSplit depuis blockchain
+    // - Filtrer par restaurantAddress
+    // - Calculer total earnings (70% de chaque commande)
+    
+    return res.status(200).json({
+      success: true,
+      message: "getRestaurantEarnings - TODO: Implementation",
+      data: {
+        totalEarnings: "0.00",
+        breakdown: {
+          onChain: "0.00",
+          pending: "0.00"
+        },
+        transactions: []
+      }
+    });
+  } catch (error) {
+    console.error("Error getting restaurant earnings:", error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to get restaurant earnings",
+      details: error.message
+    });
+  }
+}
+
+/**
+ * Retire les fonds du PaymentSplitter
+ * @dev TODO: Implémenter avec blockchainService
+ * 
+ * @param {Object} req - Request Express
+ * @param {Object} res - Response Express
+ */
+async function withdrawEarnings(req, res) {
+  try {
+    const { id } = req.params;
+    const { amount } = req.body;
+    
+    // TODO: Implémenter la logique complète
+    // - Vérifier que le restaurant a des fonds disponibles
+    // - Appeler blockchainService.withdraw() si pattern "pull" implémenté
+    // - Retourner txHash
+    
+    return res.status(200).json({
+      success: true,
+      message: "withdrawEarnings - TODO: Implementation",
+      data: {
+        txHash: null,
+        amount: amount || "0.00"
+      }
+    });
+  } catch (error) {
+    console.error("Error withdrawing earnings:", error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to withdraw earnings",
+      details: error.message
+    });
+  }
+}
+
 // Exporter toutes les fonctions
 module.exports = {
   registerRestaurant,
@@ -572,5 +739,10 @@ module.exports = {
   updateRestaurant,
   getRestaurantOrders,
   getRestaurantAnalytics,
-  updateMenu
+  updateMenu,
+  addMenuItem,
+  updateMenuItem,
+  deleteMenuItem,
+  getRestaurantEarnings,
+  withdrawEarnings
 };

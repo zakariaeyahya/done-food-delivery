@@ -368,12 +368,174 @@ function validateGPS(req, res, next) {
   }
 }
 
+/**
+ * Valide les données d'un avis (review)
+ * @dev Valide rating (1-5) et comment optionnel
+ * 
+ * @param {Object} req - Request Express
+ * @param {Object} res - Response Express
+ * @param {Function} next - Next middleware
+ */
+function validateReview(req, res, next) {
+  try {
+    // Récupérer rating et comment depuis body
+    const { rating, comment, clientAddress } = req.body;
+    
+    // Vérifier que rating existe
+    if (rating === undefined || rating === null) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "rating is required",
+        field: "rating"
+      });
+    }
+    
+    // Vérifier que rating est un nombre
+    const ratingNumber = parseInt(rating, 10);
+    if (isNaN(ratingNumber)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "rating must be a number",
+        field: "rating"
+      });
+    }
+    
+    // Vérifier que rating est entre 1 et 5
+    if (ratingNumber < 1 || ratingNumber > 5) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "rating must be between 1 and 5",
+        field: "rating",
+        provided: ratingNumber
+      });
+    }
+    
+    // Vérifier que clientAddress est une adresse Ethereum valide (si fournie)
+    if (clientAddress && !ethers.isAddress(clientAddress)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "clientAddress must be a valid Ethereum address",
+        field: "clientAddress"
+      });
+    }
+    
+    // Ajouter les données validées à req
+    req.validatedReview = {
+      rating: ratingNumber,
+      comment: comment || "",
+      clientAddress: clientAddress || null
+    };
+    
+    // Appeler next()
+    next();
+  } catch (error) {
+    // Logger l'erreur
+    console.error("Error validating review:", error);
+    
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Review validation failed",
+      details: error.message
+    });
+  }
+}
+
+/**
+ * Valide les coordonnées GPS pour la vérification de livraison
+ * @dev Valide delivererLat, delivererLng, clientLat, clientLng
+ * 
+ * @param {Object} req - Request Express
+ * @param {Object} res - Response Express
+ * @param {Function} next - Next middleware
+ */
+function validateGPSDelivery(req, res, next) {
+  try {
+    const { delivererLat, delivererLng, clientLat, clientLng } = req.body;
+    
+    // Fonction helper pour valider une coordonnée
+    const validateCoordinate = (value, name, min, max) => {
+      const coord = parseFloat(value);
+      if (isNaN(coord)) {
+        return { error: `${name} is required and must be a number` };
+      }
+      if (coord < min || coord > max) {
+        return { error: `${name} must be between ${min} and ${max}`, provided: coord };
+      }
+      return { valid: true, value: coord };
+    };
+    
+    // Valider delivererLat
+    const delivererLatResult = validateCoordinate(delivererLat, 'delivererLat', -90, 90);
+    if (delivererLatResult.error) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: delivererLatResult.error,
+        field: "delivererLat"
+      });
+    }
+    
+    // Valider delivererLng
+    const delivererLngResult = validateCoordinate(delivererLng, 'delivererLng', -180, 180);
+    if (delivererLngResult.error) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: delivererLngResult.error,
+        field: "delivererLng"
+      });
+    }
+    
+    // Valider clientLat
+    const clientLatResult = validateCoordinate(clientLat, 'clientLat', -90, 90);
+    if (clientLatResult.error) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: clientLatResult.error,
+        field: "clientLat"
+      });
+    }
+    
+    // Valider clientLng
+    const clientLngResult = validateCoordinate(clientLng, 'clientLng', -180, 180);
+    if (clientLngResult.error) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: clientLngResult.error,
+        field: "clientLng"
+      });
+    }
+    
+    // Ajouter les coordonnées validées à req
+    req.validatedGPSDelivery = {
+      delivererLat: delivererLatResult.value,
+      delivererLng: delivererLngResult.value,
+      clientLat: clientLatResult.value,
+      clientLng: clientLngResult.value
+    };
+    
+    // Appeler next()
+    next();
+  } catch (error) {
+    // Logger l'erreur
+    console.error("Error validating GPS delivery coordinates:", error);
+    
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "GPS delivery validation failed",
+      details: error.message
+    });
+  }
+}
+
 // Exporter toutes les fonctions
 module.exports = {
   validateOrderCreation,
   validateOrderId,
   validateAddress,
-  validateGPS
+  validateGPS,
+  validateGPSDelivery,
+  validateReview
   // validateOrderStatusUpdate peut être ajouté plus tard si nécessaire
 };
 
