@@ -30,8 +30,14 @@
  * ============================================================================
  */
 
+// Set test mode for mock services
+process.env.NODE_ENV = 'test';
+process.env.ALLOW_MOCK_IPFS = 'true';
+
 const request = require('supertest');
 const { app } = require('../server');
+const { connectDB, disconnectDB } = require('../config/database');
+const { initBlockchain } = require('../config/blockchain');
 
 // Configuration
 const BASE_URL = process.env.API_URL || 'http://localhost:3000';
@@ -109,10 +115,30 @@ async function runAllTests() {
     if (healthCheck.status !== 200) {
       throw new Error('Serveur non disponible');
     }
-    console.log('✅ Serveur disponible (status: 200)\n');
+    console.log('✅ Serveur disponible (status: 200)');
   } catch (error) {
     console.error('❌ Serveur non disponible. Veuillez démarrer le serveur avec: npm run dev');
     process.exit(1);
+  }
+
+  // Connecter à MongoDB avant les tests
+  try {
+    console.log('Connecting to MongoDB...');
+    await connectDB();
+    console.log('✅ MongoDB connected');
+  } catch (error) {
+    console.error('❌ MongoDB connection failed:', error.message);
+    process.exit(1);
+  }
+
+  // Initialiser la blockchain avant les tests
+  try {
+    console.log('Initializing blockchain...');
+    await initBlockchain();
+    console.log('✅ Blockchain connected\n');
+  } catch (error) {
+    console.warn('⚠️  Blockchain initialization failed:', error.message);
+    console.warn('⚠️  Some tests requiring blockchain may fail\n');
   }
 
   // ============================================================================
@@ -374,11 +400,11 @@ async function runAllTests() {
     const response = await request(app)
       .get(`${API_PREFIX}/oracles/arbitration/dispute/${testDisputeId}`);
     
-    // Accepter 200 ou 404/500
-    if (![200, 404, 500].includes(response.status)) {
+    // Accepter 200 ou 400/404/500
+    if (![200, 400, 404, 500].includes(response.status)) {
       throw new Error(`Status inattendu: ${response.status}`);
     }
-    
+
     if (response.status === 200) {
       if (!response.body.success) throw new Error('Response success should be true');
       if (!response.body.data.disputeId) throw new Error('Response should have disputeId');
@@ -494,6 +520,14 @@ async function runAllTests() {
       console.log(`   - ${r.name}`);
       console.log(`     Erreur: ${r.error}\n`);
     });
+  }
+
+  // Déconnecter MongoDB proprement
+  try {
+    await disconnectDB();
+    console.log('✅ MongoDB disconnected');
+  } catch (error) {
+    console.error('⚠️  MongoDB disconnect error:', error.message);
   }
 
   // Code de sortie

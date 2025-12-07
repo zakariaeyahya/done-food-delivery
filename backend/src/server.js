@@ -312,9 +312,11 @@ process.on("uncaughtException", (error) => {
   gracefulShutdown("uncaughtException");
 });
 
-// Démarrer le serveur
-startServer();
+// Démarrer le serveur uniquement si c'est le module principal (pas en import de test)
+if (require.main === module) {
+  startServer();
+}
 
 // Exporter app et io pour les tests
-module.exports = { app, server, io };
+module.exports = { app, server, io, startServer };
 

@@ -23,6 +23,15 @@ async function uploadJSON(data) {
       const url = gateway + ipfsHash;
       return { ipfsHash, url };
     } else {
+      // En mode test ou développement sans Pinata, retourner un hash mock
+      if (process.env.NODE_ENV === 'test' || process.env.ALLOW_MOCK_IPFS === 'true') {
+        const crypto = require('crypto');
+        const hash = crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
+        const mockHash = 'Qm' + hash.substring(0, 44); // Format CID v0-like
+        const gateway = getIPFSGateway();
+        console.log('⚠️  Using mock IPFS hash (Pinata not configured):', mockHash);
+        return { ipfsHash: mockHash, url: gateway + mockHash };
+      }
       throw new Error("Pinata not configured. Cannot upload to IPFS without Pinata.");
     }
   } catch (error) {
