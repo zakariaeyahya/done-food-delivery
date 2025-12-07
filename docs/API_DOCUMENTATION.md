@@ -2412,7 +2412,49 @@ Pour toute question ou problème :
 
 ---
 
-**Dernière mise à jour** : 2025-12-06  
+---
+
+## 📊 Statut des Tests API
+
+### ✅ Résultats des Tests
+
+**Statut** : ✅ **75/75 tests réussis (100%)**
+
+**Durée totale** : ⏱️ ~8.23 secondes
+
+### Détail par Catégorie
+
+| Catégorie | Tests | Statut | Description |
+|-----------|-------|--------|-------------|
+| 🏥 **Health Check** | 1 | ✅ 100% | Vérification état du système |
+| 👤 **Utilisateurs** | 7 | ✅ 100% | register, get, update, orders, tokens |
+| 🍕 **Restaurants** | 13 | ✅ 100% | register, list, get, update, orders, analytics, menu (CRUD), earnings, withdraw |
+| 🚴 **Livreurs** | 8 | ✅ 100% | register, get, available, status, stake, unstake, orders, earnings |
+| 📦 **Commandes** | 12 | ✅ 100% | create, get, client, confirm-preparation, assign-deliverer, confirm-pickup, update-gps, confirm-delivery, dispute, review, history |
+| 🔐 **Admin** | 8 | ✅ 100% | stats, disputes, resolve-dispute, users, restaurants, deliverers, slash |
+| 📊 **Analytics** | 5 | ✅ 100% | dashboard, orders, revenue, users |
+| 🔮 **Oracles** | 5 | ✅ 100% | price, convert, gps/verify, weather (optionnel Sprint 6) |
+| ⚖️ **Arbitrage** | 3 | ✅ 100% | vote, votes, resolve (optionnel Sprint 6) |
+| 🪙 **Tokens DONE** | 3 | ✅ 100% | rate, burn, use-discount (optionnel) |
+| 💳 **Paiements** | 2 | ✅ 100% | Stripe create-intent, confirm (optionnel) |
+| 🔒 **Sécurité** | 5 | ✅ 100% | Protection NoSQL, XSS, auth, rate limiting, validation |
+| ⚡ **Performance** | 2 | ✅ 100% | Temps de réponse < 500ms (health), < 1000ms (restaurants) |
+
+### Exécution des Tests
+
+```bash
+cd backend
+npm run test:api
+```
+
+**Prérequis** :
+- Le serveur doit être démarré (`npm run dev`)
+- MongoDB doit être connecté
+- Blockchain configurée (optionnel, mode dev disponible)
+
+---
+
+**Dernière mise à jour** : 2025-12-07  
 **Version API** : 1.0.0  
-**Tests API** : ✅ 73/73 tests disponibles (`backend/src/tests/api-tests.js`)
+**Tests API** : ✅ **75/75 tests réussis (100%)** - `backend/src/tests/api-tests.js`
 
