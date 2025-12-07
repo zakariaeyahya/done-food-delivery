@@ -235,37 +235,37 @@ function generateMockRoute(startLocation, endLocation, steps = 10) {
  */
 function calculateSpeed(point1, point2) {
   try {
-    // TODO: Vérifier que les paramètres sont valides
-    // if (!point1 || !point2 || !point1.timestamp || !point2.timestamp) {
-    //   throw new Error("Invalid points for speed calculation");
-    // }
+    // Vérifier que les paramètres sont valides
+    if (!point1 || !point2 || !point1.timestamp || !point2.timestamp) {
+      throw new Error("Invalid points for speed calculation");
+    }
     
-    // TODO: Calculer la distance en kilomètres
-    // const distanceKm = calculateDistance(
-    //   point1.lat,
-    //   point1.lng,
-    //   point2.lat,
-    //   point2.lng
-    // );
+    // Calculer la distance en kilomètres
+    const distanceKm = calculateDistance(
+      point1.lat,
+      point1.lng,
+      point2.lat,
+      point2.lng
+    );
     
-    // TODO: Calculer le temps en heures
-    // const timeMs = Math.abs(new Date(point2.timestamp) - new Date(point1.timestamp));
-    // const timeHours = timeMs / (1000 * 60 * 60); // Convertir ms en heures
+    // Calculer le temps en heures
+    const timeMs = Math.abs(new Date(point2.timestamp) - new Date(point1.timestamp));
+    const timeHours = timeMs / (1000 * 60 * 60); // Convertir ms en heures
     
-    // TODO: Éviter division par zéro
-    // if (timeHours === 0) {
-    //   return 0;
-    // }
+    // Éviter division par zéro
+    if (timeHours === 0) {
+      return 0;
+    }
     
-    // TODO: Calculer la vitesse en km/h
-    // const speedKmh = distanceKm / timeHours;
+    // Calculer la vitesse en km/h
+    const speedKmh = distanceKm / timeHours;
     
-    // TODO: Retourner la vitesse arrondie
-    // return Math.round(speedKmh * 100) / 100;
+    // Retourner la vitesse arrondie
+    return Math.round(speedKmh * 100) / 100;
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error calculating speed:", error);
-    // return 0;
+    // Logger l'erreur
+    console.error("Error calculating speed:", error);
+    return 0;
   }
 }
 
@@ -279,44 +279,44 @@ function calculateSpeed(point1, point2) {
  */
 function findNearestPoint(targetLocation, points) {
   try {
-    // TODO: Vérifier que les paramètres sont valides
-    // if (!targetLocation || !points || points.length === 0) {
-    //   throw new Error("Invalid parameters for findNearestPoint");
-    // }
+    // Vérifier que les paramètres sont valides
+    if (!targetLocation || !points || points.length === 0) {
+      throw new Error("Invalid parameters for findNearestPoint");
+    }
     
-    // TODO: Initialiser avec le premier point
-    // let nearestPoint = points[0];
-    // let minDistance = calculateDistance(
-    //   targetLocation.lat,
-    //   targetLocation.lng,
-    //   points[0].lat,
-    //   points[0].lng
-    // );
+    // Initialiser avec le premier point
+    let nearestPoint = points[0];
+    let minDistance = calculateDistance(
+      targetLocation.lat,
+      targetLocation.lng,
+      points[0].lat,
+      points[0].lng
+    );
     
-    // TODO: Parcourir tous les points pour trouver le plus proche
-    // for (let i = 1; i < points.length; i++) {
-    //   const distance = calculateDistance(
-    //     targetLocation.lat,
-    //     targetLocation.lng,
-    //     points[i].lat,
-    //     points[i].lng
-    //   );
-    //   
-    //   if (distance < minDistance) {
-    //     minDistance = distance;
-    //     nearestPoint = points[i];
-    //   }
-    // }
+    // Parcourir tous les points pour trouver le plus proche
+    for (let i = 1; i < points.length; i++) {
+      const distance = calculateDistance(
+        targetLocation.lat,
+        targetLocation.lng,
+        points[i].lat,
+        points[i].lng
+      );
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestPoint = points[i];
+      }
+    }
     
-    // TODO: Retourner le point le plus proche avec sa distance
-    // return {
-    //   ...nearestPoint,
-    //   distance: minDistance
-    // };
+    // Retourner le point le plus proche avec sa distance
+    return {
+      ...nearestPoint,
+      distance: minDistance
+    };
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error finding nearest point:", error);
-    // throw error;
+    // Logger l'erreur
+    console.error("Error finding nearest point:", error);
+    throw error;
   }
 }
 
@@ -325,8 +325,8 @@ module.exports = {
   calculateDistance,
   isNearby,
   getETA,
-  generateMockRoute
-  // calculateSpeed et findNearestPoint ne sont pas dans les spécifications Priorité 3
-  // mais peuvent être ajoutés plus tard si nécessaire
+  generateMockRoute,
+  calculateSpeed,
+  findNearestPoint
 };
 

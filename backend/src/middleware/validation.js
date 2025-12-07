@@ -7,7 +7,7 @@ const { ethers } = require("ethers");
  */
 /**
  * Valide les données de création de commande
- * @dev TODO: Implémenter la fonction validateOrderCreation
+ * @dev Implémenté
  * 
  * Vérifie:
  * - restaurantId existe dans body
@@ -119,7 +119,7 @@ function validateOrderCreation(req, res, next) {
 
 /**
  * Valide que orderId existe et est valide
- * @dev TODO: Implémenter la fonction validateOrderId
+ * @dev Implémenté
  * 
  * Vérifie:
  * - orderId existe dans params
@@ -193,7 +193,7 @@ async function validateOrderId(req, res, next) {
 
 /**
  * Valide qu'une adresse Ethereum est valide
- * @dev TODO: Implémenter la fonction validateAddress
+ * @dev Implémenté
  * 
  * Vérifie:
  * - address existe dans params, query ou body
@@ -247,7 +247,7 @@ function validateAddress(req, res, next) {
 
 /**
  * Valide les données de mise à jour de statut de commande
- * @dev TODO: Implémenter la fonction validateOrderStatusUpdate
+ * @dev Implémenté
  * 
  * @param {Object} req - Request Express
  * @param {Object} res - Response Express
@@ -255,52 +255,52 @@ function validateAddress(req, res, next) {
  */
 function validateOrderStatusUpdate(req, res, next) {
   try {
-    // TODO: Récupérer le nouveau statut depuis body
-    // const { status } = req.body;
+    // Récupérer le nouveau statut depuis body
+    const { status } = req.body;
     
-    // TODO: Définir les statuts valides
-    // const validStatuses = ['CREATED', 'PREPARING', 'IN_DELIVERY', 'DELIVERED', 'DISPUTED'];
+    // Définir les statuts valides
+    const validStatuses = ['CREATED', 'PREPARING', 'IN_DELIVERY', 'DELIVERED', 'DISPUTED'];
     
-    // TODO: Vérifier que status existe
-    // if (!status) {
-    //   return res.status(400).json({
-    //     error: "Bad Request",
-    //     message: "status is required",
-    //     field: "status"
-    //   });
-    // }
+    // Vérifier que status existe
+    if (!status) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "status is required",
+        field: "status"
+      });
+    }
     
-    // TODO: Vérifier que status est valide
-    // if (!validStatuses.includes(status)) {
-    //   return res.status(400).json({
-    //     error: "Bad Request",
-    //     message: `status must be one of: ${validStatuses.join(', ')}`,
-    //     field: "status",
-    //     provided: status
-    //   });
-    // }
+    // Vérifier que status est valide
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: `status must be one of: ${validStatuses.join(', ')}`,
+        field: "status",
+        provided: status
+      });
+    }
     
-    // TODO: Ajouter le statut validé à req
-    // req.validatedStatus = status;
+    // Ajouter le statut validé à req
+    req.validatedStatus = status;
     
-    // TODO: Appeler next()
-    // next();
+    // Appeler next()
+    next();
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error validating order status update:", error);
+    // Logger l'erreur
+    console.error("Error validating order status update:", error);
     
-    // TODO: Retourner erreur 500
-    // return res.status(500).json({
-    //   error: "Internal Server Error",
-    //   message: "Status validation failed",
-    //   details: error.message
-    // });
+    // Retourner erreur 500
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Status validation failed",
+      details: error.message
+    });
   }
 }
 
 /**
  * Valide les coordonnées GPS (latitude et longitude)
- * @dev TODO: Implémenter la fonction validateGPS
+ * @dev Implémenté
  * 
  * @param {Object} req - Request Express
  * @param {Object} res - Response Express
@@ -535,7 +535,7 @@ module.exports = {
   validateAddress,
   validateGPS,
   validateGPSDelivery,
-  validateReview
-  // validateOrderStatusUpdate peut être ajouté plus tard si nécessaire
+  validateReview,
+  validateOrderStatusUpdate
 };
 

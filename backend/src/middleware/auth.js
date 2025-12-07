@@ -7,7 +7,7 @@ const { ethers } = require("ethers");
  */
 /**
  * Vérifie la signature Web3 dans le header Authorization
- * @dev TODO: Implémenter la fonction verifySignature
+ * @dev Implémenté
  * 
  * Format du header:
  * Authorization: Bearer <signature>
@@ -126,7 +126,7 @@ async function verifySignature(req, res, next) {
 
 /**
  * Middleware factory pour vérifier un rôle spécifique
- * @dev TODO: Implémenter la fonction requireRole
+ * @dev Implémenté
  * 
  * Utilisation:
  * router.post('/orders', verifySignature, requireRole('CLIENT_ROLE'), orderController.createOrder);
@@ -242,7 +242,7 @@ function requireRole(role) {
 
 /**
  * Middleware optionnel pour vérifier que l'utilisateur est le propriétaire d'une ressource
- * @dev TODO: Implémenter la fonction requireOwnership
+ * @dev Implémenté
  * 
  * Utilisation:
  * router.put('/orders/:orderId', verifySignature, requireOwnership('order', 'client'), orderController.updateOrder);
