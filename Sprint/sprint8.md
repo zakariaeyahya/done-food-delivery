@@ -16,12 +16,15 @@ Créer le dashboard admin pour le monitoring de la plateforme avec analytics en 
 - ⚠️ `frontend/admin/src/pages/` (à créer)
 - ⚠️ `frontend/admin/src/services/` (à créer)
 
-**Fichiers à créer:**
-- ⚠️ Tous les fichiers admin (à créer)
+**Fichiers frontend à créer:**
+- ⚠️ Tous les fichiers admin frontend (à créer)
 
-**Fichiers backend à créer:**
-- ⚠️ `backend/src/routes/admin.js` (à créer)
-- ⚠️ `backend/src/routes/analytics.js` (à créer)
+**Fichiers backend (existent déjà):**
+- ✅ `backend/src/routes/admin.js` (existe déjà - routes montées dans server.js)
+- ✅ `backend/src/routes/analytics.js` (existe déjà - routes montées dans server.js)
+- ✅ `backend/src/controllers/adminController.js` (existe déjà)
+- ✅ `backend/src/controllers/analyticsController.js` (existe déjà)
+- ⚠️ **Action requise:** Activer le middleware `verifyAdminRole` pour sécuriser les routes admin et analytics
 
 ---
 
@@ -184,28 +187,33 @@ Créer le dashboard admin pour le monitoring de la plateforme avec analytics en 
    - Paramètres contrats
    - Variables système
 
-### ÉTAPE 8: CRÉATION DES ROUTES BACKEND ADMIN
-**Fichiers à créer:**
+### ÉTAPE 8: VÉRIFICATION DES ROUTES BACKEND ADMIN
+**Fichiers existants (déjà créés):**
 
-1. **`backend/src/routes/admin.js`** (à créer)
-   - Routes API admin
+1. **`backend/src/routes/admin.js`** ✅ (existe déjà)
+   - Routes API admin implémentées
    - `GET /api/admin/stats` - Statistiques globales plateforme
    - `GET /api/admin/disputes` - Tous litiges avec statut
    - `POST /api/admin/resolve-dispute/:id` - Résolution manuelle litige
    - `GET /api/admin/users` - Liste utilisateurs
    - `GET /api/admin/restaurants` - Liste restaurants
    - `GET /api/admin/deliverers` - Liste livreurs
-   - Middleware: Vérification rôle ADMIN/PLATFORM
+   - ⚠️ Middleware `verifyAdminRole` à activer (actuellement commenté)
 
-2. **`backend/src/routes/analytics.js`** (à créer)
-   - Routes API analytics
+2. **`backend/src/routes/analytics.js`** ✅ (existe déjà)
+   - Routes API analytics implémentées
    - `GET /api/analytics/dashboard` - Dashboard analytics
    - `GET /api/analytics/orders` - Analytics commandes
    - `GET /api/analytics/revenue` - Analytics revenus
    - `GET /api/analytics/users` - Analytics utilisateurs
+   - ⚠️ Middleware `verifyAdminRole` à activer (actuellement commenté)
 
-3. Mettre à jour `backend/src/server.js`:
-   - Ajouter les routes admin et analytics
+3. **`backend/src/server.js`** ✅ (déjà mis à jour)
+   - Routes admin et analytics déjà montées
+   - Lignes 189-190: `app.use("/api/admin", adminRoutes);` et `app.use("/api/analytics", analyticsRoutes);`
+
+**Action requise:**
+- Activer le middleware `verifyAdminRole` dans les routes admin et analytics pour sécuriser l'accès
 
 ### ÉTAPE 9: CONFIGURATION DU ROUTING
 **Fichier à créer:** `frontend/admin/src/App.jsx` (à créer)
@@ -255,12 +263,14 @@ Créer le dashboard admin pour le monitoring de la plateforme avec analytics en 
 - Configuration système
 
 ### ÉTAPE 13: VALIDATION DU SPRINT 8
-✓ Tous les fichiers créés et complétés
+✓ Tous les fichiers frontend créés et complétés
 ✓ Dashboard admin fonctionnel
 ✓ Analytics temps réel
 ✓ Interface gestion litiges
 ✓ Gestion utilisateurs/restaurants/livreurs
-✓ Routes backend admin créées
+✓ Routes backend admin existantes (déjà créées)
+✓ Controllers backend admin existants (déjà créés)
+⚠️ Middleware `verifyAdminRole` à activer pour sécuriser les routes
 ✓ Documentation complète
 
 ---
@@ -308,9 +318,12 @@ Créer le dashboard admin pour le monitoring de la plateforme avec analytics en 
 - `frontend/admin/src/App.jsx` ⚠️ À CRÉER
 - `frontend/admin/src/index.jsx` ⚠️ À CRÉER
 
-### 7. Routes Backend (Fichiers à créer)
-- `backend/src/routes/admin.js` ⚠️ À CRÉER
-- `backend/src/routes/analytics.js` ⚠️ À CRÉER
+### 7. Routes Backend (Fichiers existants)
+- `backend/src/routes/admin.js` ✅ EXISTE DÉJÀ
+- `backend/src/routes/analytics.js` ✅ EXISTE DÉJÀ
+- `backend/src/controllers/adminController.js` ✅ EXISTE DÉJÀ
+- `backend/src/controllers/analyticsController.js` ✅ EXISTE DÉJÀ
+- ⚠️ **Action requise:** Activer le middleware `verifyAdminRole` pour sécuriser les routes
 
 ### 8. Configuration
 - `frontend/admin/.env.example` (à créer)
@@ -349,11 +362,13 @@ Créer le dashboard admin pour le monitoring de la plateforme avec analytics en 
 
 ## LIVRABLES ATTENDUS
 
-✓ Dashboard admin fonctionnel
-✓ Analytics temps réel
-✓ Interface gestion litiges
-✓ Gestion utilisateurs/restaurants/livreurs
-✓ Routes backend admin créées
+✓ Dashboard admin fonctionnel (frontend à créer)
+✓ Analytics temps réel (frontend à créer)
+✓ Interface gestion litiges (frontend à créer)
+✓ Gestion utilisateurs/restaurants/livreurs (frontend à créer)
+✓ Routes backend admin existantes (déjà créées et montées dans server.js)
+✓ Controllers backend admin existants (déjà créés)
+⚠️ Middleware `verifyAdminRole` à activer pour sécuriser les routes
 ✓ Documentation complète
 
 ---
