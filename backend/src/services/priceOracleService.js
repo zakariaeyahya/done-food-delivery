@@ -1,164 +1,151 @@
-const { ethers } = require("ethers");
-const axios = require("axios");
-const NodeCache = require("node-cache");
-const { getProvider, getContractInstance } = require("../config/blockchain");
-require("dotenv").config();
-
 /**
- * Price Oracle Service - Fetch MATIC/USD price with failover
- * 
- * Responsibilities:
- * - Fetch MATIC/USD price from Chainlink on-chain (primary)
- * - Fallback to CoinGecko API if Chainlink fails
- * - Validate data freshness (< 1 hour)
- * - Temporary cache of prices to avoid repeated calls
- * 
- * Sources (priority order):
- * 1. Chainlink Price Feed (on-chain, decentralized)
- * 2. CoinGecko API (off-chain, centralized but reliable)
- * 3. Local cache (if both sources fail)
- * 
- * Usage:
- * const priceOracleService = require('./services/priceOracleService');
- * const maticUsdPrice = await priceOracleService.getMaticUsdPrice();
- * console.log(`1 MATIC = $${maticUsdPrice}`);
+ * Price Oracle Service - Récupération prix MATIC/USD avec failover
+ *
+ * Responsabilités :
+ * - Fetch prix MATIC/USD depuis Chainlink on-chain (primary)
+ * - Fallback sur CoinGecko API si Chainlink échoue
+ * - Validation de la fraîcheur des données (< 1 heure)
+ * - Cache temporaire des prix pour éviter appels répétés
+ *
+ * Sources de prix (par ordre de priorité) :
+ * 1. Chainlink Price Feed (on-chain, décentralisé)
+ * 2. CoinGecko API (off-chain, centralisé mais fiable)
+ * 3. Cache local (si échec des 2 sources)
  */
 
-// Initialize cache with 5 minute TTL
-const priceCache = new NodeCache({ stdTTL: 300 });
+const { ethers } = require('ethers');
+const axios = require('axios');
+const NodeCache = require('node-cache');
+const chainlinkService = require('./chainlinkService');
 
-// Chainlink MATIC/USD price feed address (Polygon Amoy)
-const CHAINLINK_MATIC_USD = process.env.CHAINLINK_PRICE_FEED_ADDRESS || '0xd0D5e3DB44DE05E9F294BB0a3bEEaF030DE24Ada';
+// Configuration
+const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3/simple/price';
+const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY;
+const PRICE_CACHE_TTL = 300; // 5 minutes
+const MAX_DATA_AGE = 3600 * 1000; // 1 heure en millisecondes
+
+// Initialiser cache
+const priceCache = new NodeCache({ stdTTL: PRICE_CACHE_TTL });
 
 /**
- * Get MATIC/USD price from Chainlink (on-chain)
- * @returns {Promise<number>} MATIC/USD price
+ * Récupère le prix MATIC/USD depuis Chainlink (on-chain)
+ * @returns {Promise<number>} Prix MATIC/USD
  */
 async function getChainlinkPrice() {
   try {
-    const provider = getProvider();
-    if (!provider) {
-      throw new Error("Provider not initialized");
-    }
-
-    // Chainlink AggregatorV3Interface ABI (minimal)
-    const aggregatorABI = [
-      "function latestRoundData() external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)",
-      "function decimals() external view returns (uint8)"
-    ];
-
-    const aggregator = new ethers.Contract(CHAINLINK_MATIC_USD, aggregatorABI, provider);
-    
-    // Get latest price data
-    const roundData = await aggregator.latestRoundData();
-    const decimals = await aggregator.decimals();
-    
-    // Convert answer to readable price (Chainlink uses 8 decimals for USD pairs)
-    const price = parseFloat(ethers.formatUnits(roundData.answer, decimals));
-    
-    // Validate freshness (updatedAt should be recent, within 1 hour)
-    const updatedAt = Number(roundData.updatedAt);
-    const now = Math.floor(Date.now() / 1000);
-    const age = now - updatedAt;
-    
-    if (age > 3600) {
-      throw new Error(`Chainlink price data is stale (${age}s old)`);
-    }
-    
-    console.log(`✓ Chainlink price: $${price} (updated ${age}s ago)`);
-    return price;
+    const priceData = await chainlinkService.getLatestPrice();
+    return priceData.price || priceData;
   } catch (error) {
-    console.error("Error fetching Chainlink price:", error.message);
+    console.warn('⚠️ Chainlink price fetch failed:', error.message);
     throw error;
   }
 }
 
 /**
- * Get MATIC/USD price from CoinGecko API
- * @returns {Promise<number>} MATIC/USD price
+ * Récupère le prix MATIC/USD depuis CoinGecko API
+ * @returns {Promise<number>} Prix MATIC/USD
  */
 async function getCoinGeckoPrice() {
   try {
-    const apiKey = process.env.COINGECKO_API_KEY;
-    const url = apiKey 
-      ? `https://api.coingecko.com/api/v3/simple/price?ids=polygon&vs_currencies=usd&x_cg_demo_api_key=${apiKey}`
-      : 'https://api.coingecko.com/api/v3/simple/price?ids=polygon&vs_currencies=usd';
-    
-    const response = await axios.get(url, {
-      timeout: 5000,
-      headers: apiKey ? { 'x-cg-demo-api-key': apiKey } : {}
-    });
-    
-    const price = response.data.polygon?.usd;
-    if (!price) {
-      throw new Error("Invalid response from CoinGecko");
+    const headers = {};
+    if (COINGECKO_API_KEY) {
+      headers['x-cg-demo-api-key'] = COINGECKO_API_KEY;
     }
-    
-    console.log(`✓ CoinGecko price: $${price}`);
+
+    const response = await axios.get(COINGECKO_API_URL, {
+      params: {
+        ids: 'matic-network',
+        vs_currencies: 'usd'
+      },
+      headers,
+      timeout: 5000
+    });
+
+    const price = response.data['matic-network']?.usd;
+    if (!price) {
+      throw new Error('CoinGecko API returned invalid data');
+    }
+
+    console.log(`✓ CoinGecko price: ${price}`);
     return price;
   } catch (error) {
-    console.error("Error fetching CoinGecko price:", error.message);
+    console.error('❌ CoinGecko price fetch failed:', error.message);
     throw error;
   }
 }
 
 /**
- * Get MATIC/USD price with fallback strategy
- * @returns {Promise<number>} MATIC/USD price
+ * Récupère le prix MATIC/USD avec failover automatique
+ * @returns {Promise<Object>} { price, source, timestamp }
  */
 async function getMaticUsdPrice() {
-  // 1. Check cache first
-  const cachedPrice = priceCache.get('MATIC_USD');
-  if (cachedPrice) {
-    console.log('✓ Price cache HIT');
-    return cachedPrice;
+  // 1. Vérifier cache
+  const cached = priceCache.get('MATIC_USD');
+  if (cached && (Date.now() - cached.timestamp) < MAX_DATA_AGE) {
+    console.log('✓ Price from cache');
+    return cached;
   }
 
-  // 2. Try Chainlink (on-chain, primary)
+  // 2. Essayer Chainlink (primary)
   try {
     const price = await getChainlinkPrice();
-    priceCache.set('MATIC_USD', price);
-    priceCache.set('MATIC_USD_LAST', price); // Backup
-    return price;
+    const result = {
+      price,
+      source: 'chainlink',
+      timestamp: Date.now()
+    };
+
+    // Mettre en cache
+    priceCache.set('MATIC_USD', result);
+
+    return result;
   } catch (chainlinkError) {
-    console.warn('⚠️  Chainlink fetch failed, trying CoinGecko...');
-    
-    // 3. Fallback to CoinGecko
-    try {
-      const price = await getCoinGeckoPrice();
-      priceCache.set('MATIC_USD', price);
-      priceCache.set('MATIC_USD_LAST', price);
-      return price;
-    } catch (coingeckoError) {
-      console.error('❌ Both price sources failed');
-      
-      // 4. Last resort: use cached backup if available
-      const lastKnownPrice = priceCache.get('MATIC_USD_LAST');
-      if (lastKnownPrice) {
-        console.warn(`⚠️  Using last known price: $${lastKnownPrice}`);
-        return lastKnownPrice;
-      }
-      
-      throw new Error('Unable to fetch MATIC/USD price from any source');
+    console.warn('⚠️ Chainlink failed, trying CoinGecko...');
+  }
+
+  // 3. Fallback sur CoinGecko
+  try {
+    const price = await getCoinGeckoPrice();
+    const result = {
+      price,
+      source: 'coingecko',
+      timestamp: Date.now()
+    };
+
+    // Mettre en cache
+    priceCache.set('MATIC_USD', result);
+
+    return result;
+  } catch (coingeckoError) {
+    console.error('❌ Both price sources failed');
+
+    // 4. Dernier recours: utiliser cache même si expiré
+    if (cached) {
+      console.warn('⚠️ Using expired cache as last resort');
+      return cached;
     }
+
+    throw new Error('All price sources failed and no cache available');
   }
 }
 
 /**
- * Validate data freshness
- * @param {number} timestamp - Timestamp to validate
- * @param {number} maxAgeSeconds - Maximum age in seconds
- * @returns {boolean} True if data is fresh
+ * Valide la fraîcheur des données de prix
+ * @param {Object} priceData - Données de prix avec timestamp
+ * @returns {boolean} True si les données sont fraîches (< 1 heure)
  */
-function validateFreshness(timestamp, maxAgeSeconds = 3600) {
-  const now = Math.floor(Date.now() / 1000);
-  const age = now - timestamp;
-  return age <= maxAgeSeconds;
+function isPriceDataFresh(priceData) {
+  if (!priceData || !priceData.timestamp) {
+    return false;
+  }
+
+  const age = Date.now() - priceData.timestamp;
+  return age < MAX_DATA_AGE;
 }
 
 module.exports = {
   getMaticUsdPrice,
   getChainlinkPrice,
   getCoinGeckoPrice,
-  validateFreshness
+  isPriceDataFresh
 };

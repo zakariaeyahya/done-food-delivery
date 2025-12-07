@@ -7,7 +7,6 @@
  */
 /**
  * Calcule la distance entre deux points GPS en utilisant la formule Haversine
- * @dev TODO: Implémenter la fonction calculateDistance
  * 
  * Formule Haversine:
  * a = sin²(Δlat/2) + cos(lat1) * cos(lat2) * sin²(Δlng/2)
@@ -69,7 +68,6 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 
 /**
  * Vérifie si un livreur est à proximité d'une cible dans un rayon donné
- * @dev TODO: Implémenter la fonction isNearby
  * 
  * @param {Object} delivererLocation - Position du livreur { lat, lng }
  * @param {Object} targetLocation - Position cible { lat, lng }
@@ -106,7 +104,6 @@ function isNearby(delivererLocation, targetLocation, radiusKm) {
 
 /**
  * Calcule le temps estimé d'arrivée (ETA) en minutes
- * @dev TODO: Implémenter la fonction getETA
  * 
  * @param {Object} currentLocation - Position actuelle { lat, lng }
  * @param {Object} destinationLocation - Position de destination { lat, lng }
@@ -153,7 +150,6 @@ function getETA(currentLocation, destinationLocation, speedKmh = 30) {
 
 /**
  * Génère une route simulée entre deux points GPS
- * @dev TODO: Implémenter la fonction generateMockRoute
  * 
  * Génère des points GPS intermédiaires pour simuler le trajet d'un livreur.
  * Utilise une interpolation linéaire entre le point de départ et d'arrivée.
@@ -227,7 +223,6 @@ function generateMockRoute(startLocation, endLocation, steps = 10) {
 
 /**
  * Calcule la vitesse moyenne entre deux points GPS avec timestamps
- * @dev TODO: Implémenter la fonction calculateSpeed
  * 
  * @param {Object} point1 - Premier point { lat, lng, timestamp }
  * @param {Object} point2 - Deuxième point { lat, lng, timestamp }
@@ -271,7 +266,6 @@ function calculateSpeed(point1, point2) {
 
 /**
  * Trouve le point le plus proche d'une liste de points
- * @dev TODO: Implémenter la fonction findNearestPoint
  * 
  * @param {Object} targetLocation - Position cible { lat, lng }
  * @param {Array<Object>} points - Liste de points [{ lat, lng }, ...]

@@ -545,6 +545,49 @@ async function mintTokens(userAddress, amount) {
 }
 
 /**
+ * Burn des tokens DONE d'un utilisateur
+ * @param {string} userAddress - Adresse de l'utilisateur
+ * @param {string} amount - Montant à burn en wei
+ * @returns {Promise<Object>} { txHash, blockNumber }
+ */
+async function burnTokens(userAddress, amount) {
+  try {
+    // Récupérer l'instance du contrat Token
+    const token = getContractInstance("token");
+
+    // Utiliser le wallet backend (qui a BURNER_ROLE)
+    const wallet = getWallet();
+    const tokenWithSigner = token.connect(wallet);
+
+    // Convertir amount en BigNumber si nécessaire
+    const amountWei = typeof amount === 'string' ? BigInt(amount) : amount;
+
+    // Appeler burn(userAddress, amount)
+    const tx = await tokenWithSigner.burn(userAddress, amountWei);
+
+    // Attendre la confirmation
+    const receipt = await tx.wait();
+
+    // Émettre l'event via EventEmitter
+    blockchainEvents.emit("TokensBurned", {
+      user: userAddress,
+      amount: amountWei.toString(),
+      txHash: tx.hash
+    });
+
+    // Retourner les résultats
+    return {
+      txHash: tx.hash,
+      blockNumber: receipt.blockNumber
+    };
+  } catch (error) {
+    // Logger l'erreur
+    console.error("Error burning tokens:", error);
+    throw error;
+  }
+}
+
+/**
  * Écoute les events blockchain et les émet via EventEmitter pour WebSocket
  * @returns {Promise<void>}
  */
@@ -792,6 +835,7 @@ module.exports = {
   isStaked,
   getTokenBalance,
   mintTokens,
+  burnTokens,
   listenEvents,
   getPendingBalance,
   withdraw,

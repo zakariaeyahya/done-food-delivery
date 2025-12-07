@@ -9,6 +9,7 @@
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "test:api": "node src/tests/api-tests.js",
+    "test:api:sprint6": "node src/tests/api-tests-sprint6.js",
     "seed": "node scripts/seed-data.js",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix"

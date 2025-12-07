@@ -258,6 +258,7 @@ async function getAllRestaurants(req, res) {
     
     // Convertir les hash IPFS en URLs
     const restaurantsWithUrls = restaurants.map(restaurant => ({
+      _id: restaurant._id,
       address: restaurant.address,
       name: restaurant.name,
       cuisine: restaurant.cuisine,

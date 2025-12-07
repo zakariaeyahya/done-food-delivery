@@ -38,6 +38,19 @@ router.post(
   disputeController.resolveDispute
 );
 
+// Route GET /api/disputes/:id - Récupérer les détails d'un litige
+router.get(
+  "/:id",
+  validation.validateOrderId,              // Valider disputeId
+  disputeController.getDispute
+);
+
+// Route GET /api/disputes/metrics - Récupérer les métriques d'arbitrage
+router.get(
+  "/metrics",
+  disputeController.getArbitrationMetrics
+);
+
 // Exporter le router
 module.exports = router;
 
