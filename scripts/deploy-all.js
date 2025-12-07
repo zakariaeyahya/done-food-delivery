@@ -1,11 +1,10 @@
-// TODO: Importer hardhat pour accéder aux fonctionnalités de déploiement
-// const hre = require("hardhat");
+import hre from "hardhat";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// TODO: Importer fs pour écrire le fichier de sauvegarde des adresses
-// const fs = require("fs");
-
-// TODO: Importer path pour gérer les chemins de fichiers
-// const path = require("path");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Script de déploiement automatique de tous les smart contracts
@@ -14,136 +13,127 @@
  * @dev Configure les autorisations post-déploiement (MINTER_ROLE pour OrderManager)
  */
 async function main() {
-  // TODO: Afficher le réseau sur lequel on déploie
-  // console.log("Démarrage du déploiement sur", hre.network.name);
+  console.log("Démarrage du déploiement sur", hre.network.name);
 
-  // TODO: Récupérer le compte déployeur (premier signer)
-  // const [deployer] = await hre.ethers.getSigners();
-  // console.log("Compte déployeur:", deployer.address);
-  
-  // TODO: Afficher la balance du déployeur
-  // console.log("Balance:", (await deployer.getBalance()).toString());
+  const [deployer] = await hre.ethers.getSigners();
+  console.log("Compte déployeur:", deployer.address);
+  const balance = await hre.ethers.provider.getBalance(deployer.address);
+  console.log("Balance:", hre.ethers.formatEther(balance), "ETH");
 
   // === ÉTAPE 1: DÉPLOIEMENT DONETOKEN ===
-  // TODO: Afficher un message de début
-  // console.log("\n1. Déploiement DoneToken...");
+  console.log("\n1. Déploiement DoneToken...");
   
-  // TODO: Récupérer la factory du contrat DoneToken
-  // const DoneToken = await hre.ethers.getContractFactory("DoneToken");
+  const DoneToken = await hre.ethers.getContractFactory("DoneToken");
+  const doneToken = await DoneToken.deploy();
+  await doneToken.waitForDeployment();
   
-  // TODO: Déployer le contrat DoneToken (pas de paramètres dans le constructor)
-  // const doneToken = await DoneToken.deploy();
-  
-  // TODO: Attendre que le contrat soit déployé
-  // await doneToken.deployed();
-  
-  // TODO: Afficher l'adresse du contrat déployé
-  // console.log("DoneToken déployé à:", doneToken.address);
+  const doneTokenAddress = await doneToken.getAddress();
+  console.log("DoneToken déployé à:", doneTokenAddress);
 
   // === ÉTAPE 2: DÉPLOIEMENT DONEPAYMENTSPLITTER ===
-  // TODO: Afficher un message de début
-  // console.log("\n2. Déploiement DonePaymentSplitter...");
+  console.log("\n2. Déploiement DonePaymentSplitter...");
   
-  // TODO: Récupérer la factory du contrat DonePaymentSplitter
-  // const DonePaymentSplitter = await hre.ethers.getContractFactory("DonePaymentSplitter");
+  const DonePaymentSplitter = await hre.ethers.getContractFactory("DonePaymentSplitter");
+  const paymentSplitter = await DonePaymentSplitter.deploy();
+  await paymentSplitter.waitForDeployment();
   
-  // TODO: Déployer le contrat DonePaymentSplitter (pas de paramètres dans le constructor)
-  // const paymentSplitter = await DonePaymentSplitter.deploy();
-  
-  // TODO: Attendre que le contrat soit déployé
-  // await paymentSplitter.deployed();
-  
-  // TODO: Afficher l'adresse du contrat déployé
-  // console.log("DonePaymentSplitter déployé à:", paymentSplitter.address);
+  const paymentSplitterAddress = await paymentSplitter.getAddress();
+  console.log("DonePaymentSplitter déployé à:", paymentSplitterAddress);
 
   // === ÉTAPE 3: DÉPLOIEMENT DONESTAKING ===
-  // TODO: Afficher un message de début
-  // console.log("\n3. Déploiement DoneStaking...");
+  console.log("\n3. Déploiement DoneStaking...");
   
-  // TODO: Récupérer la factory du contrat DoneStaking
-  // const DoneStaking = await hre.ethers.getContractFactory("DoneStaking");
+  const DoneStaking = await hre.ethers.getContractFactory("DoneStaking");
+  const staking = await DoneStaking.deploy();
+  await staking.waitForDeployment();
   
-  // TODO: Déployer le contrat DoneStaking (pas de paramètres dans le constructor)
-  // const staking = await DoneStaking.deploy();
-  
-  // TODO: Attendre que le contrat soit déployé
-  // await staking.deployed();
-  
-  // TODO: Afficher l'adresse du contrat déployé
-  // console.log("DoneStaking déployé à:", staking.address);
+  const stakingAddress = await staking.getAddress();
+  console.log("DoneStaking déployé à:", stakingAddress);
 
   // === ÉTAPE 4: DÉPLOIEMENT DONEORDERMANAGER ===
-  // TODO: Afficher un message de début
-  // console.log("\n4. Déploiement DoneOrderManager...");
+  console.log("\n4. Déploiement DoneOrderManager...");
   
-  // TODO: Récupérer la factory du contrat DoneOrderManager
-  // const DoneOrderManager = await hre.ethers.getContractFactory("DoneOrderManager");
+  // Vérification de la balance avant déploiement
+  const balanceBefore = await hre.ethers.provider.getBalance(deployer.address);
+  console.log("Balance avant déploiement:", hre.ethers.formatEther(balanceBefore), "POL");
   
-  // TODO: Déployer le contrat DoneOrderManager avec les adresses des 3 contrats précédents
-  // const orderManager = await DoneOrderManager.deploy(
-  //   paymentSplitter.address,  // _paymentSplitterAddress
-  //   doneToken.address,         // _tokenAddress
-  //   staking.address            // _stakingAddress
-  // );
+  const DoneOrderManager = await hre.ethers.getContractFactory("DoneOrderManager");
   
-  // TODO: Attendre que le contrat soit déployé
-  // await orderManager.deployed();
+  // Estimation du gas pour le déploiement
+  try {
+    const deployTx = await DoneOrderManager.getDeployTransaction(
+      paymentSplitterAddress,
+      doneTokenAddress,
+      stakingAddress,
+      deployer.address
+    );
+    const estimatedGas = await hre.ethers.provider.estimateGas(deployTx);
+    const feeData = await hre.ethers.provider.getFeeData();
+    const estimatedCost = estimatedGas * (feeData.gasPrice || 0n);
+    console.log("Coût estimé:", hre.ethers.formatEther(estimatedCost), "POL");
+    
+    if (balanceBefore < estimatedCost) {
+      const needed = estimatedCost - balanceBefore;
+      console.error("\n❌ Balance insuffisante!");
+      console.error("Il vous manque:", hre.ethers.formatEther(needed), "POL");
+      console.error("Obtenez plus de POL via: https://faucet.polygon.technology/");
+      console.error("Sélectionnez 'Polygon Amoy' et entrez votre adresse:", deployer.address);
+      process.exit(1);
+    }
+  } catch (error) {
+    console.warn("⚠️  Impossible d'estimer le gas, tentative de déploiement quand même...");
+  }
   
-  // TODO: Afficher l'adresse du contrat déployé
-  // console.log("DoneOrderManager déployé à:", orderManager.address);
+  const orderManager = await DoneOrderManager.deploy(
+    paymentSplitterAddress,  // _paymentSplitterAddress
+    doneTokenAddress,         // _tokenAddress
+    stakingAddress,           // _stakingAddress
+    deployer.address           // _platformAddress
+  );
+  
+  await orderManager.waitForDeployment();
+  
+  const orderManagerAddress = await orderManager.getAddress();
+  console.log("DoneOrderManager déployé à:", orderManagerAddress);
 
   // === ÉTAPE 5: CONFIGURATION POST-DÉPLOIEMENT ===
-  // TODO: Afficher un message de début
-  // console.log("\n5. Configuration des autorisations...");
+  console.log("\n5. Configuration des autorisations...");
 
-  // TODO: Donner au OrderManager le droit de mint des tokens
-  // - Récupérer le MINTER_ROLE depuis le contrat DoneToken
-  // const MINTER_ROLE = await doneToken.MINTER_ROLE();
+  const MINTER_ROLE = await doneToken.MINTER_ROLE();
+  await doneToken.grantRole(MINTER_ROLE, orderManagerAddress);
   
-  // TODO: Accorder le rôle MINTER_ROLE à l'adresse du OrderManager
-  // await doneToken.grantRole(MINTER_ROLE, orderManager.address);
-  
-  // TODO: Afficher un message de confirmation
-  // console.log("OrderManager autorisé à mint des tokens");
+  console.log("OrderManager autorisé à mint des tokens");
 
   // === ÉTAPE 6: SAUVEGARDE DES ADRESSES ===
-  // TODO: Créer un objet avec toutes les adresses déployées
-  // const addresses = {
-  //   network: hre.network.name,
-  //   deployer: deployer.address,
-  //   DoneToken: doneToken.address,
-  //   DonePaymentSplitter: paymentSplitter.address,
-  //   DoneStaking: staking.address,
-  //   DoneOrderManager: orderManager.address,
-  //   deployedAt: new Date().toISOString()
-  // };
+  const addresses = {
+    network: hre.network.name,
+    deployer: deployer.address,
+    DoneToken: doneTokenAddress,
+    DonePaymentSplitter: paymentSplitterAddress,
+    DoneStaking: stakingAddress,
+    DoneOrderManager: orderManagerAddress,
+    platformAddress: deployer.address,
+    deployedAt: new Date().toISOString()
+  };
 
-  // TODO: Définir le chemin du fichier de sauvegarde (à la racine du projet)
-  // const addressesPath = path.join(__dirname, "../deployed-addresses.json");
+  const addressesPath = path.join(__dirname, "../deployed-addresses.json");
+  fs.writeFileSync(addressesPath, JSON.stringify(addresses, null, 2));
   
-  // TODO: Écrire le fichier JSON avec les adresses (format indenté avec 2 espaces)
-  // fs.writeFileSync(addressesPath, JSON.stringify(addresses, null, 2));
-  
-  // TODO: Afficher le chemin du fichier sauvegardé
-  // console.log("\nAdresses sauvegardées dans:", addressesPath);
+  console.log("\nAdresses sauvegardées dans:", addressesPath);
 
   // === ÉTAPE 7: RÉCAPITULATIF ===
-  // TODO: Afficher un récapitulatif complet du déploiement
-  // console.log("\n=== RÉCAPITULATIF DÉPLOIEMENT ===");
-  // console.log("Réseau:", hre.network.name);
-  // console.log("DoneToken:", doneToken.address);
-  // console.log("DonePaymentSplitter:", paymentSplitter.address);
-  // console.log("DoneStaking:", staking.address);
-  // console.log("DoneOrderManager:", orderManager.address);
-  // console.log("\nCopiez ces adresses dans backend/.env et frontend/.env");
+  console.log("\n=== RÉCAPITULATIF DÉPLOIEMENT ===");
+  console.log("Réseau:", hre.network.name);
+  console.log("DoneToken:", doneTokenAddress);
+  console.log("DonePaymentSplitter:", paymentSplitterAddress);
+  console.log("DoneStaking:", stakingAddress);
+  console.log("DoneOrderManager:", orderManagerAddress);
+  console.log("\nCopiez ces adresses dans backend/.env et frontend/.env");
 }
 
-// TODO: Exécuter la fonction main et gérer les erreurs
-// main()
-//   .then(() => process.exit(0))
-//   .catch((error) => {
-//     console.error(error);
-//     process.exit(1);
-//   });
-
-
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });

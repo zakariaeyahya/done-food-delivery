@@ -1,22 +1,18 @@
-// Importer les modèles MongoDB
 const User = require("../models/User");
 const Restaurant = require("../models/Restaurant");
 const Deliverer = require("../models/Deliverer");
 const Order = require("../models/Order");
 
-// Importer le service blockchain (pour les parties blockchain)
-// const blockchainService = require("../services/blockchainService");
-
 /**
- * Controller pour gérer les analytics et statistiques avancées
- * @notice Gère les dashboards, analytics commandes, revenus et utilisateurs
- * @dev Utilise MongoDB pour les données off-chain et blockchainService pour les données on-chain
+ * Controller for managing analytics and advanced statistics
+ * @notice Manages dashboards, order analytics, revenue and users
+ * @dev Uses MongoDB for off-chain data and blockchainService for on-chain data
  */
 
 /**
- * Fonction utilitaire pour calculer la date de début selon la période
+ * Utility function to calculate start date based on period
  * @param {string} period - 'day', 'week', 'month', 'year'
- * @returns {Date} Date de début
+ * @returns {Date} Start date
  */
 function calculateStartDate(period) {
   const now = new Date();
@@ -43,10 +39,10 @@ function calculateStartDate(period) {
 }
 
 /**
- * Fonction utilitaire pour calculer le pourcentage de croissance
- * @param {number} current - Valeur actuelle
- * @param {number} previous - Valeur précédente
- * @returns {string} Pourcentage de croissance formaté
+ * Utility function to calculate growth percentage
+ * @param {number} current - Current value
+ * @param {number} previous - Previous value
+ * @returns {string} Formatted growth percentage
  */
 function calculateGrowthPercentage(current, previous) {
   if (previous === 0) return current > 0 ? "+100%" : "0%";
@@ -55,21 +51,16 @@ function calculateGrowthPercentage(current, previous) {
 }
 
 /**
- * Récupère le dashboard analytics complet
- * @dev Combine stats globales et charts
+ * Gets complete analytics dashboard
+ * @dev Combines global stats and charts
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getDashboard(req, res) {
   try {
-    // Stats globales
     const totalOrders = await Order.countDocuments();
     
-    // ⏳ PSEUDOCODE BLOCKCHAIN - À implémenter après déploiement smart contracts
-    // const gmv = await blockchainService.getTotalGMV();
-    // const platformRevenue = await blockchainService.getPlatformRevenue();
-    // Pour l'instant, calcul depuis MongoDB
     const deliveredOrders = await Order.find({ status: 'DELIVERED' });
     const gmv = deliveredOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
     const platformRevenue = deliveredOrders.reduce((sum, order) => sum + (order.platformFee || 0), 0);
@@ -80,7 +71,6 @@ async function getDashboard(req, res) {
       platformRevenue: platformRevenue.toString()
     };
     
-    // Charts: Commandes dans le temps (7 derniers jours)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
@@ -98,10 +88,6 @@ async function getDashboard(req, res) {
       }}
     ]);
     
-    // ⏳ PSEUDOCODE BLOCKCHAIN - À implémenter après déploiement smart contracts
-    // Charts: Revenus dans le temps
-    // const revenueOverTime = await blockchainService.getRevenueTimeline(7 days);
-    // Pour l'instant, calcul depuis MongoDB
     const revenueOverTime = await Order.aggregate([
       { $match: { status: 'DELIVERED', createdAt: { $gte: sevenDaysAgo } } },
       { $group: {
@@ -136,20 +122,18 @@ async function getDashboard(req, res) {
 }
 
 /**
- * Récupère les analytics des commandes dans le temps
- * @dev Aggrégation MongoDB par période
+ * Gets order analytics over time
+ * @dev MongoDB aggregation by period
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getOrdersAnalytics(req, res) {
   try {
-    const period = req.query.period || 'week'; // day/week/month/year
+    const period = req.query.period || 'week';
     
-    // Calculer date de début selon période
     const startDate = calculateStartDate(period);
     
-    // Aggrégation par date
     const data = await Order.aggregate([
       { $match: { createdAt: { $gte: startDate } } },
       { $group: {
@@ -166,10 +150,8 @@ async function getOrdersAnalytics(req, res) {
       }}
     ]);
     
-    // Total période
     const total = await Order.countDocuments({ createdAt: { $gte: startDate } });
     
-    // Calcul croissance (comparer avec période précédente)
     const periodDuration = startDate.getTime() - Date.now();
     const previousPeriodStart = new Date(startDate.getTime() + periodDuration);
     const previousTotal = await Order.countDocuments({
@@ -196,27 +178,22 @@ async function getOrdersAnalytics(req, res) {
 }
 
 /**
- * Récupère les analytics des revenus plateforme
- * @dev Fetch events PaymentSplit depuis blockchain
+ * Gets platform revenue analytics
+ * @dev Fetches PaymentSplit events from blockchain
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getRevenueAnalytics(req, res) {
   try {
     const startDate = req.query.startDate ? new Date(req.query.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const endDate = req.query.endDate ? new Date(req.query.endDate) : new Date();
     
-    // ⏳ PSEUDOCODE BLOCKCHAIN - À implémenter après déploiement smart contracts
-    // Fetch events PaymentSplit depuis blockchain
-    // const paymentEvents = await blockchainService.getPaymentSplitEvents(startDate, endDate);
-    // Pour l'instant, calcul depuis MongoDB
     const deliveredOrders = await Order.find({
       status: 'DELIVERED',
       completedAt: { $gte: startDate, $lte: endDate }
     });
     
-    // Calculer breakdown
     let totalRevenue = 0;
     const breakdown = { platformFee: 0, restaurants: 0, deliverers: 0 };
     
@@ -225,10 +202,9 @@ async function getRevenueAnalytics(req, res) {
       totalRevenue += totalAmount;
       breakdown.platformFee += order.platformFee || (totalAmount * 0.1); // 10%
       breakdown.restaurants += totalAmount * 0.7; // 70%
-      breakdown.deliverers += totalAmount * 0.2; // 20%
+      breakdown.deliverers += totalAmount * 0.2;
     });
     
-    // Timeline par jour
     const timeline = await Order.aggregate([
       { $match: { status: 'DELIVERED', completedAt: { $gte: startDate, $lte: endDate } } },
       { $group: {
@@ -265,15 +241,14 @@ async function getRevenueAnalytics(req, res) {
 }
 
 /**
- * Récupère les analytics des utilisateurs (growth, distribution)
- * @dev Aggrégations MongoDB pour croissance et top spenders
+ * Gets user analytics (growth, distribution)
+ * @dev MongoDB aggregations for growth and top spenders
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getUsersAnalytics(req, res) {
   try {
-    // Growth: Utilisateurs par mois (4 derniers mois)
     const growth = {
       clients: [],
       restaurants: [],
@@ -297,7 +272,6 @@ async function getUsersAnalytics(req, res) {
       });
     }
     
-    // Actifs aujourd'hui
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     
@@ -317,7 +291,6 @@ async function getUsersAnalytics(req, res) {
       deliverers: activeDeliverers.length
     };
     
-    // Top spenders
     const topSpenders = await Order.aggregate([
       { $match: { status: 'DELIVERED' } },
       { $group: {
@@ -358,7 +331,6 @@ async function getUsersAnalytics(req, res) {
   }
 }
 
-// Exporter toutes les fonctions
 module.exports = {
   getDashboard,
   getOrdersAnalytics,

@@ -1,17 +1,12 @@
-// TODO: Importer ethers depuis ethers.js pour les interactions blockchain
-// const { ethers } = require("ethers");
-
-// TODO: Importer dotenv pour charger les variables d'environnement
-// require("dotenv").config();
-
-// TODO: Importer fs pour lire les fichiers ABI depuis artifacts/
-// const fs = require("fs");
-// const path = require("path");
+const { ethers } = require("ethers");
+require("dotenv").config();
+const fs = require("fs");
+const path = require("path");
 
 /**
- * Configuration de la connexion à la blockchain Polygon Mumbai
- * @notice Configure le provider, wallet et instances des smart contracts
- * @dev Utilise ethers.js pour interagir avec Polygon Mumbai
+ * Polygon Amoy/Mumbai blockchain connection configuration
+ * @notice Configures provider, wallet and smart contract instances
+ * @dev Uses ethers.js v6 to interact with Polygon
  */
 let provider = null;
 let wallet = null;
@@ -23,190 +18,298 @@ let contracts = {
 };
 
 /**
- * Initialise la connexion à la blockchain et les instances des contrats
- * @dev TODO: Implémenter la fonction initBlockchain
+ * Loads ABI from Hardhat artifacts or uses minimal ABI
+ * @param {string} contractName - Contract name (e.g., "DoneOrderManager")
+ * @returns {Array} Contract ABI
+ */
+function loadABI(contractName) {
+  try {
+    const artifactsPath = path.join(__dirname, "../../contracts/artifacts/contracts", `${contractName}.sol`, `${contractName}.json`);
+    
+    if (fs.existsSync(artifactsPath)) {
+      const artifact = JSON.parse(fs.readFileSync(artifactsPath, "utf8"));
+      return artifact.abi;
+    }
+    
+    console.warn(`⚠️  ABI not found for ${contractName}, using minimal ABI. Please compile contracts first.`);
+    return getMinimalABI(contractName);
+  } catch (error) {
+    console.warn(`⚠️  Error loading ABI for ${contractName}:`, error.message);
+    return getMinimalABI(contractName);
+  }
+}
+
+/**
+ * Returns minimal ABI for a contract (fallback if artifacts unavailable)
+ * @param {string} contractName - Contract name
+ * @returns {Array} Minimal ABI
+ */
+function getMinimalABI(contractName) {
+  const minimalABIs = {
+    DoneOrderManager: [
+      "function createOrder(address restaurant, uint256 foodPrice, uint256 deliveryFee, string memory ipfsHash) external payable returns (uint256)",
+      "function confirmPreparation(uint256 orderId) external",
+      "function assignDeliverer(uint256 orderId, address deliverer) external",
+      "function confirmPickup(uint256 orderId) external",
+      "function confirmDelivery(uint256 orderId) external",
+      "function openDispute(uint256 orderId, string memory reason) external",
+      "function resolveDispute(uint256 orderId, address payable winner, uint256 refundPercent) external",
+      "function getOrder(uint256 orderId) external view returns (tuple(uint256 id, address client, address restaurant, address deliverer, uint256 foodPrice, uint256 deliveryFee, uint256 platformFee, uint256 totalAmount, uint8 status, string ipfsHash, uint256 createdAt, bool disputed, bool delivered))",
+      "event OrderCreated(uint256 indexed orderId, address indexed client, address indexed restaurant, uint256 totalAmount)",
+      "event PreparationConfirmed(uint256 indexed orderId, address indexed restaurant)",
+      "event DelivererAssigned(uint256 indexed orderId, address indexed deliverer)",
+      "event PickupConfirmed(uint256 indexed orderId, address indexed deliverer)",
+      "event DeliveryConfirmed(uint256 indexed orderId, address indexed client)",
+      "event DisputeOpened(uint256 indexed orderId, address indexed opener)",
+      "event DisputeResolved(uint256 indexed orderId, address winner, uint256 amount)"
+    ],
+    DonePaymentSplitter: [
+      "function splitPayment(uint256 orderId, address payable restaurant, address payable deliverer, address payable platform) external payable",
+      "function withdraw(address payee) external",
+      "function balances(address) external view returns (uint256)",
+      "event PaymentSplit(uint256 indexed orderId, address indexed restaurant, address indexed deliverer, address indexed platform, uint256 restaurantAmount, uint256 delivererAmount, uint256 platformAmount)"
+    ],
+    DoneToken: [
+      "function mint(address to, uint256 amount) external",
+      "function burn(uint256 amount) external",
+      "function balanceOf(address account) external view returns (uint256)",
+      "function transfer(address to, uint256 amount) external returns (bool)",
+      "function calculateReward(uint256 foodPrice) external pure returns (uint256)",
+      "event Transfer(address indexed from, address indexed to, uint256 value)"
+    ],
+    DoneStaking: [
+      "function stakeAsDeliverer() external payable",
+      "function unstake() external",
+      "function slash(address deliverer, uint256 amount) external",
+      "function isStaked(address deliverer) external view returns (bool)",
+      "function stakedAmount(address) external view returns (uint256)",
+      "event Staked(address indexed deliverer, uint256 amount)",
+      "event Unstaked(address indexed deliverer, uint256 amount)",
+      "event Slashed(address indexed deliverer, uint256 amount, address indexed platform)"
+    ]
+  };
+  
+  return minimalABIs[contractName] || [];
+}
+
+/**
+ * Initializes blockchain connection and contract instances
+ * @dev Initializes provider, wallet and all contract instances
  * 
- * Étapes:
- * 1. Créer un provider ethers.js avec MUMBAI_RPC_URL depuis .env
- * 2. Créer un wallet depuis PRIVATE_KEY depuis .env
- * 3. Charger les ABIs des contrats depuis artifacts/
- * 4. Instancier les 4 contrats avec leurs adresses depuis .env
- * 5. Stocker les instances dans l'objet contracts
- * 6. Retourner les instances de contrats
+ * Required environment variables:
+ * - AMOY_RPC_URL or MUMBAI_RPC_URL: Polygon RPC URL
+ * - PRIVATE_KEY: Backend wallet private key
+ * - ORDER_MANAGER_ADDRESS: DoneOrderManager contract address
+ * - PAYMENT_SPLITTER_ADDRESS: DonePaymentSplitter contract address
+ * - TOKEN_ADDRESS: DoneToken contract address
+ * - STAKING_ADDRESS: DoneStaking contract address
  * 
- * Variables d'environnement requises:
- * - MUMBAI_RPC_URL: URL du RPC Polygon Mumbai
- * - PRIVATE_KEY: Clé privée du wallet backend (sans 0x)
- * - ORDER_MANAGER_ADDRESS: Adresse du contrat DoneOrderManager
- * - PAYMENT_SPLITTER_ADDRESS: Adresse du contrat DonePaymentSplitter
- * - TOKEN_ADDRESS: Adresse du contrat DoneToken
- * - STAKING_ADDRESS: Adresse du contrat DoneStaking
- * 
- * @returns {Promise<Object>} Objet contenant les instances des contrats
+ * @returns {Promise<Object>} Object containing contract instances
  */
 async function initBlockchain() {
   try {
-    // TODO: Vérifier que MUMBAI_RPC_URL existe dans .env
-    // if (!process.env.MUMBAI_RPC_URL) {
-    //   throw new Error("MUMBAI_RPC_URL is not defined in .env");
-    // }
+    const rpcUrl = process.env.AMOY_RPC_URL || process.env.MUMBAI_RPC_URL;
+    if (!rpcUrl) {
+      throw new Error("AMOY_RPC_URL or MUMBAI_RPC_URL is not defined in .env");
+    }
 
-    // TODO: Créer un provider ethers.js avec MUMBAI_RPC_URL
-    // provider = new ethers.JsonRpcProvider(process.env.MUMBAI_RPC_URL);
-    // Note: Pour ethers v6, utiliser JsonRpcProvider
-    // Pour ethers v5, utiliser: new ethers.providers.JsonRpcProvider(process.env.MUMBAI_RPC_URL)
-
-    // TODO: Vérifier que PRIVATE_KEY existe dans .env
-    // if (!process.env.PRIVATE_KEY) {
-    //   throw new Error("PRIVATE_KEY is not defined in .env");
-    // }
-
-    // TODO: Créer un wallet depuis PRIVATE_KEY
-    // wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-    // Note: Pour ethers v6: new ethers.Wallet(process.env.PRIVATE_KEY, provider)
-    // Pour ethers v5: new ethers.Wallet(process.env.PRIVATE_KEY, provider)
-
-    // TODO: Vérifier que toutes les adresses des contrats existent dans .env
-    // if (!process.env.ORDER_MANAGER_ADDRESS || !process.env.PAYMENT_SPLITTER_ADDRESS || 
-    //     !process.env.TOKEN_ADDRESS || !process.env.STAKING_ADDRESS) {
-    //   throw new Error("Contract addresses are not defined in .env");
-    // }
-
-    // TODO: Charger les ABIs des contrats depuis artifacts/
-    // Chemin: ../contracts/artifacts/contracts/DoneOrderManager.sol/DoneOrderManager.json
-    // const orderManagerABI = JSON.parse(
-    //   fs.readFileSync(
-    //     path.join(__dirname, "../../contracts/artifacts/contracts/DoneOrderManager.sol/DoneOrderManager.json"),
-    //     "utf8"
-    //   )
-    // ).abi;
+    provider = new ethers.JsonRpcProvider(rpcUrl);
     
-    // TODO: Répéter pour les 3 autres contrats:
-    // - DonePaymentSplitter.sol/DonePaymentSplitter.json
-    // - DoneToken.sol/DoneToken.json
-    // - DoneStaking.sol/DoneStaking.json
+    // Intercepter les erreurs du provider pour gérer silencieusement les erreurs "filter not found"
+    // Ces erreurs sont non-critiques et surviennent avec certains providers RPC qui n'ont pas de support
+    // persistant pour les filtres d'événements
+    
+    // Intercepter les erreurs au niveau du provider
+    const originalEmit = provider.emit.bind(provider);
+    provider.emit = function(event, ...args) {
+      // Filtrer silencieusement les erreurs "filter not found" qui sont non-critiques
+      if (event === 'error' && args[0]) {
+        const error = args[0];
+        if (error.code === 'UNKNOWN_ERROR' && 
+            error.error && 
+            error.error.message === 'filter not found') {
+          // Ne pas émettre cette erreur - elle est non-critique
+          return false;
+        }
+      }
+      return originalEmit(event, ...args);
+    };
+    
+    // Intercepter les erreurs au niveau de la méthode _send du provider
+    // Cela capture les erreurs avant qu'elles ne soient loggées
+    const originalSend = provider._send.bind(provider);
+    if (originalSend) {
+      provider._send = function(payload, callback) {
+        const wrappedCallback = function(error, result) {
+          // Filtrer les erreurs "filter not found" avant le callback
+          if (error && error.code === 'UNKNOWN_ERROR' && 
+              error.error && error.error.message === 'filter not found') {
+            // Erreur non-critique, ne pas la propager
+            return;
+          }
+          // Appeler le callback original pour les autres erreurs
+          if (callback) {
+            callback(error, result);
+          }
+        };
+        return originalSend(payload, wrappedCallback);
+      };
+    }
+    
+    // Intercepter les erreurs au niveau du gestionnaire d'erreurs interne
+    provider.on('error', (error) => {
+      // Filtrer silencieusement les erreurs "filter not found"
+      if (error && error.code === 'UNKNOWN_ERROR' && 
+          error.error && error.error.message === 'filter not found') {
+        // Erreur non-critique, ne pas logger
+        return;
+      }
+      // Pour les autres erreurs, les laisser passer normalement
+    });
 
-    // TODO: Instancier le contrat DoneOrderManager
-    // contracts.orderManager = new ethers.Contract(
-    //   process.env.ORDER_MANAGER_ADDRESS,
-    //   orderManagerABI,
-    //   wallet // ou provider pour les appels en lecture seule
-    // );
+    if (!process.env.PRIVATE_KEY) {
+      throw new Error("PRIVATE_KEY is not defined in .env");
+    }
+    
+    // Valider et normaliser la clé privée
+    let privateKey = process.env.PRIVATE_KEY.trim();
+    
+    // Si la clé ne commence pas par 0x, l'ajouter
+    if (!privateKey.startsWith('0x')) {
+      privateKey = '0x' + privateKey;
+    }
+    
+    // Valider que la clé privée a la bonne longueur (66 caractères avec 0x)
+    if (privateKey.length !== 66) {
+      throw new Error(`Invalid private key length: ${privateKey.length} (expected 66 characters including 0x prefix). Please check your PRIVATE_KEY in .env`);
+    }
+    
+    // Valider que la clé privée est hexadécimale
+    if (!/^0x[a-fA-F0-9]{64}$/.test(privateKey)) {
+      throw new Error("Invalid private key format. Private key must be a 64-character hexadecimal string (optionally prefixed with 0x).");
+    }
+    
+    wallet = new ethers.Wallet(privateKey, provider);
 
-    // TODO: Instancier le contrat DonePaymentSplitter
-    // contracts.paymentSplitter = new ethers.Contract(
-    //   process.env.PAYMENT_SPLITTER_ADDRESS,
-    //   paymentSplitterABI,
-    //   wallet
-    // );
+    const orderManagerAddress = process.env.ORDER_MANAGER_ADDRESS;
+    const paymentSplitterAddress = process.env.PAYMENT_SPLITTER_ADDRESS;
+    const tokenAddress = process.env.TOKEN_ADDRESS;
+    const stakingAddress = process.env.STAKING_ADDRESS;
 
-    // TODO: Instancier le contrat DoneToken
-    // contracts.token = new ethers.Contract(
-    //   process.env.TOKEN_ADDRESS,
-    //   tokenABI,
-    //   wallet
-    // );
+    if (!orderManagerAddress || !paymentSplitterAddress || !tokenAddress || !stakingAddress) {
+      throw new Error("Contract addresses are not defined in .env. Required: ORDER_MANAGER_ADDRESS, PAYMENT_SPLITTER_ADDRESS, TOKEN_ADDRESS, STAKING_ADDRESS");
+    }
 
-    // TODO: Instancier le contrat DoneStaking
-    // contracts.staking = new ethers.Contract(
-    //   process.env.STAKING_ADDRESS,
-    //   stakingABI,
-    //   wallet
-    // );
+    const orderManagerABI = loadABI("DoneOrderManager");
+    const paymentSplitterABI = loadABI("DonePaymentSplitter");
+    const tokenABI = loadABI("DoneToken");
+    const stakingABI = loadABI("DoneStaking");
 
-    // TODO: Vérifier la connexion en appelant getNetwork()
-    // const network = await provider.getNetwork();
-    // console.log("Connected to network:", network.name, "Chain ID:", network.chainId);
+    contracts.orderManager = new ethers.Contract(
+      orderManagerAddress,
+      orderManagerABI,
+      wallet
+    );
 
-    // TODO: Afficher l'adresse du wallet
-    // console.log("Backend wallet address:", wallet.address);
+    contracts.paymentSplitter = new ethers.Contract(
+      paymentSplitterAddress,
+      paymentSplitterABI,
+      wallet
+    );
 
-    // TODO: Retourner les instances de contrats
-    // return contracts;
+    contracts.token = new ethers.Contract(
+      tokenAddress,
+      tokenABI,
+      wallet
+    );
+
+    contracts.staking = new ethers.Contract(
+      stakingAddress,
+      stakingABI,
+      wallet
+    );
+
+    const network = await provider.getNetwork();
+    console.log("✅ Connected to network:", network.name, "Chain ID:", network.chainId.toString());
+
+    console.log("✅ Backend wallet address:", wallet.address);
+
+    try {
+      await contracts.orderManager.getTotalOrders?.() || await provider.getCode(orderManagerAddress);
+      console.log("✅ All contracts initialized successfully");
+    } catch (error) {
+      console.warn("⚠️  Warning: Could not verify contracts, but initialization completed");
+    }
+
+    return contracts;
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error initializing blockchain:", error);
-    // throw error;
+    console.error("❌ Error initializing blockchain:", error.message);
+    throw error;
   }
 }
 
 /**
- * Récupère l'instance d'un contrat par son nom
- * @dev TODO: Implémenter la fonction getContractInstance
- * 
- * @param {string} contractName - Nom du contrat ('orderManager', 'paymentSplitter', 'token', 'staking')
- * @returns {Object|null} Instance du contrat ou null si non trouvé
+ * Gets contract instance by name
+ * @param {string} contractName - Contract name ('orderManager', 'paymentSplitter', 'token', 'staking')
+ * @returns {Object} Contract instance
+ * @throws {Error} If contract not found or not initialized
  */
 function getContractInstance(contractName) {
-  // TODO: Vérifier que contracts est initialisé
-  // if (!contracts || !contracts[contractName]) {
-  //   throw new Error(`Contract ${contractName} not found or not initialized`);
-  // }
-
-  // TODO: Retourner l'instance du contrat demandé
-  // return contracts[contractName];
+  if (!contracts || !contracts[contractName]) {
+    throw new Error(`Contract ${contractName} not found or not initialized. Call initBlockchain() first.`);
+  }
+  return contracts[contractName];
 }
 
 /**
- * Vérifie si la connexion à la blockchain est active
- * @dev TODO: Implémenter la fonction isConnected
- * 
- * @returns {Promise<boolean>} True si connecté, false sinon
+ * Checks if blockchain connection is active
+ * @returns {Promise<boolean>} True if connected, false otherwise
  */
 async function isConnected() {
   try {
-    // TODO: Vérifier que provider existe
-    // if (!provider) {
-    //   return false;
-    // }
-
-    // TODO: Appeler getNetwork() pour vérifier la connexion
-    // await provider.getNetwork();
-    // return true;
+    if (!provider) {
+      return false;
+    }
+    await provider.getNetwork();
+    return true;
   } catch (error) {
-    // TODO: Logger l'erreur si la connexion échoue
-    // console.error("Blockchain connection check failed:", error);
-    // return false;
+    console.error("Blockchain connection check failed:", error.message);
+    return false;
   }
 }
 
 /**
- * Récupère le provider ethers.js
- * @dev TODO: Retourner le provider
- * @returns {Object|null} Instance du provider ou null
+ * Gets ethers.js provider
+ * @returns {Object|null} Provider instance or null
  */
 function getProvider() {
-  // TODO: return provider;
+  return provider;
 }
 
 /**
- * Récupère le wallet backend
- * @dev TODO: Retourner le wallet
- * @returns {Object|null} Instance du wallet ou null
+ * Gets backend wallet
+ * @returns {Object|null} Wallet instance or null
  */
 function getWallet() {
-  // TODO: return wallet;
+  return wallet;
 }
 
 /**
- * Récupère toutes les instances de contrats
- * @dev TODO: Retourner l'objet contracts
- * @returns {Object} Objet contenant toutes les instances de contrats
+ * Gets all contract instances
+ * @returns {Object} Object containing all contract instances
  */
 function getContracts() {
-  // TODO: return contracts;
+  return contracts;
 }
 
-// TODO: Exporter les fonctions et variables
-// module.exports = {
-//   initBlockchain,
-//   getContractInstance,
-//   isConnected,
-//   getProvider,
-//   getWallet,
-//   getContracts,
-//   provider,
-//   wallet,
-//   contracts
-// };
-
+module.exports = {
+  initBlockchain,
+  getContractInstance,
+  isConnected,
+  getProvider,
+  getWallet,
+  getContracts,
+  provider,
+  wallet,
+  contracts
+};

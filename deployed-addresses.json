@@ -1,0 +1,10 @@
+{
+  "network": "polygon-amoy",
+  "deployer": "0x96Afb493749FF73D8C7524a0f863B5f9b22423fA",
+  "DoneToken": "0x24D89CC7f6F76980F2c088DB203DEa6223B1DEd9",
+  "DonePaymentSplitter": "0xE99F26DA1B38a79d08ed8d853E45397C99818C2f",
+  "DoneStaking": "0xFf9CD2596e73BB0bCB28d9E24d945B0ed34f874b",
+  "DoneOrderManager": "0x257D63E05bcf8840896b1ECb5c6d98eb5Ba06182",
+  "platformAddress": "0x96Afb493749FF73D8C7524a0f863B5f9b22423fA",
+  "deployedAt": "2025-12-07T13:28:16.219Z"
+}

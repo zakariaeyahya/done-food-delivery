@@ -9,12 +9,12 @@ const morgan = require("morgan");
 
 // Importer les configurations
 const { connectDB, disconnectDB } = require("./config/database");
-// const { initBlockchain, listenEvents } = require("./config/blockchain"); // Commenté temporairement
+const { initBlockchain } = require("./config/blockchain");
 const { initIPFS } = require("./config/ipfs");
 
-// Importer les services (commentés temporairement car nécessitent blockchain)
-// const notificationService = require("./services/notificationService");
-// const blockchainService = require("./services/blockchainService");
+// Importer les services
+const notificationService = require("./services/notificationService");
+const blockchainService = require("./services/blockchainService");
 
 // Importer les routes
 const orderRoutes = require("./routes/orders");
@@ -115,23 +115,28 @@ async function initializeConnections() {
     await connectDB();
     console.log("✅ MongoDB connected");
 
-    // Initialiser la connexion blockchain (commenté temporairement)
-    // console.log("Initializing blockchain connection...");
-    // await initBlockchain();
-    // console.log("✅ Blockchain connected");
+    // Initialiser la connexion blockchain
+    try {
+      console.log("Initializing blockchain connection...");
+      await initBlockchain();
+      console.log("✅ Blockchain connected");
+      
+      // Démarrer l'écoute des events blockchain
+      await blockchainService.listenEvents();
+      console.log("✅ Blockchain events listener started");
+    } catch (blockchainError) {
+      console.warn("⚠️  Blockchain initialization failed (continuing without blockchain):", blockchainError.message);
+      console.warn("⚠️  Some features may not work. Please check your .env configuration.");
+    }
 
     // Initialiser IPFS
     console.log("Initializing IPFS...");
     await initIPFS();
     console.log("✅ IPFS initialized");
 
-    // Initialiser le service de notifications avec Socket.io (commenté temporairement)
-    // notificationService.initNotificationService(io);
-    // console.log("✅ Notification service initialized");
-
-    // Démarrer l'écoute des events blockchain (commenté temporairement)
-    // await blockchainService.listenEvents();
-    // console.log("✅ Blockchain events listener started");
+    // Initialiser le service de notifications avec Socket.io
+    notificationService.initNotificationService(io);
+    console.log("✅ Notification service initialized");
 
     // Configurer les rooms Socket.io pour les notifications
     io.on("connection", (socket) => {
@@ -277,6 +282,27 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 // Gérer les erreurs non capturées
 process.on("unhandledRejection", (reason, promise) => {
+  // Filtrer silencieusement les erreurs "filter not found" qui sont non-critiques
+  // Ces erreurs surviennent avec certains providers RPC qui ne supportent pas les filtres persistants
+  if (reason && typeof reason === 'object') {
+    const error = reason;
+    
+    // Vérifier plusieurs formats d'erreur possibles
+    const isFilterNotFoundError = 
+      (error.code === 'UNKNOWN_ERROR' && 
+       error.error && 
+       error.error.message === 'filter not found') ||
+      (error.message && error.message.includes('filter not found')) ||
+      (error.shortMessage && error.shortMessage.includes('filter not found'));
+    
+    if (isFilterNotFoundError) {
+      // Erreur non-critique, ne pas logger ni arrêter le serveur
+      // Ces erreurs sont normales avec certains providers RPC publics
+      return;
+    }
+  }
+  
+  // Pour les autres erreurs, logger et arrêter le serveur
   console.error("Unhandled Rejection at:", promise, "reason:", reason);
   gracefulShutdown("unhandledRejection");
 });
@@ -286,9 +312,11 @@ process.on("uncaughtException", (error) => {
   gracefulShutdown("uncaughtException");
 });
 
-// Démarrer le serveur
-startServer();
+// Démarrer le serveur uniquement si c'est le module principal (pas en import de test)
+if (require.main === module) {
+  startServer();
+}
 
 // Exporter app et io pour les tests
-module.exports = { app, server, io };
+module.exports = { app, server, io, startServer };
 

@@ -1,33 +1,26 @@
-// Importer les services nécessaires
-const ipfsService = require("../services/ipfsService");
-const gpsTracker = require("../utils/gpsTracker");
-
-// Importer les modèles MongoDB
 const Restaurant = require("../models/Restaurant");
 const Order = require("../models/Order");
-
-// Importer ethers pour validation d'adresses
+const ipfsService = require("../services/ipfsService");
+const blockchainService = require("../services/blockchainService");
 const { ethers } = require("ethers");
 
 /**
- * Controller pour gérer les restaurants
- * @notice Gère l'enregistrement, menus, commandes et analytics des restaurants
- * @dev Intègre IPFS pour les images et MongoDB pour les données
+ * Controller for managing restaurants
+ * @notice Manages all HTTP requests related to restaurants
+ * @dev Handles registration, menu management, orders and analytics
  */
 
 /**
- * Enregistre un nouveau restaurant
- * @dev Implémenté - MongoDB + IPFS
+ * Registers a new restaurant
+ * @dev Registers restaurant with IPFS image uploads
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function registerRestaurant(req, res) {
   try {
-    // Récupérer les données du body
     const { address, name, cuisine, description, email, phone, location, menu } = req.body;
     
-    // Valider address Ethereum
     if (!address || !ethers.isAddress(address)) {
       return res.status(400).json({
         error: "Bad Request",
@@ -35,7 +28,7 @@ async function registerRestaurant(req, res) {
       });
     }
     
-    // Vérifier si le restaurant existe déjà
+    // Vérifier que le restaurant n'existe pas déjà
     const existingRestaurant = await Restaurant.findByAddress(address.toLowerCase());
     if (existingRestaurant) {
       return res.status(409).json({
@@ -44,32 +37,51 @@ async function registerRestaurant(req, res) {
       });
     }
     
-    // Upload images[] vers IPFS via ipfsService.uploadMultipleImages() si fichiers fournis
-    let imageHashes = [];
+    // Upload des images du restaurant sur IPFS
+    const images = [];
     if (req.files && req.files.images) {
-      const imageFiles = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
-      const fileBuffers = imageFiles.map(file => file.buffer || Buffer.from(file.data));
-      const fileNames = imageFiles.map(file => file.originalname || `image_${Date.now()}.jpg`);
-      const uploadResults = await ipfsService.uploadMultipleImages(fileBuffers, fileNames);
-      imageHashes = uploadResults.map(r => r.ipfsHash);
-    }
-    
-    // Upload menu items images vers IPFS si fichiers fournis
-    const processedMenu = menu && Array.isArray(menu) ? [...menu] : [];
-    if (req.files && processedMenu.length > 0) {
-      for (let i = 0; i < processedMenu.length; i++) {
-        const item = processedMenu[i];
-        if (req.files[`menuItem_${i}`]) {
-          const file = Array.isArray(req.files[`menuItem_${i}`]) ? req.files[`menuItem_${i}`][0] : req.files[`menuItem_${i}`];
-          const fileBuffer = file.buffer || Buffer.from(file.data);
-          const fileName = file.originalname || `menu_item_${i}.jpg`;
-          const imageResult = await ipfsService.uploadImage(fileBuffer, fileName);
-          item.image = imageResult.ipfsHash;
+      try {
+        const imageFiles = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
+        for (const file of imageFiles) {
+          const ipfsResult = await ipfsService.uploadImage(file.buffer, file.originalname);
+          images.push(ipfsResult.ipfsHash);
         }
+      } catch (ipfsError) {
+        console.warn("Error uploading restaurant images to IPFS:", ipfsError);
       }
     }
     
-    // Créer Restaurant dans MongoDB avec IPFS hashes
+    // Traiter le menu avec upload d'images
+    const processedMenu = [];
+    if (menu && Array.isArray(menu)) {
+      for (let i = 0; i < menu.length; i++) {
+        const menuItem = menu[i];
+        let imageHash = menuItem.image || null;
+        
+        // Upload image de l'item menu si fournie
+        const menuItemFileKey = `menuItem_${i}`;
+        if (req.files && req.files[menuItemFileKey] && req.files[menuItemFileKey][0]) {
+          try {
+            const file = req.files[menuItemFileKey][0];
+            const ipfsResult = await ipfsService.uploadImage(file.buffer, file.originalname);
+            imageHash = ipfsResult.ipfsHash;
+          } catch (ipfsError) {
+            console.warn(`Error uploading menu item ${i} image to IPFS:`, ipfsError);
+          }
+        }
+        
+        processedMenu.push({
+          name: menuItem.name,
+          description: menuItem.description || "",
+          price: menuItem.price,
+          image: imageHash,
+          category: menuItem.category || "",
+          available: menuItem.available !== undefined ? menuItem.available : true
+        });
+      }
+    }
+    
+    // Créer le restaurant
     const restaurant = new Restaurant({
       address: address.toLowerCase(),
       name,
@@ -77,34 +89,41 @@ async function registerRestaurant(req, res) {
       description,
       email,
       phone,
-      location,
-      images: imageHashes,
+      location: {
+        address: location.address,
+        lat: location.lat,
+        lng: location.lng
+      },
+      images,
       menu: processedMenu,
       rating: 0,
       totalOrders: 0,
       isActive: true
     });
+    
     await restaurant.save();
     
-    // Retourner succès
     return res.status(201).json({
       success: true,
       restaurant: {
-        id: restaurant._id,
         address: restaurant.address,
         name: restaurant.name,
         cuisine: restaurant.cuisine,
-        description: restaurant.description,
         location: restaurant.location,
-        images: imageHashes.map(hash => ipfsService.getImage(hash)),
+        images: restaurant.images,
         menu: restaurant.menu
       }
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error registering restaurant:", error);
     
-    // Retourner erreur 500
+    if (error.code === 11000) {
+      return res.status(409).json({
+        error: "Conflict",
+        message: "Restaurant address already registered"
+      });
+    }
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to register restaurant",
@@ -114,25 +133,29 @@ async function registerRestaurant(req, res) {
 }
 
 /**
- * Récupère les détails d'un restaurant
- * @dev Implémenté - MongoDB + IPFS URLs
+ * Gets restaurant details with menu
+ * @dev Retrieves complete restaurant information
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getRestaurant(req, res) {
   try {
-    // Récupérer id depuis params (peut être _id MongoDB ou address)
     const restaurantId = req.params.id;
     
-    // Fetch Restaurant depuis MongoDB (essayer par _id d'abord, puis par address)
+    // Chercher par ID MongoDB ou par adresse
     let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       // C'est un ObjectId MongoDB
       restaurant = await Restaurant.findById(restaurantId);
+    } else if (ethers.isAddress(restaurantId)) {
+      // C'est une adresse Ethereum
+      restaurant = await Restaurant.findByAddress(restaurantId.toLowerCase());
     } else {
-      // C'est probablement une adresse
-      restaurant = await Restaurant.findByAddress(restaurantId);
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid restaurant ID or address"
+      });
     }
     
     if (!restaurant) {
@@ -142,20 +165,16 @@ async function getRestaurant(req, res) {
       });
     }
     
-    // Populate menu avec images IPFS URLs complètes
-    const menuWithImages = restaurant.menu.map(item => ({
-      ...item.toObject(),
+    // Convertir les hash IPFS en URLs complètes pour les images
+    const imageUrls = restaurant.images.map(hash => ipfsService.getImage(hash));
+    const menuWithUrls = restaurant.menu.map(item => ({
+      ...item.toObject ? item.toObject() : item,
       imageUrl: item.image ? ipfsService.getImage(item.image) : null
     }));
     
-    // Construire les URLs complètes des images
-    const imagesUrls = restaurant.images.map(hash => ipfsService.getImage(hash));
-    
-    // Retourner restaurant data
     return res.status(200).json({
       success: true,
       restaurant: {
-        id: restaurant._id,
         address: restaurant.address,
         name: restaurant.name,
         cuisine: restaurant.cuisine,
@@ -163,18 +182,17 @@ async function getRestaurant(req, res) {
         email: restaurant.email,
         phone: restaurant.phone,
         location: restaurant.location,
-        images: imagesUrls,
-        menu: menuWithImages,
+        images: imageUrls,
+        menu: menuWithUrls,
         rating: restaurant.rating,
         totalOrders: restaurant.totalOrders,
-        isActive: restaurant.isActive
+        isActive: restaurant.isActive,
+        createdAt: restaurant.createdAt
       }
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error getting restaurant:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get restaurant",
@@ -184,84 +202,81 @@ async function getRestaurant(req, res) {
 }
 
 /**
- * Récupère tous les restaurants avec filtres
- * @dev Implémenté - MongoDB + filtres
+ * Gets all restaurants with filters
+ * @dev Retrieves list of restaurants with optional filters
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getAllRestaurants(req, res) {
   try {
-    // Récupérer les filtres depuis query
-    const { cuisine, location, priceRange, isActive } = req.query;
+    const { cuisine, isActive, minRating, lat, lng, maxDistance } = req.query;
     
-    // Construire la requête de base
-    let query = {};
-    if (isActive !== undefined) {
-      query.isActive = isActive === 'true';
-    } else {
-      query.isActive = true; // Par défaut, seulement les actifs
-    }
+    // Construire la requête
+    const query = {};
+    if (cuisine) query.cuisine = cuisine;
+    if (isActive !== undefined) query.isActive = isActive === 'true';
     
-    // Filtrer par cuisine si fourni
-    if (cuisine) {
-      query.cuisine = cuisine;
-    }
-    
-    // Fetch restaurants depuis MongoDB
+    // Récupérer tous les restaurants
     let restaurants = await Restaurant.find(query);
     
-    // Filtrer par location si fourni (calculer distance avec gpsTracker)
-    if (location) {
-      try {
-        const locationData = typeof location === 'string' ? JSON.parse(location) : location;
-        const { lat, lng, maxDistance } = locationData;
-        restaurants = restaurants.filter(restaurant => {
-          const distance = gpsTracker.calculateDistance(
-            lat,
-            lng,
-            restaurant.location.lat,
-            restaurant.location.lng
-          );
-          return distance <= (maxDistance || 10); // 10km par défaut
-        });
-      } catch (parseError) {
-        console.warn("Error parsing location filter:", parseError);
-      }
+    // Filtrer par note minimale
+    if (minRating) {
+      restaurants = restaurants.filter(r => r.rating >= parseFloat(minRating));
     }
     
-    // Filtrer par priceRange si fourni
-    if (priceRange) {
-      try {
-        const priceData = typeof priceRange === 'string' ? JSON.parse(priceRange) : priceRange;
-        const { min, max } = priceData;
-        restaurants = restaurants.filter(restaurant => {
-          if (!restaurant.menu || restaurant.menu.length === 0) return false;
-          const avgPrice = restaurant.menu.reduce((sum, item) => sum + (item.price || 0), 0) / restaurant.menu.length;
-          return avgPrice >= min && avgPrice <= max;
-        });
-      } catch (parseError) {
-        console.warn("Error parsing priceRange filter:", parseError);
-      }
+    // Filtrer par distance si coordonnées fournies
+    if (lat && lng && maxDistance) {
+      const gpsTracker = require("../utils/gpsTracker");
+      restaurants = restaurants.filter(restaurant => {
+        const distance = gpsTracker.calculateDistance(
+          parseFloat(lat),
+          parseFloat(lng),
+          restaurant.location.lat,
+          restaurant.location.lng
+        );
+        return distance <= parseFloat(maxDistance);
+      });
+      
+      // Trier par distance
+      restaurants.sort((a, b) => {
+        const distA = gpsTracker.calculateDistance(
+          parseFloat(lat),
+          parseFloat(lng),
+          a.location.lat,
+          a.location.lng
+        );
+        const distB = gpsTracker.calculateDistance(
+          parseFloat(lat),
+          parseFloat(lng),
+          b.location.lat,
+          b.location.lng
+        );
+        return distA - distB;
+      });
     }
     
-    // Populate images URLs
-    restaurants = restaurants.map(restaurant => ({
-      ...restaurant.toObject(),
-      images: restaurant.images.map(hash => ipfsService.getImage(hash))
+    // Convertir les hash IPFS en URLs
+    const restaurantsWithUrls = restaurants.map(restaurant => ({
+      _id: restaurant._id,
+      address: restaurant.address,
+      name: restaurant.name,
+      cuisine: restaurant.cuisine,
+      location: restaurant.location,
+      images: restaurant.images.map(hash => ipfsService.getImage(hash)),
+      rating: restaurant.rating,
+      totalOrders: restaurant.totalOrders,
+      isActive: restaurant.isActive
     }));
     
-    // Retourner array of restaurants
     return res.status(200).json({
       success: true,
-      restaurants,
-      count: restaurants.length
+      restaurants: restaurantsWithUrls,
+      count: restaurantsWithUrls.length
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error getting restaurants:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get restaurants",
@@ -271,23 +286,28 @@ async function getAllRestaurants(req, res) {
 }
 
 /**
- * Met à jour les informations d'un restaurant
- * @dev Implémenté - MongoDB + IPFS
+ * Updates restaurant information
+ * @dev Updates restaurant details and images
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function updateRestaurant(req, res) {
   try {
-    // Récupérer id depuis params
     const restaurantId = req.params.id;
+    const restaurantAddress = req.userAddress;
     
-    // Récupérer le restaurant depuis MongoDB
+    // Vérifier que le restaurant existe
     let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
+    } else if (ethers.isAddress(restaurantId)) {
+      restaurant = await Restaurant.findByAddress(restaurantId.toLowerCase());
     } else {
-      restaurant = await Restaurant.findByAddress(restaurantId);
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid restaurant ID or address"
+      });
     }
     
     if (!restaurant) {
@@ -297,49 +317,59 @@ async function updateRestaurant(req, res) {
       });
     }
     
-    // Récupérer les données à mettre à jour depuis body
-    const { name, cuisine, description, email, phone, location, menu } = req.body;
+    // Vérifier que l'utilisateur est le propriétaire
+    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not the owner of this restaurant"
+      });
+    }
     
-    // Upload nouvelles images vers IPFS si fournies
-    let newImageHashes = [];
+    // Mettre à jour les champs
+    const { name, cuisine, description, email, phone, location } = req.body;
+    if (name) restaurant.name = name;
+    if (cuisine) restaurant.cuisine = cuisine;
+    if (description) restaurant.description = description;
+    if (email) restaurant.email = email;
+    if (phone) restaurant.phone = phone;
+    if (location) {
+      restaurant.location = {
+        address: location.address,
+        lat: location.lat,
+        lng: location.lng
+      };
+    }
+    
+    // Upload nouvelles images si fournies
     if (req.files && req.files.images) {
-      const imageFiles = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
-      const fileBuffers = imageFiles.map(file => file.buffer || Buffer.from(file.data));
-      const fileNames = imageFiles.map(file => file.originalname || `image_${Date.now()}.jpg`);
-      const uploadResults = await ipfsService.uploadMultipleImages(fileBuffers, fileNames);
-      newImageHashes = uploadResults.map(r => r.ipfsHash);
+      try {
+        const imageFiles = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
+        const newImages = [];
+        for (const file of imageFiles) {
+          const ipfsResult = await ipfsService.uploadImage(file.buffer, file.originalname);
+          newImages.push(ipfsResult.ipfsHash);
+        }
+        restaurant.images = [...restaurant.images, ...newImages];
+      } catch (ipfsError) {
+        console.warn("Error uploading new images to IPFS:", ipfsError);
+      }
     }
     
-    // Préparer les updates
-    const updates = {};
-    if (name) updates.name = name;
-    if (cuisine) updates.cuisine = cuisine;
-    if (description !== undefined) updates.description = description;
-    if (email) updates.email = email;
-    if (phone) updates.phone = phone;
-    if (location) updates.location = location;
-    if (menu) updates.menu = menu;
-    if (newImageHashes.length > 0) {
-      updates.images = [...restaurant.images, ...newImageHashes];
-    }
+    await restaurant.save();
     
-    // Update Restaurant dans MongoDB
-    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
-      restaurant._id,
-      { $set: updates },
-      { new: true, runValidators: true }
-    );
-    
-    // Retourner succès
     return res.status(200).json({
       success: true,
-      restaurant: updatedRestaurant
+      restaurant: {
+        address: restaurant.address,
+        name: restaurant.name,
+        cuisine: restaurant.cuisine,
+        location: restaurant.location,
+        images: restaurant.images.map(hash => ipfsService.getImage(hash))
+      }
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error updating restaurant:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to update restaurant",
@@ -349,23 +379,28 @@ async function updateRestaurant(req, res) {
 }
 
 /**
- * Récupère les commandes d'un restaurant
- * @dev Implémenté - MongoDB uniquement
+ * Gets restaurant orders
+ * @dev Retrieves all orders for a restaurant
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getRestaurantOrders(req, res) {
   try {
-    // Récupérer restaurantId depuis params
     const restaurantId = req.params.id;
+    const restaurantAddress = req.userAddress;
     
-    // Récupérer le restaurant pour obtenir son ID MongoDB
+    // Vérifier que le restaurant existe
     let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
+    } else if (ethers.isAddress(restaurantId)) {
+      restaurant = await Restaurant.findByAddress(restaurantId.toLowerCase());
     } else {
-      restaurant = await Restaurant.findByAddress(restaurantId);
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid restaurant ID or address"
+      });
     }
     
     if (!restaurant) {
@@ -375,25 +410,56 @@ async function getRestaurantOrders(req, res) {
       });
     }
     
-    // Récupérer status depuis query (optionnel)
-    const { status } = req.query;
+    // Vérifier que l'utilisateur est le propriétaire
+    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not the owner of this restaurant"
+      });
+    }
     
-    // Fetch orders du restaurant depuis MongoDB via Order.getOrdersByRestaurant()
+    const { status } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
     const orders = await Order.getOrdersByRestaurant(restaurant._id, {
+      limit,
+      skip,
       status
     });
     
-    // Retourner array of orders
+    const query = { restaurant: restaurant._id };
+    if (status) query.status = status;
+    const total = await Order.countDocuments(query);
+    
     return res.status(200).json({
       success: true,
-      orders,
-      count: orders.length
+      orders: orders.map(order => ({
+        orderId: order.orderId,
+        status: order.status,
+        client: {
+          name: order.client.name,
+          address: order.client.address
+        },
+        deliverer: order.deliverer ? {
+          name: order.deliverer.name,
+          address: order.deliverer.address
+        } : null,
+        totalAmount: order.totalAmount,
+        createdAt: order.createdAt,
+        completedAt: order.completedAt
+      })),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error getting restaurant orders:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get restaurant orders",
@@ -403,23 +469,28 @@ async function getRestaurantOrders(req, res) {
 }
 
 /**
- * Récupère les analytics d'un restaurant
- * @dev Implémenté - Calculs MongoDB uniquement
+ * Gets restaurant analytics
+ * @dev Retrieves statistics and analytics for a restaurant
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getRestaurantAnalytics(req, res) {
   try {
-    // Récupérer restaurantId depuis params
     const restaurantId = req.params.id;
+    const restaurantAddress = req.userAddress;
     
-    // Récupérer le restaurant
+    // Vérifier que le restaurant existe
     let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
+    } else if (ethers.isAddress(restaurantId)) {
+      restaurant = await Restaurant.findByAddress(restaurantId.toLowerCase());
     } else {
-      restaurant = await Restaurant.findByAddress(restaurantId);
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid restaurant ID or address"
+      });
     }
     
     if (!restaurant) {
@@ -429,60 +500,50 @@ async function getRestaurantAnalytics(req, res) {
       });
     }
     
-    // Récupérer startDate et endDate depuis query
-    const { startDate, endDate } = req.query;
-    
-    // Construire la requête avec dates
-    let query = { restaurant: restaurant._id, status: 'DELIVERED' };
-    if (startDate || endDate) {
-      query.completedAt = {};
-      if (startDate) query.completedAt.$gte = new Date(startDate);
-      if (endDate) query.completedAt.$lte = new Date(endDate);
+    // Vérifier que l'utilisateur est le propriétaire
+    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not the owner of this restaurant"
+      });
     }
     
-    // Calcule stats depuis MongoDB
-    const orders = await Order.find(query);
+    // Calculer les statistiques
+    const totalOrders = await Order.countDocuments({ restaurant: restaurant._id });
+    const deliveredOrders = await Order.countDocuments({ 
+      restaurant: restaurant._id, 
+      status: 'DELIVERED' 
+    });
     
-    // totalOrders = count(orders)
-    const totalOrders = orders.length;
-    
-    // revenue = sum(order.foodPrice * 0.7) // 70% du split (approximation)
-    const revenue = orders.reduce((sum, order) => {
-      // Convertir wei en MATIC (approximation, 1e18)
+    // Calculer le revenu total (depuis MongoDB)
+    const orders = await Order.find({ 
+      restaurant: restaurant._id, 
+      status: 'DELIVERED' 
+    });
+    const totalRevenue = orders.reduce((sum, order) => {
       const foodPriceMATIC = parseFloat(order.foodPrice) / 1e18;
-      return sum + (foodPriceMATIC * 0.7);
+      return sum + foodPriceMATIC;
     }, 0);
     
-    // averageRating = restaurant.rating
-    const averageRating = restaurant.rating || 0;
+    // Calculer la note moyenne (depuis les reviews si disponibles)
+    // Pour l'instant, on utilise la note du restaurant
+    const averageRating = restaurant.rating;
     
-    // popularDishes = group by item.name, count
-    const dishCounts = {};
-    orders.forEach(order => {
-      order.items.forEach(item => {
-        dishCounts[item.name] = (dishCounts[item.name] || 0) + item.quantity;
-      });
-    });
-    const popularDishes = Object.entries(dishCounts)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10); // Top 10
-    
-    // Retourner analytics
     return res.status(200).json({
       success: true,
       analytics: {
         totalOrders,
-        revenue: parseFloat(revenue.toFixed(2)),
+        deliveredOrders,
+        pendingOrders: totalOrders - deliveredOrders,
+        totalRevenue: parseFloat(totalRevenue.toFixed(4)),
         averageRating,
-        popularDishes
+        rating: restaurant.rating,
+        totalOrdersCount: restaurant.totalOrders
       }
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error getting restaurant analytics:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get restaurant analytics",
@@ -492,23 +553,28 @@ async function getRestaurantAnalytics(req, res) {
 }
 
 /**
- * Met à jour le menu d'un restaurant
- * @dev Implémenté - MongoDB + IPFS
+ * Updates restaurant menu
+ * @dev Updates menu with IPFS image uploads
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function updateMenu(req, res) {
   try {
-    // Récupérer restaurantId depuis params
     const restaurantId = req.params.id;
+    const restaurantAddress = req.userAddress;
     
-    // Récupérer le restaurant
+    // Vérifier que le restaurant existe
     let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
+    } else if (ethers.isAddress(restaurantId)) {
+      restaurant = await Restaurant.findByAddress(restaurantId.toLowerCase());
     } else {
-      restaurant = await Restaurant.findByAddress(restaurantId);
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid restaurant ID or address"
+      });
     }
     
     if (!restaurant) {
@@ -518,44 +584,62 @@ async function updateMenu(req, res) {
       });
     }
     
-    // Récupérer menu[] depuis body
+    // Vérifier que l'utilisateur est le propriétaire
+    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not the owner of this restaurant"
+      });
+    }
+    
     const { menu } = req.body;
     
     if (!menu || !Array.isArray(menu)) {
       return res.status(400).json({
         error: "Bad Request",
-        message: "Menu must be an array"
+        message: "menu must be an array"
       });
     }
     
-    // Upload dish images vers IPFS si nouvelles images
-    const processedMenu = [...menu];
-    if (req.files) {
-      for (let i = 0; i < processedMenu.length; i++) {
-        const item = processedMenu[i];
-        if (req.files[`menuItem_${i}`]) {
-          const file = Array.isArray(req.files[`menuItem_${i}`]) ? req.files[`menuItem_${i}`][0] : req.files[`menuItem_${i}`];
-          const fileBuffer = file.buffer || Buffer.from(file.data);
-          const fileName = file.originalname || `menu_item_${i}.jpg`;
-          const imageResult = await ipfsService.uploadImage(fileBuffer, fileName);
-          item.image = imageResult.ipfsHash;
+    // Traiter le menu avec upload d'images
+    const processedMenu = [];
+    for (let i = 0; i < menu.length; i++) {
+      const menuItem = menu[i];
+      let imageHash = menuItem.image || null;
+      
+      // Upload image de l'item menu si fournie
+      const menuItemFileKey = `menuItem_${i}`;
+      if (req.files && req.files[menuItemFileKey] && req.files[menuItemFileKey][0]) {
+        try {
+          const file = req.files[menuItemFileKey][0];
+          const ipfsResult = await ipfsService.uploadImage(file.buffer, file.originalname);
+          imageHash = ipfsResult.ipfsHash;
+        } catch (ipfsError) {
+          console.warn(`Error uploading menu item ${i} image to IPFS:`, ipfsError);
         }
       }
+      
+      processedMenu.push({
+        name: menuItem.name,
+        description: menuItem.description || "",
+        price: menuItem.price,
+        image: imageHash,
+        category: menuItem.category || "",
+        available: menuItem.available !== undefined ? menuItem.available : true
+      });
     }
     
-    // Update menu[] dans MongoDB via Restaurant.updateMenu()
-    const updatedRestaurant = await Restaurant.updateMenu(restaurant._id, processedMenu);
+    // Mettre à jour le menu
+    await Restaurant.updateMenu(restaurant._id, processedMenu);
     
-    // Retourner succès
     return res.status(200).json({
       success: true,
-      menu: updatedRestaurant.menu
+      message: "Menu updated successfully",
+      menu: processedMenu
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error updating menu:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to update menu",
@@ -565,29 +649,91 @@ async function updateMenu(req, res) {
 }
 
 /**
- * Ajoute un nouvel item au menu
- * @dev TODO: Implémenter complètement
+ * Adds a new menu item
+ * @dev Adds a single item to the menu
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function addMenuItem(req, res) {
   try {
-    const { id } = req.params;
-    const { name, price, description, category } = req.body;
+    const restaurantId = req.params.id;
+    const restaurantAddress = req.userAddress;
     
-    // TODO: Implémenter la logique complète
-    // - Upload image vers IPFS si fournie
-    // - Ajouter l'item au menu du restaurant
-    // - Sauvegarder dans MongoDB
+    // Vérifier que le restaurant existe
+    let restaurant;
+    if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
+      restaurant = await Restaurant.findById(restaurantId);
+    } else if (ethers.isAddress(restaurantId)) {
+      restaurant = await Restaurant.findByAddress(restaurantId.toLowerCase());
+    } else {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid restaurant ID or address"
+      });
+    }
+    
+    if (!restaurant) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Restaurant not found"
+      });
+    }
+    
+    // Vérifier que l'utilisateur est le propriétaire
+    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not the owner of this restaurant"
+      });
+    }
+    
+    const { name, description, price, category, available } = req.body;
+    
+    if (!name || !price) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "name and price are required"
+      });
+    }
+    
+    // Upload image si fournie
+    let imageHash = null;
+    if (req.file) {
+      try {
+        const ipfsResult = await ipfsService.uploadImage(req.file.buffer, req.file.originalname);
+        imageHash = ipfsResult.ipfsHash;
+      } catch (ipfsError) {
+        console.warn("Error uploading menu item image to IPFS:", ipfsError);
+      }
+    }
+    
+    // Ajouter l'item au menu
+    restaurant.menu.push({
+      name,
+      description: description || "",
+      price: parseFloat(price),
+      image: imageHash,
+      category: category || "",
+      available: available !== undefined ? available : true
+    });
+    
+    await restaurant.save();
     
     return res.status(201).json({
       success: true,
-      message: "addMenuItem - TODO: Implementation",
-      item: { name, price, description, category }
+      menuItem: {
+        name,
+        description,
+        price: parseFloat(price),
+        image: imageHash,
+        category,
+        available
+      }
     });
   } catch (error) {
     console.error("Error adding menu item:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to add menu item",
@@ -597,29 +743,91 @@ async function addMenuItem(req, res) {
 }
 
 /**
- * Modifie un item existant du menu
- * @dev TODO: Implémenter complètement
+ * Updates a menu item
+ * @dev Updates an existing menu item
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function updateMenuItem(req, res) {
   try {
-    const { id, itemId } = req.params;
-    const { name, price, description, category } = req.body;
+    const restaurantId = req.params.id;
+    const itemId = req.params.itemId;
+    const restaurantAddress = req.userAddress;
     
-    // TODO: Implémenter la logique complète
-    // - Upload nouvelle image vers IPFS si fournie
-    // - Mettre à jour l'item dans le menu
-    // - Sauvegarder dans MongoDB
+    // Vérifier que le restaurant existe
+    let restaurant;
+    if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
+      restaurant = await Restaurant.findById(restaurantId);
+    } else if (ethers.isAddress(restaurantId)) {
+      restaurant = await Restaurant.findByAddress(restaurantId.toLowerCase());
+    } else {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid restaurant ID or address"
+      });
+    }
+    
+    if (!restaurant) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Restaurant not found"
+      });
+    }
+    
+    // Vérifier que l'utilisateur est le propriétaire
+    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not the owner of this restaurant"
+      });
+    }
+    
+    // Trouver l'item dans le menu
+    const itemIndex = parseInt(itemId);
+    if (itemIndex < 0 || itemIndex >= restaurant.menu.length) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Menu item not found"
+      });
+    }
+    
+    const menuItem = restaurant.menu[itemIndex];
+    
+    // Mettre à jour les champs
+    const { name, description, price, category, available } = req.body;
+    if (name) menuItem.name = name;
+    if (description !== undefined) menuItem.description = description;
+    if (price) menuItem.price = parseFloat(price);
+    if (category !== undefined) menuItem.category = category;
+    if (available !== undefined) menuItem.available = available;
+    
+    // Upload nouvelle image si fournie
+    if (req.file) {
+      try {
+        const ipfsResult = await ipfsService.uploadImage(req.file.buffer, req.file.originalname);
+        menuItem.image = ipfsResult.ipfsHash;
+      } catch (ipfsError) {
+        console.warn("Error uploading menu item image to IPFS:", ipfsError);
+      }
+    }
+    
+    await restaurant.save();
     
     return res.status(200).json({
       success: true,
-      message: "updateMenuItem - TODO: Implementation",
-      item: { id: itemId, name, price, description, category }
+      menuItem: {
+        name: menuItem.name,
+        description: menuItem.description,
+        price: menuItem.price,
+        image: menuItem.image,
+        category: menuItem.category,
+        available: menuItem.available
+      }
     });
   } catch (error) {
     console.error("Error updating menu item:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to update menu item",
@@ -629,27 +837,65 @@ async function updateMenuItem(req, res) {
 }
 
 /**
- * Supprime un item du menu
- * @dev TODO: Implémenter complètement
+ * Deletes a menu item
+ * @dev Removes an item from the menu
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function deleteMenuItem(req, res) {
   try {
-    const { id, itemId } = req.params;
+    const restaurantId = req.params.id;
+    const itemId = req.params.itemId;
+    const restaurantAddress = req.userAddress;
     
-    // TODO: Implémenter la logique complète
-    // - Retirer l'item du menu
-    // - Sauvegarder dans MongoDB
+    // Vérifier que le restaurant existe
+    let restaurant;
+    if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
+      restaurant = await Restaurant.findById(restaurantId);
+    } else if (ethers.isAddress(restaurantId)) {
+      restaurant = await Restaurant.findByAddress(restaurantId.toLowerCase());
+    } else {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid restaurant ID or address"
+      });
+    }
+    
+    if (!restaurant) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Restaurant not found"
+      });
+    }
+    
+    // Vérifier que l'utilisateur est le propriétaire
+    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not the owner of this restaurant"
+      });
+    }
+    
+    // Trouver et supprimer l'item
+    const itemIndex = parseInt(itemId);
+    if (itemIndex < 0 || itemIndex >= restaurant.menu.length) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Menu item not found"
+      });
+    }
+    
+    restaurant.menu.splice(itemIndex, 1);
+    await restaurant.save();
     
     return res.status(200).json({
       success: true,
-      message: "Item deleted successfully",
-      itemId
+      message: "Menu item deleted successfully"
     });
   } catch (error) {
     console.error("Error deleting menu item:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to delete menu item",
@@ -659,35 +905,70 @@ async function deleteMenuItem(req, res) {
 }
 
 /**
- * Récupère les revenus on-chain du restaurant
- * @dev TODO: Implémenter avec blockchainService
+ * Gets restaurant earnings from blockchain
+ * @dev Retrieves on-chain earnings for a restaurant
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getRestaurantEarnings(req, res) {
   try {
-    const { id } = req.params;
+    const restaurantId = req.params.id;
+    const restaurantAddress = req.userAddress;
     
-    // TODO: Implémenter la logique complète
-    // - Parser events PaymentSplit depuis blockchain
-    // - Filtrer par restaurantAddress
-    // - Calculer total earnings (70% de chaque commande)
+    // Vérifier que le restaurant existe
+    let restaurant;
+    if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
+      restaurant = await Restaurant.findById(restaurantId);
+    } else if (ethers.isAddress(restaurantId)) {
+      restaurant = await Restaurant.findByAddress(restaurantId.toLowerCase());
+    } else {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid restaurant ID or address"
+      });
+    }
     
-    return res.status(200).json({
-      success: true,
-      message: "getRestaurantEarnings - TODO: Implementation",
-      data: {
-        totalEarnings: "0.00",
-        breakdown: {
-          onChain: "0.00",
-          pending: "0.00"
-        },
-        transactions: []
-      }
-    });
+    if (!restaurant) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Restaurant not found"
+      });
+    }
+    
+    // Vérifier que l'utilisateur est le propriétaire
+    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not the owner of this restaurant"
+      });
+    }
+    
+    // Récupérer le solde en attente depuis PaymentSplitter
+    try {
+      const pendingBalance = await blockchainService.getPendingBalance(restaurant.address);
+      const pendingBalanceMATIC = parseFloat(ethers.formatEther(pendingBalance));
+      
+      return res.status(200).json({
+        success: true,
+        earnings: {
+          pendingBalance: pendingBalanceMATIC,
+          pendingBalanceWei: pendingBalance
+        }
+      });
+    } catch (blockchainError) {
+      console.warn("Error getting earnings from blockchain:", blockchainError);
+      return res.status(200).json({
+        success: true,
+        earnings: {
+          pendingBalance: 0,
+          message: "Blockchain not available, using MongoDB data only"
+        }
+      });
+    }
   } catch (error) {
     console.error("Error getting restaurant earnings:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get restaurant earnings",
@@ -697,32 +978,69 @@ async function getRestaurantEarnings(req, res) {
 }
 
 /**
- * Retire les fonds du PaymentSplitter
- * @dev TODO: Implémenter avec blockchainService
+ * Withdraws restaurant earnings
+ * @dev Withdraws funds from PaymentSplitter
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function withdrawEarnings(req, res) {
   try {
-    const { id } = req.params;
-    const { amount } = req.body;
+    const restaurantId = req.params.id;
+    const restaurantAddress = req.userAddress;
     
-    // TODO: Implémenter la logique complète
-    // - Vérifier que le restaurant a des fonds disponibles
-    // - Appeler blockchainService.withdraw() si pattern "pull" implémenté
-    // - Retourner txHash
+    // Vérifier que le restaurant existe
+    let restaurant;
+    if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
+      restaurant = await Restaurant.findById(restaurantId);
+    } else if (ethers.isAddress(restaurantId)) {
+      restaurant = await Restaurant.findByAddress(restaurantId.toLowerCase());
+    } else {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid restaurant ID or address"
+      });
+    }
     
-    return res.status(200).json({
-      success: true,
-      message: "withdrawEarnings - TODO: Implementation",
-      data: {
-        txHash: null,
-        amount: amount || "0.00"
-      }
-    });
+    if (!restaurant) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Restaurant not found"
+      });
+    }
+    
+    // Vérifier que l'utilisateur est le propriétaire
+    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not the owner of this restaurant"
+      });
+    }
+    
+    // Retirer les fonds depuis PaymentSplitter
+    try {
+      const result = await blockchainService.withdraw(
+        restaurant.address,
+        req.body.restaurantPrivateKey || process.env.PRIVATE_KEY
+      );
+      
+      return res.status(200).json({
+        success: true,
+        txHash: result.txHash,
+        amount: result.amount,
+        amountMATIC: parseFloat(ethers.formatEther(result.amount))
+      });
+    } catch (blockchainError) {
+      console.error("Error withdrawing earnings from blockchain:", blockchainError);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to withdraw earnings from blockchain",
+        details: blockchainError.message
+      });
+    }
   } catch (error) {
     console.error("Error withdrawing earnings:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to withdraw earnings",
@@ -731,7 +1049,6 @@ async function withdrawEarnings(req, res) {
   }
 }
 
-// Exporter toutes les fonctions
 module.exports = {
   registerRestaurant,
   getRestaurant,
@@ -746,3 +1063,4 @@ module.exports = {
   getRestaurantEarnings,
   withdrawEarnings
 };
+

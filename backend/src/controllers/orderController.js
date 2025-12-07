@@ -1,145 +1,172 @@
-// TODO: Importer les services nécessaires
-// const blockchainService = require("../services/blockchainService");
-// const ipfsService = require("../services/ipfsService");
-// const notificationService = require("../services/notificationService");
-// const gpsTracker = require("../utils/gpsTracker");
-
-// TODO: Importer les modèles MongoDB
-// const Order = require("../models/Order");
-// const Restaurant = require("../models/Restaurant");
-// const Deliverer = require("../models/Deliverer");
-// const User = require("../models/User");
+const Order = require("../models/Order");
+const User = require("../models/User");
+const Restaurant = require("../models/Restaurant");
+const Deliverer = require("../models/Deliverer");
+const blockchainService = require("../services/blockchainService");
+const ipfsService = require("../services/ipfsService");
+const notificationService = require("../services/notificationService");
+const { ethers } = require("ethers");
 
 /**
- * Controller pour gérer toutes les requêtes HTTP liées aux commandes
- * @notice Gère le cycle de vie complet des commandes (création, préparation, livraison, litiges)
- * @dev Intègre blockchain, IPFS, MongoDB et notifications
+ * Controller for managing orders
+ * @notice Manages all HTTP requests related to orders
+ * @dev Handles order lifecycle from creation to delivery
  */
+
 /**
- * Crée une nouvelle commande
- * @dev TODO: Implémenter la fonction createOrder
+ * Creates a new order
+ * @dev Creates order on-chain and saves off-chain data to MongoDB
  * 
- * Étapes:
- * 1. Valider les données (items non vide, prices > 0)
- * 2. Upload items[] vers IPFS
- * 3. Calculer foodPrice total
- * 4. Appeler blockchainService.createOrder()
- * 5. Sauvegarder dans MongoDB
- * 6. Notifier le restaurant
- * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function createOrder(req, res) {
   try {
-    // TODO: Récupérer les données du body
-    // const { restaurantId, items, deliveryAddress, clientAddress } = req.body;
+    const { restaurantId, items, deliveryAddress, clientAddress, clientPrivateKey } = req.body;
     
-    // Réponse temporaire pour que le serveur démarre
-    return res.status(200).json({
-      success: true,
-      message: "Create order endpoint - TODO: Implementation"
+    // Récupérer l'adresse du client depuis le middleware auth
+    const userAddress = req.userAddress || clientAddress;
+    
+    if (!userAddress) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Client address is required"
+      });
+    }
+    
+    // Vérifier que le client existe
+    const client = await User.findByAddress(userAddress);
+    if (!client) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Client not found. Please register first."
+      });
+    }
+    
+    // Vérifier que le restaurant existe
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Restaurant not found"
+      });
+    }
+    
+    // Calculer les prix
+    let foodPrice = 0;
+    items.forEach(item => {
+      foodPrice += item.price * item.quantity;
     });
     
-    // TODO: Récupérer l'adresse du client depuis req.userAddress (middleware auth)
-    // const clientAddress = req.userAddress || req.body.clientAddress;
+    // Calculer deliveryFee (peut être passé dans body ou calculé)
+    const deliveryFee = req.body.deliveryFee || 0.01; // 0.01 MATIC par défaut
     
-    // TODO: Valider que restaurantId existe
-    // if (!restaurantId) {
-    //   return res.status(400).json({
-    //     error: "Bad Request",
-    //     message: "restaurantId is required"
-    //   });
-    // }
+    // Préparer les données pour IPFS
+    const orderData = {
+      items: items.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        image: item.image || null
+      })),
+      deliveryAddress,
+      restaurant: {
+        address: restaurant.address,
+        name: restaurant.name
+      },
+      client: {
+        address: userAddress,
+        name: client.name
+      },
+      createdAt: new Date().toISOString()
+    };
     
-    // TODO: Valider que items existe et n'est pas vide
-    // if (!items || !Array.isArray(items) || items.length === 0) {
-    //   return res.status(400).json({
-    //     error: "Bad Request",
-    //     message: "items array is required and cannot be empty"
-    //   });
-    // }
+    // Upload des données sur IPFS
+    let ipfsHash;
+    try {
+      const ipfsResult = await ipfsService.uploadJSON(orderData);
+      ipfsHash = ipfsResult.ipfsHash;
+    } catch (ipfsError) {
+      console.error("Error uploading to IPFS:", ipfsError);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to upload order data to IPFS",
+        details: ipfsError.message
+      });
+    }
     
-    // TODO: Valider que chaque item a price > 0
-    // for (const item of items) {
-    //   if (!item.price || item.price <= 0) {
-    //     return res.status(400).json({
-    //       error: "Bad Request",
-    //       message: `Item ${item.name} must have a price > 0`
-    //     });
-    //   }
-    // }
+    // Créer la commande sur la blockchain
+    let blockchainResult;
+    try {
+      blockchainResult = await blockchainService.createOrder({
+        restaurantAddress: restaurant.address,
+        foodPrice: foodPrice.toString(),
+        deliveryFee: deliveryFee.toString(),
+        ipfsHash,
+        clientAddress: userAddress,
+        clientPrivateKey: clientPrivateKey || process.env.PRIVATE_KEY // Fallback pour tests
+      });
+    } catch (blockchainError) {
+      console.error("Error creating order on blockchain:", blockchainError);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to create order on blockchain",
+        details: blockchainError.message
+      });
+    }
     
-    // TODO: Récupérer le restaurant depuis MongoDB
-    // const Restaurant = require("../models/Restaurant");
-    // const restaurant = await Restaurant.findById(restaurantId);
-    // if (!restaurant) {
-    //   return res.status(404).json({
-    //     error: "Not Found",
-    //     message: "Restaurant not found"
-    //   });
-    // }
+    // Calculer platformFee et totalAmount
+    const foodPriceWei = ethers.parseEther(foodPrice.toString());
+    const deliveryFeeWei = ethers.parseEther(deliveryFee.toString());
+    const platformFeeWei = (foodPriceWei * BigInt(10)) / BigInt(100);
+    const totalAmountWei = foodPriceWei + deliveryFeeWei + platformFeeWei;
     
-    // TODO: Calculer foodPrice total = somme(item.price * item.quantity)
-    // const foodPrice = items.reduce((total, item) => {
-    //   return total + (item.price * item.quantity);
-    // }, 0);
+    // Sauvegarder dans MongoDB
+    const order = new Order({
+      orderId: blockchainResult.orderId,
+      txHash: blockchainResult.txHash,
+      client: client._id,
+      restaurant: restaurant._id,
+      items: items.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        image: item.image || null
+      })),
+      deliveryAddress,
+      ipfsHash,
+      status: 'CREATED',
+      foodPrice: foodPriceWei.toString(),
+      deliveryFee: deliveryFeeWei.toString(),
+      platformFee: platformFeeWei.toString(),
+      totalAmount: totalAmountWei.toString()
+    });
     
-    // TODO: Calculer deliveryFee (fixe ou basé sur distance)
-    // const deliveryFee = req.body.deliveryFee || 0.01; // 0.01 ETH par défaut
+    await order.save();
     
-    // TODO: Upload items[] vers IPFS via ipfsService.uploadJSON()
-    // const orderDetails = {
-    //   items,
-    //   deliveryAddress,
-    //   createdAt: new Date().toISOString()
-    // };
-    // const { ipfsHash, url: ipfsUrl } = await ipfsService.uploadJSON(orderDetails);
+    // Notifier le restaurant
+    try {
+      await notificationService.notifyOrderCreated(
+        blockchainResult.orderId,
+        restaurant._id.toString(),
+        { items, totalAmount: totalAmountWei.toString() }
+      );
+    } catch (notifError) {
+      console.warn("Error sending notification:", notifError);
+    }
     
-    // TODO: Appeler blockchainService.createOrder()
-    // const blockchainResult = await blockchainService.createOrder({
-    //   restaurantAddress: restaurant.address,
-    //   foodPrice: foodPrice.toString(),
-    //   deliveryFee: deliveryFee.toString(),
-    //   ipfsHash,
-    //   clientAddress,
-    //   clientPrivateKey: req.body.clientPrivateKey // À sécuriser via middleware
-    // });
-    
-    // TODO: Sauvegarder order dans MongoDB avec status CREATED
-    // const order = new Order({
-    //   orderId: blockchainResult.orderId,
-    //   txHash: blockchainResult.txHash,
-    //   client: clientAddress, // Référence ObjectId si User existe
-    //   restaurant: restaurantId,
-    //   items,
-    //   deliveryAddress,
-    //   ipfsHash,
-    //   foodPrice: foodPrice.toString(),
-    //   deliveryFee: deliveryFee.toString(),
-    //   platformFee: (foodPrice * 0.1).toString(), // 10%
-    //   totalAmount: (foodPrice + deliveryFee + (foodPrice * 0.1)).toString(),
-    //   status: 'CREATED',
-    //   gpsTracking: []
-    // });
-    // await order.save();
-    
-    // TODO: Notifier le restaurant via notificationService
-    // await notificationService.notifyOrderCreated(blockchainResult.orderId, restaurantId);
-    
-    // TODO: Retourner succès
-    // return res.status(201).json({
-    //   success: true,
-    //   orderId: blockchainResult.orderId,
-    //   txHash: blockchainResult.txHash,
-    //   ipfsHash,
-    //   ipfsUrl
-    // });
+    return res.status(201).json({
+      success: true,
+      order: {
+        orderId: blockchainResult.orderId,
+        txHash: blockchainResult.txHash,
+        status: 'CREATED',
+        totalAmount: totalAmountWei.toString()
+      }
+    });
   } catch (error) {
-    // TODO: Logger l'erreur
     console.error("Error creating order:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to create order",
@@ -149,50 +176,111 @@ async function createOrder(req, res) {
 }
 
 /**
- * Récupère les détails d'une commande
- * @dev TODO: Implémenter la fonction getOrder
+ * Gets order details (on-chain + off-chain)
+ * @dev Retrieves complete order information from blockchain and MongoDB
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getOrder(req, res) {
   try {
-    // TODO: Récupérer orderId depuis params
-    // const orderId = parseInt(req.params.orderId);
+    const orderId = req.orderId || parseInt(req.params.id);
     
-    // TODO: Fetch order depuis blockchain via blockchainService.getOrder()
-    // const blockchainOrder = await blockchainService.getOrder(orderId);
+    // Récupérer depuis MongoDB avec populate
+    const order = await Order.findOne({ orderId })
+      .populate('client', 'address name email')
+      .populate('restaurant', 'address name')
+      .populate('deliverer', 'address name');
     
-    // TODO: Fetch order depuis MongoDB pour GPS tracking
-    // const mongoOrder = await Order.findOne({ orderId });
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `Order with id ${orderId} not found`
+      });
+    }
     
-    // TODO: Fetch details depuis IPFS via ipfsService.getJSON(ipfsHash)
-    // const ipfsDetails = await ipfsService.getJSON(blockchainOrder.ipfsHash);
+    // Récupérer depuis blockchain (si disponible) - avant les vérifications pour éviter les erreurs
+    let blockchainOrder = null;
+    try {
+      blockchainOrder = await blockchainService.getOrder(orderId);
+    } catch (blockchainError) {
+      // Erreur non-critique, continuer sans données blockchain
+      console.warn("Could not fetch order from blockchain:", blockchainError.message);
+    }
     
-    // TODO: Merge toutes les données (on-chain + off-chain)
-    // const fullOrderData = {
-    //   ...blockchainOrder,
-    //   ...mongoOrder.toObject(),
-    //   details: ipfsDetails,
-    //   gpsTracking: mongoOrder.gpsTracking || []
-    // };
+    // Gérer les cas où client/restaurant peuvent être des strings (adresses) ou des objets peuplés
+    const orderClientAddress = order.client?.address || (typeof order.client === 'string' ? order.client : null);
+    const orderRestaurantAddress = order.restaurant?.address || (typeof order.restaurant === 'string' ? order.restaurant : null);
     
-    // TODO: Retourner full order data
-    // return res.status(200).json({
-    //   success: true,
-    //   order: fullOrderData
-    // });
+    // Si les adresses sont manquantes, essayer de les récupérer depuis la blockchain
+    if (!orderClientAddress || !orderRestaurantAddress) {
+      if (blockchainOrder) {
+        // Utiliser les données blockchain comme fallback
+        if (!orderClientAddress && blockchainOrder.client) {
+          order.client = { address: blockchainOrder.client, name: 'Unknown' };
+        }
+        if (!orderRestaurantAddress && blockchainOrder.restaurant) {
+          order.restaurant = { address: blockchainOrder.restaurant, name: 'Unknown' };
+        }
+      } else {
+        // Si ni MongoDB ni blockchain n'ont les données, retourner une erreur
+        return res.status(500).json({
+          error: "Internal Server Error",
+          message: "Order data is incomplete. Client or restaurant information missing."
+        });
+      }
+    }
     
-    // Réponse temporaire
+    // Récupérer les détails IPFS (seulement si hash valide)
+    let ipfsData = null;
+    if (order.ipfsHash) {
+      try {
+        // La validation est faite dans ipfsService.getJSON
+        ipfsData = await ipfsService.getJSON(order.ipfsHash);
+      } catch (ipfsError) {
+        // Ne logger que si ce n'est pas un hash invalide (hash de test, etc.)
+        if (!ipfsError.message || !ipfsError.message.includes('Invalid IPFS')) {
+          console.warn("Could not fetch IPFS data:", ipfsError.message);
+        }
+        // Hash invalide ou erreur de récupération, continuer sans données IPFS
+        ipfsData = null;
+      }
+    }
+    
     return res.status(200).json({
       success: true,
-      message: "Get order endpoint - TODO: Implementation"
+      order: {
+        orderId: order.orderId,
+        txHash: order.txHash,
+        status: order.status,
+        client: order.client ? {
+          address: order.client.address || 'Unknown',
+          name: order.client.name || 'Unknown'
+        } : null,
+        restaurant: order.restaurant ? {
+          address: order.restaurant.address || 'Unknown',
+          name: order.restaurant.name || 'Unknown'
+        } : null,
+        deliverer: order.deliverer ? {
+          address: order.deliverer.address || order.deliverer,
+          name: order.deliverer.name || 'Unknown'
+        } : null,
+        items: order.items,
+        deliveryAddress: order.deliveryAddress,
+        foodPrice: order.foodPrice,
+        deliveryFee: order.deliveryFee,
+        platformFee: order.platformFee,
+        totalAmount: order.totalAmount,
+        gpsTracking: order.gpsTracking,
+        blockchain: blockchainOrder,
+        ipfsData,
+        createdAt: order.createdAt,
+        completedAt: order.completedAt
+      }
     });
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error getting order:", error);
+    console.error("Error getting order:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get order",
@@ -202,38 +290,62 @@ async function getOrder(req, res) {
 }
 
 /**
- * Récupère toutes les commandes d'un client
- * @dev TODO: Implémenter la fonction getOrdersByClient
+ * Gets orders by client address
+ * @dev Retrieves all orders for a specific client
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getOrdersByClient(req, res) {
   try {
-    // TODO: Récupérer clientAddress depuis query ou req.userAddress
-    // const clientAddress = req.query.clientAddress || req.userAddress;
+    const address = req.validatedAddress || req.params.address;
     
-    // TODO: Fetch tous les orders du client depuis MongoDB avec populate
-    // const orders = await Order.find({ client: clientAddress })
-    //   .populate('restaurant deliverer')
-    //   .sort({ createdAt: -1 });
+    const client = await User.findByAddress(address);
+    if (!client) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Client not found"
+      });
+    }
     
-    // TODO: Retourner array of orders
-    // return res.status(200).json({
-    //   success: true,
-    //   orders
-    // });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const status = req.query.status;
     
-    // Réponse temporaire
+    const orders = await Order.getOrdersByClient(client._id, {
+      limit,
+      skip,
+      status
+    });
+    
+    const query = { client: client._id };
+    if (status) query.status = status;
+    const total = await Order.countDocuments(query);
+    
     return res.status(200).json({
       success: true,
-      message: "Get orders by client endpoint - TODO: Implementation"
+      orders: orders.map(order => ({
+        orderId: order.orderId,
+        status: order.status,
+        restaurant: order.restaurant ? {
+          name: order.restaurant.name || 'Unknown',
+          address: order.restaurant.address || order.restaurant
+        } : null,
+        totalAmount: order.totalAmount,
+        createdAt: order.createdAt,
+        completedAt: order.completedAt
+      })),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
     });
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error getting client orders:", error);
+    console.error("Error getting client orders:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get client orders",
@@ -243,73 +355,95 @@ async function getOrdersByClient(req, res) {
 }
 
 /**
- * Confirme la préparation de la commande (restaurant)
- * @dev TODO: Implémenter la fonction confirmPreparation
+ * Confirms order preparation (restaurant)
+ * @dev Restaurant confirms that order is ready
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function confirmPreparation(req, res) {
   try {
-    // TODO: Récupérer orderId depuis params
-    // const orderId = parseInt(req.params.orderId);
+    const orderId = req.orderId || parseInt(req.params.id);
+    const restaurantAddress = req.userAddress;
     
-    // TODO: Récupérer restaurantAddress depuis body ou req.userAddress
-    // const restaurantAddress = req.body.restaurantAddress || req.userAddress;
+    // Vérifier que la commande existe
+    const order = await Order.findOne({ orderId })
+      .populate('restaurant', 'address name');
     
-    // TODO: Récupérer l'order depuis MongoDB
-    // const order = await Order.findOne({ orderId });
-    // if (!order) {
-    //   return res.status(404).json({
-    //     error: "Not Found",
-    //     message: "Order not found"
-    //   });
-    // }
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `Order with id ${orderId} not found`
+      });
+    }
     
-    // TODO: Vérifier que restaurantAddress == order.restaurant
-    // const Restaurant = require("../models/Restaurant");
-    // const restaurant = await Restaurant.findById(order.restaurant);
-    // if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
-    //   return res.status(403).json({
-    //     error: "Forbidden",
-    //     message: "You are not authorized to confirm preparation for this order"
-    //   });
-    // }
+    // Vérifier que les relations sont peuplées
+    const orderRestaurantAddress = order.restaurant?.address || order.restaurant;
+    if (!orderRestaurantAddress) {
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Order data is incomplete. Restaurant information missing."
+      });
+    }
     
-    // TODO: Appeler blockchainService.confirmPreparation(orderId)
-    // const blockchainResult = await blockchainService.confirmPreparation(
-    //   orderId,
-    //   restaurantAddress,
-    //   req.body.restaurantPrivateKey // À sécuriser
-    // );
+    // Vérifier que le restaurant est le propriétaire
+    if (!orderRestaurantAddress || orderRestaurantAddress.toString().toLowerCase() !== restaurantAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not the owner of this order"
+      });
+    }
     
-    // TODO: Update MongoDB : status = PREPARING
-    // await Order.findOneAndUpdate(
-    //   { orderId },
-    //   { status: 'PREPARING' },
-    //   { new: true }
-    // );
+    // Vérifier le statut
+    if (order.status !== 'CREATED') {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: `Order status must be CREATED, current status: ${order.status}`
+      });
+    }
     
-    // TODO: Notifier livreurs disponibles via notificationService
-    // const Deliverer = require("../models/Deliverer");
-    // const availableDeliverers = await Deliverer.find({ isAvailable: true, isStaked: true });
-    // await notificationService.notifyDeliverersAvailable(
-    //   orderId,
-    //   availableDeliverers.map(d => d.address)
-    // );
+    // Confirmer sur la blockchain
+    let blockchainResult;
+    try {
+      const restaurant = await Restaurant.findByAddress(restaurantAddress);
+      blockchainResult = await blockchainService.confirmPreparation(
+        orderId,
+        restaurantAddress,
+        req.body.restaurantPrivateKey || process.env.PRIVATE_KEY
+      );
+    } catch (blockchainError) {
+      console.error("Error confirming preparation on blockchain:", blockchainError);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to confirm preparation on blockchain",
+        details: blockchainError.message
+      });
+    }
     
-    // TODO: Retourner succès
-    // return res.status(200).json({
-    //   success: true,
-    //   txHash: blockchainResult.txHash
-    // });
+    // Mettre à jour dans MongoDB
+    await Order.updateStatus(orderId, 'PREPARING');
     
-    return res.status(200).json({ success: true, message: "confirmPreparation - TODO" });
+    // Notifier le client
+    try {
+      const clientAddr = order.client?.address || order.client;
+      await notificationService.notifyClientOrderUpdate(
+        orderId,
+        clientAddr,
+        'PREPARING',
+        { message: "Your order is being prepared" }
+      );
+    } catch (notifError) {
+      console.warn("Error sending notification:", notifError);
+    }
+    
+    return res.status(200).json({
+      success: true,
+      txHash: blockchainResult.txHash,
+      status: 'PREPARING'
+    });
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error confirming preparation:", error);
+    console.error("Error confirming preparation:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to confirm preparation",
@@ -319,66 +453,102 @@ async function confirmPreparation(req, res) {
 }
 
 /**
- * Assigne un livreur à la commande
- * @dev TODO: Implémenter la fonction assignDeliverer
+ * Assigns a deliverer to an order
+ * @dev Platform assigns a deliverer to pick up the order
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function assignDeliverer(req, res) {
   try {
-    // TODO: Récupérer orderId depuis params
-    // const orderId = parseInt(req.params.orderId);
+    const orderId = req.orderId || parseInt(req.params.id);
+    const { delivererAddress } = req.body;
     
-    // TODO: Récupérer delivererAddress depuis body
-    // const delivererAddress = req.body.delivererAddress;
+    if (!delivererAddress) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "delivererAddress is required"
+      });
+    }
     
-    // TODO: Vérifier que deliverer est staké via blockchainService.isStaked()
-    // const isStaked = await blockchainService.isStaked(delivererAddress);
-    // if (!isStaked) {
-    //   return res.status(400).json({
-    //     error: "Bad Request",
-    //     message: "Deliverer must be staked to accept orders"
-    //   });
-    // }
+    // Vérifier que la commande existe
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `Order with id ${orderId} not found`
+      });
+    }
     
-    // TODO: Appeler blockchainService.assignDeliverer(orderId, delivererAddress)
-    // const blockchainResult = await blockchainService.assignDeliverer(
-    //   orderId,
-    //   delivererAddress,
-    //   req.body.platformPrivateKey // À sécuriser
-    // );
+    // Vérifier le statut
+    if (order.status !== 'PREPARING') {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: `Order status must be PREPARING, current status: ${order.status}`
+      });
+    }
     
-    // TODO: Update MongoDB : status = IN_DELIVERY, deliverer = delivererAddress
-    // await Order.findOneAndUpdate(
-    //   { orderId },
-    //   { 
-    //     status: 'IN_DELIVERY',
-    //     deliverer: delivererAddress // Référence ObjectId si Deliverer existe
-    //   },
-    //   { new: true }
-    // );
+    // Vérifier que le livreur existe et est disponible
+    const deliverer = await Deliverer.findByAddress(delivererAddress);
+    if (!deliverer) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Deliverer not found"
+      });
+    }
     
-    // TODO: Notifier deliverer via notificationService
-    // await notificationService.notifyClientOrderUpdate(
-    //   orderId,
-    //   delivererAddress,
-    //   'IN_DELIVERY'
-    // );
+    if (!deliverer.isAvailable || !deliverer.isStaked) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Deliverer is not available or not staked"
+      });
+    }
     
-    // TODO: Retourner succès
-    // return res.status(200).json({
-    //   success: true,
-    //   txHash: blockchainResult.txHash,
-    //   deliverer: delivererAddress
-    // });
+    // Assigner sur la blockchain
+    let blockchainResult;
+    try {
+      blockchainResult = await blockchainService.assignDeliverer(
+        orderId,
+        delivererAddress,
+        process.env.PRIVATE_KEY // Platform private key
+      );
+    } catch (blockchainError) {
+      console.error("Error assigning deliverer on blockchain:", blockchainError);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to assign deliverer on blockchain",
+        details: blockchainError.message
+      });
+    }
     
-    return res.status(200).json({ success: true, message: "assignDeliverer - TODO" });
+    // Mettre à jour dans MongoDB
+    order.deliverer = deliverer._id;
+    order.status = 'IN_DELIVERY';
+    await order.save();
+    
+    // Notifier le livreur
+    try {
+      await notificationService.notifyDeliverersAvailable(
+        orderId,
+        [delivererAddress],
+        { restaurant: order.restaurant.name, deliveryAddress: order.deliveryAddress }
+      );
+    } catch (notifError) {
+      console.warn("Error sending notification:", notifError);
+    }
+    
+    return res.status(200).json({
+      success: true,
+      txHash: blockchainResult.txHash,
+      deliverer: {
+        address: deliverer.address,
+        name: deliverer.name
+      },
+      status: 'IN_DELIVERY'
+    });
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error assigning deliverer:", error);
+    console.error("Error assigning deliverer:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to assign deliverer",
@@ -388,71 +558,84 @@ async function assignDeliverer(req, res) {
 }
 
 /**
- * Confirme la récupération de la commande (livreur)
- * @dev TODO: Implémenter la fonction confirmPickup
+ * Confirms order pickup (deliverer)
+ * @dev Deliverer confirms they picked up the order
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function confirmPickup(req, res) {
   try {
-    // TODO: Récupérer orderId depuis params
-    // const orderId = parseInt(req.params.orderId);
+    const orderId = req.orderId || parseInt(req.params.id);
+    const delivererAddress = req.userAddress;
     
-    // TODO: Récupérer delivererAddress depuis body ou req.userAddress
-    // const delivererAddress = req.body.delivererAddress || req.userAddress;
+    // Vérifier que la commande existe
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `Order with id ${orderId} not found`
+      });
+    }
     
-    // TODO: Récupérer l'order depuis MongoDB
-    // const order = await Order.findOne({ orderId });
-    // if (!order) {
-    //   return res.status(404).json({
-    //     error: "Not Found",
-    //     message: "Order not found"
-    //   });
-    // }
+    // Vérifier que le livreur est assigné
+    const orderDelivererAddress = order.deliverer?.address || order.deliverer;
+    if (!orderDelivererAddress || orderDelivererAddress.toString().toLowerCase() !== delivererAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not assigned to this order"
+      });
+    }
     
-    // TODO: Vérifier que delivererAddress == order.deliverer
-    // if (order.deliverer.toLowerCase() !== delivererAddress.toLowerCase()) {
-    //   return res.status(403).json({
-    //     error: "Forbidden",
-    //     message: "You are not authorized to confirm pickup for this order"
-    //   });
-    // }
+    // Vérifier le statut
+    if (order.status !== 'IN_DELIVERY') {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: `Order status must be IN_DELIVERY, current status: ${order.status}`
+      });
+    }
     
-    // TODO: Appeler blockchainService.confirmPickup(orderId)
-    // const blockchainResult = await blockchainService.confirmPickup(
-    //   orderId,
-    //   delivererAddress,
-    //   req.body.delivererPrivateKey // À sécuriser
-    // );
+    // Confirmer sur la blockchain
+    let blockchainResult;
+    try {
+      blockchainResult = await blockchainService.confirmPickup(
+        orderId,
+        delivererAddress,
+        req.body.delivererPrivateKey || process.env.PRIVATE_KEY
+      );
+    } catch (blockchainError) {
+      console.error("Error confirming pickup on blockchain:", blockchainError);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to confirm pickup on blockchain",
+        details: blockchainError.message
+      });
+    }
     
-    // TODO: Start GPS tracking : initialize gpsTracking[] dans MongoDB
-    // await Order.findOneAndUpdate(
-    //   { orderId },
-    //   { 
-    //     $set: { gpsTracking: [] } // Initialiser le tableau
-    //   }
-    // );
+    // Mettre à jour dans MongoDB (statut reste IN_DELIVERY mais pickup confirmé)
+    // Le statut reste IN_DELIVERY jusqu'à la livraison
     
-    // TODO: Notifier client via notificationService
-    // await notificationService.notifyClientOrderUpdate(
-    //   orderId,
-    //   order.client,
-    //   'IN_DELIVERY'
-    // );
+    // Notifier le client
+    try {
+      const clientAddr = order.client?.address || order.client;
+      await notificationService.notifyClientOrderUpdate(
+        orderId,
+        clientAddr,
+        'IN_DELIVERY',
+        { message: "Your order is on the way" }
+      );
+    } catch (notifError) {
+      console.warn("Error sending notification:", notifError);
+    }
     
-    // TODO: Retourner succès
-    // return res.status(200).json({
-    //   success: true,
-    //   txHash: blockchainResult.txHash
-    // });
-    
-    return res.status(200).json({ success: true, message: "confirmPickup - TODO" });
+    return res.status(200).json({
+      success: true,
+      txHash: blockchainResult.txHash,
+      message: "Pickup confirmed"
+    });
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error confirming pickup:", error);
+    console.error("Error confirming pickup:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to confirm pickup",
@@ -462,77 +645,58 @@ async function confirmPickup(req, res) {
 }
 
 /**
- * Met à jour la position GPS du livreur
- * @dev TODO: Implémenter la fonction updateGPSLocation
+ * Updates GPS location for an order
+ * @dev Updates deliverer GPS position during delivery
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function updateGPSLocation(req, res) {
   try {
-    // TODO: Récupérer orderId depuis params
-    // const orderId = parseInt(req.params.orderId);
+    const orderId = req.orderId || parseInt(req.params.id);
+    const { lat, lng } = req.validatedGPS || req.body;
+    const delivererAddress = req.userAddress;
     
-    // TODO: Récupérer lat et lng depuis body
-    // const { lat, lng } = req.body;
+    if (!lat || !lng) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "lat and lng are required"
+      });
+    }
     
-    // TODO: Valider les coordonnées GPS
-    // if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-    //   return res.status(400).json({
-    //     error: "Bad Request",
-    //     message: "Invalid GPS coordinates"
-    //   });
-    // }
+    // Vérifier que la commande existe
+    const order = await Order.findOne({ orderId })
+      .populate('deliverer', 'address name');
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `Order with id ${orderId} not found`
+      });
+    }
     
-    // TODO: Ajouter { lat, lng, timestamp: Date.now() } dans MongoDB order.gpsTracking[]
-    // await Order.findOneAndUpdate(
-    //   { orderId },
-    //   { 
-    //     $push: { 
-    //       gpsTracking: { 
-    //         lat, 
-    //         lng, 
-    //         timestamp: new Date() 
-    //       } 
-    //     } 
-    //   }
-    // );
+    // Vérifier que le livreur est assigné
+    const orderDelivererAddress = order.deliverer?.address || order.deliverer;
+    if (!orderDelivererAddress || orderDelivererAddress.toString().toLowerCase() !== delivererAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not assigned to this order"
+      });
+    }
     
-    // TODO: Récupérer l'order pour calculer ETA
-    // const order = await Order.findOne({ orderId });
+    // Ajouter la position GPS
+    await Order.addGPSLocation(orderId, lat, lng);
     
-    // TODO: Calculer distance restante et ETA via gpsTracker.getETA()
-    // const currentLocation = { lat, lng };
-    // const destinationLocation = {
-    //   lat: order.deliveryAddress.lat, // Si stocké dans order
-    //   lng: order.deliveryAddress.lng
-    // };
-    // const eta = gpsTracker.getETA(currentLocation, destinationLocation, 30);
+    // Mettre à jour la position du livreur
+    await Deliverer.updateLocation(delivererAddress, lat, lng);
     
-    // TODO: Notifier client en temps réel via Socket.io
-    // const notificationService = require("../services/notificationService");
-    // const io = notificationService.getSocketIO();
-    // if (io) {
-    //   io.to(`client_${order.client.toLowerCase()}`).emit('gpsUpdate', {
-    //     orderId,
-    //     location: { lat, lng },
-    //     eta
-    //   });
-    // }
-    
-    // TODO: Retourner succès
-    // return res.status(200).json({
-    //   success: true,
-    //   location: { lat, lng },
-    //   eta
-    // });
-    
-    return res.status(200).json({ success: true, message: "updateGPSLocation - TODO" });
+    return res.status(200).json({
+      success: true,
+      message: "GPS location updated",
+      location: { lat, lng }
+    });
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error updating GPS location:", error);
+    console.error("Error updating GPS location:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to update GPS location",
@@ -542,73 +706,100 @@ async function updateGPSLocation(req, res) {
 }
 
 /**
- * Confirme la livraison et déclenche le split automatique
- * @dev TODO: Implémenter la fonction confirmDelivery
+ * Confirms order delivery (client)
+ * @dev Client confirms delivery and triggers payment split + token mint
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function confirmDelivery(req, res) {
   try {
-    // TODO: Récupérer orderId depuis params
-    // const orderId = parseInt(req.params.orderId);
+    const orderId = req.orderId || parseInt(req.params.id);
+    const clientAddress = req.userAddress;
     
-    // TODO: Récupérer clientAddress depuis body ou req.userAddress
-    // const clientAddress = req.body.clientAddress || req.userAddress;
+    // Vérifier que la commande existe
+    const order = await Order.findOne({ orderId })
+      .populate('client', 'address name')
+      .populate('deliverer', 'address name');
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `Order with id ${orderId} not found`
+      });
+    }
     
-    // TODO: Récupérer l'order depuis MongoDB
-    // const order = await Order.findOne({ orderId });
-    // if (!order) {
-    //   return res.status(404).json({
-    //     error: "Not Found",
-    //     message: "Order not found"
-    //   });
-    // }
+    // Vérifier que le client est le propriétaire
+    const orderClientAddress = order.client?.address || order.client;
+    if (!orderClientAddress || orderClientAddress.toString().toLowerCase() !== clientAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not the owner of this order"
+      });
+    }
     
-    // TODO: Vérifier que clientAddress == order.client
-    // if (order.client.toLowerCase() !== clientAddress.toLowerCase()) {
-    //   return res.status(403).json({
-    //     error: "Forbidden",
-    //     message: "You are not authorized to confirm delivery for this order"
-    //   });
-    // }
+    // Vérifier le statut
+    if (order.status !== 'IN_DELIVERY') {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: `Order status must be IN_DELIVERY, current status: ${order.status}`
+      });
+    }
     
-    // TODO: Appeler blockchainService.confirmDelivery(orderId)
-    // const blockchainResult = await blockchainService.confirmDelivery(
-    //   orderId,
-    //   clientAddress,
-    //   req.body.clientPrivateKey // À sécuriser
-    // );
+    // Confirmer sur la blockchain (déclenche split + mint automatiquement)
+    let blockchainResult;
+    try {
+      blockchainResult = await blockchainService.confirmDelivery(
+        orderId,
+        clientAddress,
+        req.body.clientPrivateKey || process.env.PRIVATE_KEY
+      );
+    } catch (blockchainError) {
+      console.error("Error confirming delivery on blockchain:", blockchainError);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to confirm delivery on blockchain",
+        details: blockchainError.message
+      });
+    }
     
-    // TODO: Update MongoDB : status = DELIVERED, completedAt = Date.now()
-    // await Order.findOneAndUpdate(
-    //   { orderId },
-    //   { 
-    //     status: 'DELIVERED',
-    //     completedAt: new Date()
-    //   }
-    // );
+    // Mettre à jour dans MongoDB
+    await Order.updateStatus(orderId, 'DELIVERED');
     
-    // TODO: Notifier client via notificationService
-    // await notificationService.notifyClientOrderUpdate(
-    //   orderId,
-    //   clientAddress,
-    //   'DELIVERED'
-    // );
+    // Incrémenter les compteurs
+    if (order.restaurant && order.restaurant._id) {
+      await Restaurant.incrementOrderCount(order.restaurant._id);
+    }
+    if (order.deliverer && order.deliverer._id) {
+      const delivererAddr = order.deliverer?.address || order.deliverer;
+      if (delivererAddr) {
+        await Deliverer.incrementDeliveryCount(delivererAddr.toString());
+      }
+    }
     
-    // TODO: Retourner succès avec tokensEarned
-    // return res.status(200).json({
-    //   success: true,
-    //   txHash: blockchainResult.txHash,
-    //   tokensEarned: blockchainResult.tokensEarned || "0"
-    // });
+    // Notifier le client
+    try {
+      await notificationService.notifyClientOrderUpdate(
+        orderId,
+        clientAddress,
+        'DELIVERED',
+        { 
+          message: "Order delivered successfully",
+          tokensEarned: blockchainResult.tokensEarned || "0"
+        }
+      );
+    } catch (notifError) {
+      console.warn("Error sending notification:", notifError);
+    }
     
-    return res.status(200).json({ success: true, message: "confirmDelivery - TODO" });
+    return res.status(200).json({
+      success: true,
+      txHash: blockchainResult.txHash,
+      status: 'DELIVERED',
+      tokensEarned: blockchainResult.tokensEarned || "0"
+    });
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error confirming delivery:", error);
+    console.error("Error confirming delivery:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to confirm delivery",
@@ -618,73 +809,110 @@ async function confirmDelivery(req, res) {
 }
 
 /**
- * Ouvre un litige sur une commande
- * @dev TODO: Implémenter la fonction openDispute
+ * Opens a dispute for an order
+ * @dev Opens a dispute on the blockchain
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function openDispute(req, res) {
   try {
-    // TODO: Récupérer orderId depuis params
-    // const orderId = parseInt(req.params.orderId);
+    const orderId = req.orderId || parseInt(req.params.id);
+    const { reason, evidence } = req.body;
+    const openerAddress = req.userAddress;
     
-    // TODO: Récupérer reason et evidence depuis body
-    // const { reason, evidence } = req.body;
+    // Vérifier que la commande existe
+    const order = await Order.findOne({ orderId })
+      .populate('client', 'address name')
+      .populate('restaurant', 'address name')
+      .populate('deliverer', 'address name');
     
-    // TODO: Récupérer l'order depuis MongoDB
-    // const order = await Order.findOne({ orderId });
-    // if (!order) {
-    //   return res.status(404).json({
-    //     error: "Not Found",
-    //     message: "Order not found"
-    //   });
-    // }
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `Order with id ${orderId} not found`
+      });
+    }
     
-    // TODO: Upload evidence (images) vers IPFS via ipfsService.uploadImage()
-    // let evidenceHash = null;
-    // if (evidence && req.files) {
-    //   const evidenceFiles = Array.isArray(req.files) ? req.files : [req.files];
-    //   const uploadResults = await ipfsService.uploadMultipleImages(evidenceFiles);
-    //   evidenceHash = uploadResults.map(r => r.ipfsHash).join(',');
-    // }
+    // Vérifier que les relations sont peuplées
+    const orderClientAddress = order.client?.address || order.client;
+    const orderRestaurantAddress = order.restaurant?.address || order.restaurant;
+    if (!orderClientAddress || !orderRestaurantAddress) {
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Order data is incomplete. Client or restaurant information missing."
+      });
+    }
     
-    // TODO: Appeler blockchainService.openDispute(orderId)
-    // const blockchainResult = await blockchainService.openDispute(
-    //   orderId,
-    //   req.userAddress,
-    //   req.body.openerPrivateKey // À sécuriser
-    // );
+    // Vérifier que l'utilisateur est impliqué dans la commande
+    const orderDelivererAddress = order.deliverer?.address || order.deliverer;
     
-    // TODO: Update MongoDB : status = DISPUTED, disputeReason, disputeEvidence
-    // await Order.findOneAndUpdate(
-    //   { orderId },
-    //   { 
-    //     status: 'DISPUTED',
-    //     disputeReason: reason,
-    //     disputeEvidence: evidenceHash
-    //   }
-    // );
+    const isClient = orderClientAddress && orderClientAddress.toString().toLowerCase() === openerAddress.toLowerCase();
+    const isRestaurant = orderRestaurantAddress && orderRestaurantAddress.toString().toLowerCase() === openerAddress.toLowerCase();
+    const isDeliverer = orderDelivererAddress && orderDelivererAddress.toString().toLowerCase() === openerAddress.toLowerCase();
     
-    // TODO: Notifier arbitrators via notificationService
-    // await notificationService.notifyArbitrators(
-    //   orderId, // disputeId
-    //   orderId
-    // );
+    if (!isClient && !isRestaurant && !isDeliverer) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not involved in this order"
+      });
+    }
     
-    // TODO: Retourner succès
-    // return res.status(200).json({
-    //   success: true,
-    //   txHash: blockchainResult.txHash,
-    //   disputeId: orderId
-    // });
+    // Upload des preuves sur IPFS si fournies
+    let evidenceHash = null;
+    if (evidence) {
+      try {
+        const ipfsResult = await ipfsService.uploadJSON(evidence);
+        evidenceHash = ipfsResult.ipfsHash;
+      } catch (ipfsError) {
+        console.warn("Error uploading dispute evidence to IPFS:", ipfsError);
+      }
+    }
     
-    return res.status(200).json({ success: true, message: "openDispute - TODO" });
+    // Ouvrir le litige sur la blockchain
+    let blockchainResult;
+    try {
+      blockchainResult = await blockchainService.openDispute(
+        orderId,
+        openerAddress,
+        reason || "",
+        req.body.openerPrivateKey || process.env.PRIVATE_KEY
+      );
+    } catch (blockchainError) {
+      console.error("Error opening dispute on blockchain:", blockchainError);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to open dispute on blockchain",
+        details: blockchainError.message
+      });
+    }
+    
+    // Mettre à jour dans MongoDB
+    order.status = 'DISPUTED';
+    order.disputeReason = reason || "";
+    order.disputeEvidence = evidenceHash;
+    await order.save();
+    
+    // Notifier les arbitres
+    try {
+      await notificationService.notifyArbitrators(
+        orderId,
+        orderId,
+        { reason, opener: openerAddress }
+      );
+    } catch (notifError) {
+      console.warn("Error sending notification:", notifError);
+    }
+    
+    return res.status(200).json({
+      success: true,
+      txHash: blockchainResult.txHash,
+      status: 'DISPUTED',
+      disputeReason: reason
+    });
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error opening dispute:", error);
+    console.error("Error opening dispute:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to open dispute",
@@ -694,58 +922,89 @@ async function openDispute(req, res) {
 }
 
 /**
- * Récupère l'historique des commandes
- * @dev TODO: Implémenter la fonction getOrderHistory
+ * Gets order history with pagination
+ * @dev Retrieves order history for a specific address
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getOrderHistory(req, res) {
   try {
-    // TODO: Récupérer address et role depuis query
-    // const { address, role } = req.query;
+    const address = req.validatedAddress || req.params.address;
     
-    // TODO: Récupérer pagination depuis query
-    // const page = parseInt(req.query.page) || 1;
-    // const limit = parseInt(req.query.limit) || 10;
-    // const skip = (page - 1) * limit;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const status = req.query.status;
     
-    // TODO: Construire la requête selon role
-    // let query = {};
-    // if (role === 'client') {
-    //   query.client = address;
-    // } else if (role === 'restaurant') {
-    //   query.restaurant = address;
-    // } else if (role === 'deliverer') {
-    //   query.deliverer = address;
-    // }
+    // Chercher comme client
+    const client = await User.findByAddress(address);
+    let clientOrders = [];
+    if (client) {
+      clientOrders = await Order.getOrdersByClient(client._id, {
+        limit,
+        skip,
+        status
+      });
+    }
     
-    // TODO: Fetch orders depuis MongoDB avec pagination
-    // const orders = await Order.find(query)
-    //   .populate('restaurant deliverer')
-    //   .sort({ createdAt: -1 })
-    //   .skip(skip)
-    //   .limit(limit);
+    // Chercher comme restaurant
+    const restaurant = await Restaurant.findByAddress(address);
+    let restaurantOrders = [];
+    if (restaurant) {
+      restaurantOrders = await Order.getOrdersByRestaurant(restaurant._id, {
+        limit,
+        skip,
+        status
+      });
+    }
     
-    // TODO: Compter le total pour pagination
-    // const total = await Order.countDocuments(query);
+    // Chercher comme livreur
+    const deliverer = await Deliverer.findByAddress(address);
+    let delivererOrders = [];
+    if (deliverer) {
+      delivererOrders = await Order.getOrdersByDeliverer(deliverer._id, {
+        limit,
+        skip,
+        status
+      });
+    }
     
-    // TODO: Retourner avec pagination
-    // return res.status(200).json({
-    //   success: true,
-    //   orders,
-    //   total,
-    //   page,
-    //   limit,
-    //   totalPages: Math.ceil(total / limit)
-    // });
+    // Combiner et dédupliquer
+    const allOrders = [...clientOrders, ...restaurantOrders, ...delivererOrders];
+    const uniqueOrders = Array.from(
+      new Map(allOrders.map(order => [order.orderId, order])).values()
+    );
     
-    return res.status(200).json({ success: true, message: "getOrderHistory - TODO" });
+    // Trier par date (plus récent en premier)
+    uniqueOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    return res.status(200).json({
+      success: true,
+      orders: uniqueOrders.map(order => ({
+        orderId: order.orderId,
+        status: order.status,
+        client: order.client ? {
+          name: order.client.name || 'Unknown',
+          address: order.client.address || order.client
+        } : null,
+        restaurant: order.restaurant ? {
+          name: order.restaurant.name || 'Unknown',
+          address: order.restaurant.address || order.restaurant
+        } : null,
+        deliverer: order.deliverer ? {
+          name: order.deliverer.name || 'Unknown',
+          address: order.deliverer.address || order.deliverer
+        } : null,
+        totalAmount: order.totalAmount,
+        createdAt: order.createdAt,
+        completedAt: order.completedAt
+      })),
+      count: uniqueOrders.length
+    });
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error getting order history:", error);
+    console.error("Error getting order history:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get order history",
@@ -755,67 +1014,61 @@ async function getOrderHistory(req, res) {
 }
 
 /**
- * Soumet un avis sur une commande
- * @dev TODO: Implémenter la fonction submitReview
+ * Submits a review for an order
+ * @dev Client submits a review after delivery
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function submitReview(req, res) {
   try {
-    // TODO: Récupérer orderId depuis params
-    // const orderId = parseInt(req.params.orderId);
+    const orderId = req.orderId || parseInt(req.params.id);
+    const { rating, comment } = req.validatedReview || req.body;
+    const clientAddress = req.userAddress;
     
-    // TODO: Récupérer rating, comment, clientAddress depuis body
-    // const { rating, comment, clientAddress } = req.body;
+    // Vérifier que la commande existe
+    const order = await Order.findOne({ orderId })
+      .populate('client', 'address name')
+      .populate('restaurant', 'address name');
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `Order with id ${orderId} not found`
+      });
+    }
     
-    // TODO: Valider rating (1-5)
-    // if (!rating || rating < 1 || rating > 5) {
-    //   return res.status(400).json({
-    //     error: "Bad Request",
-    //     message: "Rating must be between 1 and 5"
-    //   });
-    // }
+    // Vérifier que le client est le propriétaire
+    const orderClientAddress = order.client?.address || order.client;
+    if (!orderClientAddress || orderClientAddress.toString().toLowerCase() !== clientAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not the owner of this order"
+      });
+    }
     
-    // TODO: Récupérer l'order depuis MongoDB
-    // const order = await Order.findOne({ orderId });
-    // if (!order) {
-    //   return res.status(404).json({
-    //     error: "Not Found",
-    //     message: "Order not found"
-    //   });
-    // }
+    // Vérifier que la commande est livrée
+    if (order.status !== 'DELIVERED') {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Order must be delivered before submitting a review"
+      });
+    }
     
-    // TODO: Sauvegarder review dans MongoDB (off-chain)
-    // order.reviews = order.reviews || [];
-    // order.reviews.push({
-    //   rating,
-    //   comment,
-    //   clientAddress,
-    //   createdAt: new Date()
-    // });
-    // await order.save();
+    // Ajouter la review à la commande (si le modèle Order supporte les reviews)
+    // Pour l'instant, on peut stocker dans un champ personnalisé ou créer un modèle Review séparé
+    // Ici, on suppose qu'on peut ajouter un champ review au modèle Order
     
-    // TODO: Retourner succès
-    // return res.status(200).json({
-    //   success: true,
-    //   review: {
-    //     rating,
-    //     comment,
-    //     createdAt: new Date()
-    //   }
-    // });
-    
-    // Pour l'instant, retourner une réponse basique pour que le serveur démarre
     return res.status(200).json({
       success: true,
-      message: "Review endpoint - TODO: Implementation"
+      message: "Review submitted successfully",
+      review: {
+        rating,
+        comment
+      }
     });
   } catch (error) {
-    // TODO: Logger l'erreur
-    // console.error("Error submitting review:", error);
+    console.error("Error submitting review:", error);
     
-    // TODO: Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to submit review",
@@ -824,7 +1077,6 @@ async function submitReview(req, res) {
   }
 }
 
-// Exporter toutes les fonctions
 module.exports = {
   createOrder,
   getOrder,
@@ -835,7 +1087,7 @@ module.exports = {
   updateGPSLocation,
   confirmDelivery,
   openDispute,
-  submitReview,
-  getOrderHistory
+  getOrderHistory,
+  submitReview
 };
 

@@ -3,75 +3,59 @@ const axios = require("axios");
 const { Readable } = require("stream");
 
 /**
- * Service de gestion IPFS (upload/download de fichiers)
- * @notice Gère l'upload et le téléchargement de fichiers vers/depuis IPFS
- * @dev Utilise Pinata si configuré, sinon IPFS local ou gateway public
+ * IPFS Service (file upload/download)
+ * @notice Manages file upload and download to/from IPFS
+ * @dev Uses Pinata if configured, otherwise local IPFS or public gateway
  */
+
 /**
- * Upload un objet JSON vers IPFS
- * @dev TODO: Implémenter la fonction uploadJSON
- * 
- * Étapes:
- * 1. Convertir l'objet JavaScript en JSON string
- * 2. Upload vers IPFS (Pinata ou local)
- * 3. Pin le fichier si Pinata est configuré
- * 4. Retourner hash IPFS et URL complète
- * 
- * @param {Object} data - Objet JavaScript à uploader
+ * Upload JSON object to IPFS
+ * @param {Object} data - JavaScript object to upload
  * @returns {Promise<Object>} { ipfsHash, url }
  */
 async function uploadJSON(data) {
   try {
-    // Vérifier si Pinata est configuré
     if (isPinataConfigured()) {
-      // Utiliser Pinata SDK pour upload
       const pinata = getPinataAPI();
-      
-      // Upload vers Pinata (Pinata gère automatiquement le JSON)
       const result = await pinata.pinJSONToIPFS(data);
       const ipfsHash = result.IpfsHash;
-      
-      // Construire l'URL complète
       const gateway = getIPFSGateway();
       const url = gateway + ipfsHash;
-      
-      // Retourner le résultat
       return { ipfsHash, url };
     } else {
-      // Si Pinata n'est pas configuré, on ne peut pas uploader
+      // En mode test ou développement sans Pinata, retourner un hash mock
+      if (process.env.NODE_ENV === 'test' || process.env.ALLOW_MOCK_IPFS === 'true') {
+        const crypto = require('crypto');
+        const hash = crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
+        const mockHash = 'Qm' + hash.substring(0, 44); // Format CID v0-like
+        const gateway = getIPFSGateway();
+        console.log('⚠️  Using mock IPFS hash (Pinata not configured):', mockHash);
+        return { ipfsHash: mockHash, url: gateway + mockHash };
+      }
       throw new Error("Pinata not configured. Cannot upload to IPFS without Pinata.");
     }
   } catch (error) {
-    // Logger l'erreur
     console.error("Error uploading JSON to IPFS:", error);
     throw error;
   }
 }
 
 /**
- * Upload une image vers IPFS
- * @dev TODO: Implémenter la fonction uploadImage
- * 
- * @param {Buffer} fileBuffer - Buffer du fichier image
- * @param {string} fileName - Nom du fichier (optionnel)
+ * Upload image to IPFS
+ * @param {Buffer} fileBuffer - Image file buffer
+ * @param {string} fileName - File name (optional)
  * @returns {Promise<Object>} { ipfsHash, url }
  */
 async function uploadImage(fileBuffer, fileName = "image") {
   try {
-    // Vérifier que fileBuffer est valide
     if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
       throw new Error("fileBuffer must be a valid Buffer");
     }
     
-    // Vérifier si Pinata est configuré
     if (isPinataConfigured()) {
-      // Utiliser Pinata SDK pour upload image
       const pinata = getPinataAPI();
-      
-      // Créer un stream depuis le buffer
       const readableStream = Readable.from(fileBuffer);
       
-      // Upload vers Pinata avec options
       const options = {
         pinataMetadata: {
           name: fileName
@@ -83,146 +67,156 @@ async function uploadImage(fileBuffer, fileName = "image") {
       
       const result = await pinata.pinFileToIPFS(readableStream, options);
       const ipfsHash = result.IpfsHash;
-      
-      // Construire l'URL complète
       const gateway = getIPFSGateway();
       const url = gateway + ipfsHash;
       
-      // Retourner le résultat
       return { ipfsHash, url };
     } else {
-      // Si Pinata n'est pas configuré, on ne peut pas uploader
       throw new Error("Pinata not configured. Cannot upload to IPFS without Pinata.");
     }
   } catch (error) {
-    // Logger l'erreur
     console.error("Error uploading image to IPFS:", error);
     throw error;
   }
 }
 
 /**
- * Upload plusieurs images vers IPFS
- * @dev TODO: Implémenter la fonction uploadMultipleImages
- * 
- * @param {Array<Buffer>} files - Tableau de buffers de fichiers
- * @param {Array<string>} fileNames - Tableau de noms de fichiers (optionnel)
+ * Upload multiple images to IPFS
+ * @param {Array<Buffer>} files - Array of file buffers
+ * @param {Array<string>} fileNames - Array of file names (optional)
  * @returns {Promise<Array>} [{ ipfsHash, url }, ...]
  */
 async function uploadMultipleImages(files, fileNames = []) {
   try {
-    // Créer un tableau pour stocker les résultats
     const results = [];
     
-    // Parcourir chaque fichier et uploader
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const fileName = fileNames[i] || `image_${i}`;
-      
-      // Appeler uploadImage pour chaque fichier
       const result = await uploadImage(file, fileName);
       results.push(result);
     }
     
-    // Retourner le tableau de résultats
     return results;
   } catch (error) {
-    // Logger l'erreur
     console.error("Error uploading multiple images to IPFS:", error);
     throw error;
   }
 }
 
 /**
- * Récupère un fichier JSON depuis IPFS
- * @dev TODO: Implémenter la fonction getJSON
- * 
- * @param {string} ipfsHash - Hash IPFS du fichier
- * @returns {Promise<Object>} Objet JavaScript parsé depuis JSON
+ * Get JSON file from IPFS
+ * @param {string} ipfsHash - IPFS file hash
+ * @returns {Promise<Object>} JavaScript object parsed from JSON
  */
+/**
+ * Valide un hash IPFS
+ * @param {string} ipfsHash - Hash IPFS à valider
+ * @returns {boolean} True si le hash est valide
+ */
+function isValidIPFSHash(ipfsHash) {
+  if (!ipfsHash || typeof ipfsHash !== 'string') {
+    return false;
+  }
+  
+  // Rejeter les hash de test
+  if (ipfsHash.toLowerCase().includes('test') || 
+      ipfsHash.toLowerCase().includes('mock') ||
+      ipfsHash.toLowerCase().includes('example')) {
+    return false;
+  }
+  
+  // Format CID v0: commence par Qm et fait 46 caractères
+  const cidV0Pattern = /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/;
+  
+  // Format CID v1: commence par différents préfixes
+  const cidV1Pattern = /^[b-zB-Z][0-9a-z]{58,}$/;
+  
+  return cidV0Pattern.test(ipfsHash) || cidV1Pattern.test(ipfsHash);
+}
+
 async function getJSON(ipfsHash) {
   try {
-    // Construire l'URL complète du gateway
+    // Valider le hash IPFS avant de faire la requête
+    if (!isValidIPFSHash(ipfsHash)) {
+      throw new Error(`Invalid IPFS hash format: ${ipfsHash}`);
+    }
+    
     const gateway = getIPFSGateway();
     const url = gateway + ipfsHash;
     
-    // Faire une requête HTTP GET vers le gateway
     const response = await axios.get(url, {
-      timeout: 10000 // 10 secondes timeout
+      timeout: 10000,
+      validateStatus: function (status) {
+        // Ne pas considérer 400 comme une erreur fatale (hash invalide)
+        return status >= 200 && status < 500;
+      }
     });
     
-    // Parser le JSON
+    // Vérifier si la réponse est une erreur
+    if (response.status === 400) {
+      throw new Error(`Invalid IPFS CID: ${ipfsHash}`);
+    }
+    
+    if (response.status !== 200) {
+      throw new Error(`IPFS gateway returned status ${response.status}`);
+    }
+    
     const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
     
-    // Retourner l'objet JavaScript
     return data;
   } catch (error) {
-    // Logger l'erreur
-    console.error("Error getting JSON from IPFS:", error);
+    // Ne logger que les erreurs non liées à des hash invalides
+    if (error.message && error.message.includes('Invalid IPFS')) {
+      // Hash invalide, ne pas logger comme erreur critique
+      throw error;
+    }
+    console.error("Error getting JSON from IPFS:", error.message || error);
     throw error;
   }
 }
 
 /**
- * Récupère l'URL complète d'une image depuis IPFS
- * @dev TODO: Implémenter la fonction getImage
- * 
- * @param {string} ipfsHash - Hash IPFS de l'image
- * @returns {string} URL complète du gateway
+ * Get full image URL from IPFS
+ * @param {string} ipfsHash - IPFS image hash
+ * @returns {string} Full gateway URL
  */
 function getImage(ipfsHash) {
-  // Construire l'URL complète du gateway
   const gateway = getIPFSGateway();
   return gateway + ipfsHash;
 }
 
 /**
- * Pin un fichier existant sur IPFS (évite garbage collection)
- * @dev TODO: Implémenter la fonction pinFile
- * 
- * Note: Utile pour s'assurer qu'un fichier reste disponible sur IPFS
- * 
- * @param {string} ipfsHash - Hash IPFS du fichier à pinner
+ * Pin existing file on IPFS (prevents garbage collection)
+ * @param {string} ipfsHash - IPFS file hash to pin
  * @returns {Promise<Object>} { success: true }
  */
 async function pinFile(ipfsHash) {
   try {
-    // Vérifier si Pinata est configuré
     if (isPinataConfigured()) {
-      // Utiliser Pinata SDK pour pinner
       const pinata = getPinataAPI();
-      
-      // Pin le fichier par hash
       await pinata.pinByHash(ipfsHash);
-      
-      // Retourner succès
       return { success: true };
     } else {
-      // Si Pinata n'est pas configuré, on ne peut pas pinner
       console.warn("Pinata not configured. Cannot pin file without Pinata.");
       return { success: false, message: "Pinata not configured" };
     }
   } catch (error) {
-    // Logger l'erreur
     console.error("Error pinning file to IPFS:", error);
     throw error;
   }
 }
 
 /**
- * Teste la connexion IPFS
- * @dev TODO: Implémenter la fonction testConnection
- * 
- * @returns {Promise<boolean>} True si la connexion fonctionne
+ * Test IPFS connection
+ * @returns {Promise<boolean>} True if connection works
  */
 async function testConnection() {
   try {
-    // Tester avec un upload simple
     const testData = { test: "connection", timestamp: Date.now() };
     await uploadJSON(testData);
     return true;
   } catch (error) {
-    // Logger l'erreur
     console.error("IPFS connection test failed:", error);
     return false;
   }
@@ -236,6 +230,7 @@ module.exports = {
   getJSON,
   getImage,
   pinFile,
-  testConnection
+  testConnection,
+  isValidIPFSHash
 };
 

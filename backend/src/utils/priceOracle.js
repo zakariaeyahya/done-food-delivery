@@ -14,7 +14,6 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Récupère le prix actuel de MATIC en USD
- * @dev TODO: Implémenter la fonction getMATICPrice
  * 
  * Sources possibles:
  * - CoinGecko API (si COINGECKO_API_KEY fourni)
@@ -112,7 +111,6 @@ async function getMATICPrice() {
 
 /**
  * Convertit un montant USD en MATIC (wei)
- * @dev TODO: Implémenter la fonction convertUSDtoMATIC
  * 
  * Étapes:
  * 1. Récupérer le prix MATIC actuel
@@ -151,7 +149,6 @@ async function convertUSDtoMATIC(usdAmount) {
 
 /**
  * Convertit un montant MATIC (wei) en USD
- * @dev TODO: Implémenter la fonction convertMATICtoUSD
  * 
  * Étapes:
  * 1. Récupérer le prix MATIC actuel
@@ -204,7 +201,6 @@ async function convertMATICtoUSD(maticAmount) {
 
 /**
  * Formate un montant MATIC en string lisible
- * @dev TODO: Implémenter la fonction formatMATIC
  * 
  * @param {ethers.BigNumber|string} maticWei - Montant en wei
  * @returns {string} Montant formaté (ex: "1.5 MATIC")
@@ -229,7 +225,6 @@ function formatMATIC(maticWei) {
 
 /**
  * Formate un montant USD en string lisible
- * @dev TODO: Implémenter la fonction formatUSD
  * 
  * @param {number} usdAmount - Montant en USD
  * @returns {string} Montant formaté (ex: "$1.50")

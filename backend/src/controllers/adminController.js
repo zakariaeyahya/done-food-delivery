@@ -1,47 +1,32 @@
-// Importer les modèles MongoDB
 const User = require("../models/User");
 const Restaurant = require("../models/Restaurant");
 const Deliverer = require("../models/Deliverer");
 const Order = require("../models/Order");
 
-// Importer le service blockchain (pour les parties blockchain)
-// const blockchainService = require("../services/blockchainService");
-
 /**
- * Controller pour gérer l'administration de la plateforme
- * @notice Gère les statistiques, litiges et listes d'utilisateurs
- * @dev Utilise MongoDB pour les données off-chain et blockchainService pour les données on-chain
+ * Controller for managing platform administration
+ * @notice Manages statistics, disputes and user lists
+ * @dev Uses MongoDB for off-chain data and blockchainService for on-chain data
  */
 
 /**
- * Récupère les statistiques globales de la plateforme
- * @dev Combine données MongoDB et blockchain
+ * Gets global platform statistics
+ * @dev Combines MongoDB and blockchain data
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getStats(req, res) {
   try {
-    // Aggrégations MongoDB
     const totalOrders = await Order.countDocuments();
     const totalUsers = await User.countDocuments();
     const totalRestaurants = await Restaurant.countDocuments();
     const totalDeliverers = await Deliverer.countDocuments();
     
-    // ⏳ PSEUDOCODE BLOCKCHAIN - À implémenter après déploiement smart contracts
-    // Calcul GMV depuis blockchain events PaymentSplit
-    // const gmv = await blockchainService.getTotalGMV();
-    // Pour l'instant, calcul depuis MongoDB
     const deliveredOrders = await Order.find({ status: 'DELIVERED' });
     const gmv = deliveredOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-    
-    // ⏳ PSEUDOCODE BLOCKCHAIN - À implémenter après déploiement smart contracts
-    // Calcul revenus plateforme (10% de toutes les commandes)
-    // const platformRevenue = await blockchainService.getPlatformRevenue();
-    // Pour l'instant, calcul depuis MongoDB
     const platformRevenue = deliveredOrders.reduce((sum, order) => sum + (order.platformFee || 0), 0);
     
-    // Temps moyen livraison depuis MongoDB
     const avgDeliveryTimeResult = await Order.aggregate([
       { $match: { status: 'DELIVERED', completedAt: { $exists: true }, createdAt: { $exists: true } } },
       { $project: { 
@@ -50,9 +35,8 @@ async function getStats(req, res) {
       { $group: { _id: null, avg: { $avg: '$duration' }}}
     ]);
     const avgDeliveryTime = avgDeliveryTimeResult[0]?.avg || 0;
-    const avgDeliveryTimeMinutes = Math.round(avgDeliveryTime / (1000 * 60)); // Convertir en minutes
+    const avgDeliveryTimeMinutes = Math.round(avgDeliveryTime / (1000 * 60));
     
-    // Satisfaction moyenne depuis reviews
     const satisfactionResult = await Order.aggregate([
       { $match: { review: { $exists: true }, 'review.rating': { $exists: true } }},
       { $group: { _id: null, avg: { $avg: '$review.rating' }}}
@@ -84,17 +68,16 @@ async function getStats(req, res) {
 }
 
 /**
- * Récupère la liste de tous les litiges
- * @dev Fetch depuis MongoDB et enrichit avec votes blockchain si disponible
+ * Gets list of all disputes
+ * @dev Fetches from MongoDB and enriches with blockchain votes if available
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getDisputes(req, res) {
   try {
-    const { status } = req.query; // Optionnel: VOTING, RESOLVED, etc.
+    const { status } = req.query;
     
-    // Fetch disputes depuis MongoDB
     const query = { disputed: true };
     if (status) {
       query.status = status;
@@ -107,12 +90,6 @@ async function getDisputes(req, res) {
       .sort({ createdAt: -1 })
       .lean();
     
-    // ⏳ PSEUDOCODE BLOCKCHAIN - À implémenter après déploiement DoneArbitration
-    // Enrichir avec votes depuis blockchain (si DoneArbitration existe)
-    // for (let dispute of disputes) {
-    //   dispute.votes = await blockchainService.getDisputeVotes(dispute.orderId);
-    // }
-    // Pour l'instant, votes vides
     const disputesWithVotes = disputes.map(dispute => ({
       ...dispute,
       votes: dispute.votes || { client: 0, restaurant: 0, deliverer: 0 }
@@ -132,18 +109,17 @@ async function getDisputes(req, res) {
 }
 
 /**
- * Résout manuellement un litige par admin
- * @dev Appelle smart contract pour résoudre et update MongoDB
+ * Manually resolves a dispute by admin
+ * @dev Calls smart contract to resolve and updates MongoDB
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function resolveDispute(req, res) {
   try {
     const disputeId = req.params.id;
-    const { winner } = req.body; // CLIENT, RESTAURANT, ou DELIVERER
+    const { winner } = req.body;
     
-    // Vérifier que winner est valide
     const validWinners = ['CLIENT', 'RESTAURANT', 'DELIVERER'];
     if (!validWinners.includes(winner)) {
       return res.status(400).json({
@@ -152,7 +128,6 @@ async function resolveDispute(req, res) {
       });
     }
     
-    // Vérifier dispute existe
     const order = await Order.findOne({ orderId: disputeId, disputed: true });
     if (!order) {
       return res.status(404).json({
@@ -161,13 +136,8 @@ async function resolveDispute(req, res) {
       });
     }
     
-    // ⏳ PSEUDOCODE BLOCKCHAIN - À implémenter après déploiement smart contracts
-    // Appeler smart contract pour résoudre
-    // const txHash = await blockchainService.resolveDispute(disputeId, winner);
-    // Pour l'instant, mock
-    const txHash = "0x" + "0".repeat(64); // Mock transaction hash
+    const txHash = "0x" + "0".repeat(64);
     
-    // Update MongoDB
     order.disputed = false;
     order.status = 'RESOLVED';
     order.disputeResolution = winner;
@@ -192,19 +162,18 @@ async function resolveDispute(req, res) {
 }
 
 /**
- * Récupère la liste de tous les utilisateurs (clients)
- * @dev Fetch depuis MongoDB et enrichit avec données blockchain
+ * Gets list of all users (clients)
+ * @dev Fetches from MongoDB and enriches with blockchain data
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getAllUsers(req, res) {
   try {
-    const { status } = req.query; // Optionnel: 'active'
+    const { status } = req.query;
     
     const query = {};
     if (status === 'active') {
-      // Utilisateurs avec commandes récentes (30 derniers jours)
       const recentDate = new Date();
       recentDate.setDate(recentDate.getDate() - 30);
       
@@ -219,20 +188,10 @@ async function getAllUsers(req, res) {
       .select('address name email totalOrders')
       .lean();
     
-    // ⏳ PSEUDOCODE BLOCKCHAIN - À implémenter après déploiement smart contracts
-    // Enrichir avec données blockchain
-    // for (let user of users) {
-    //   user.totalSpent = await blockchainService.getUserTotalSpent(user.address);
-    //   user.doneBalance = await blockchainService.getTokenBalance(user.address);
-    // }
-    // Pour l'instant, calcul depuis MongoDB
     const usersWithData = await Promise.all(users.map(async (user) => {
       const userOrders = await Order.find({ client: user._id, status: 'DELIVERED' });
       const totalSpent = userOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-      
-      // ⏳ PSEUDOCODE BLOCKCHAIN
-      // const doneBalance = await blockchainService.getTokenBalance(user.address);
-      const doneBalance = 0; // Mock pour l'instant
+      const doneBalance = 0;
       
       return {
         ...user,
@@ -256,15 +215,15 @@ async function getAllUsers(req, res) {
 }
 
 /**
- * Récupère la liste de tous les restaurants
- * @dev Fetch depuis MongoDB et enrichit avec revenus blockchain
+ * Gets list of all restaurants
+ * @dev Fetches from MongoDB and enriches with blockchain revenue
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getAllRestaurants(req, res) {
   try {
-    const { cuisine } = req.query; // Optionnel
+    const { cuisine } = req.query;
     
     const query = {};
     if (cuisine) {
@@ -275,21 +234,14 @@ async function getAllRestaurants(req, res) {
       .select('address name cuisine totalOrders rating')
       .lean();
     
-    // ⏳ PSEUDOCODE BLOCKCHAIN - À implémenter après déploiement smart contracts
-    // Enrichir avec revenus blockchain
-    // for (let restaurant of restaurants) {
-    //   restaurant.revenue = await blockchainService.getRestaurantRevenue(restaurant.address);
-    // }
-    // Pour l'instant, calcul depuis MongoDB
     const restaurantsWithRevenue = await Promise.all(restaurants.map(async (restaurant) => {
       const restaurantOrders = await Order.find({ 
         restaurant: restaurant._id, 
         status: 'DELIVERED' 
       });
       
-      // Calculer revenus (70% de chaque commande)
       const revenue = restaurantOrders.reduce((sum, order) => {
-        const restaurantAmount = (order.totalAmount || 0) * 0.7; // 70% pour restaurant
+        const restaurantAmount = (order.totalAmount || 0) * 0.7;
         return sum + restaurantAmount;
       }, 0);
       
@@ -314,15 +266,15 @@ async function getAllRestaurants(req, res) {
 }
 
 /**
- * Récupère la liste de tous les livreurs
- * @dev Fetch depuis MongoDB et enrichit avec earnings blockchain
+ * Gets list of all deliverers
+ * @dev Fetches from MongoDB and enriches with blockchain earnings
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getAllDeliverers(req, res) {
   try {
-    const { staked } = req.query; // Optionnel: 'true' ou 'false'
+    const { staked } = req.query;
     
     const query = {};
     if (staked === 'true') {
@@ -335,21 +287,14 @@ async function getAllDeliverers(req, res) {
       .select('address name vehicleType stakedAmount totalDeliveries rating')
       .lean();
     
-    // ⏳ PSEUDOCODE BLOCKCHAIN - À implémenter après déploiement smart contracts
-    // Enrichir avec earnings blockchain
-    // for (let deliverer of deliverers) {
-    //   deliverer.earnings = await blockchainService.getDelivererEarnings(deliverer.address);
-    // }
-    // Pour l'instant, calcul depuis MongoDB
     const deliverersWithEarnings = await Promise.all(deliverers.map(async (deliverer) => {
       const delivererOrders = await Order.find({ 
         deliverer: deliverer._id, 
         status: 'DELIVERED' 
       });
       
-      // Calculer earnings (20% de chaque commande)
       const earnings = delivererOrders.reduce((sum, order) => {
-        const delivererAmount = (order.totalAmount || 0) * 0.2; // 20% pour livreur
+        const delivererAmount = (order.totalAmount || 0) * 0.2;
         return sum + delivererAmount;
       }, 0);
       
@@ -373,7 +318,6 @@ async function getAllDeliverers(req, res) {
   }
 }
 
-// Exporter toutes les fonctions
 module.exports = {
   getStats,
   getDisputes,

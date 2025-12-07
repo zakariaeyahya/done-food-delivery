@@ -3,8 +3,110 @@
  * DONE Food Delivery - Tests API Complets
  * ============================================================================
  * 
- * Ce fichier contient tous les tests pour les 62 endpoints de l'API
- * Basé sur la documentation API_DOCUMENTATION.md
+ * Ce fichier contient tous les tests pour TOUS les endpoints de l'API
+ * Basé sur les routes définies dans backend/src/routes/
+ * 
+ * ✅ ENDPOINTS TESTÉS (Tous les endpoints existants):
+ * 
+ * 📋 Health Check (1):
+ *    - GET /health
+ * 
+ * 👤 Users (5):
+ *    - POST /api/users/register
+ *    - GET /api/users/:address
+ *    - PUT /api/users/:address
+ *    - GET /api/users/:address/orders
+ *    - GET /api/users/:address/tokens
+ * 
+ * 🍕 Restaurants (13):
+ *    - POST /api/restaurants/register
+ *    - GET /api/restaurants
+ *    - GET /api/restaurants?cuisine=Italian
+ *    - GET /api/restaurants/:id
+ *    - PUT /api/restaurants/:id
+ *    - GET /api/restaurants/:id/orders
+ *    - GET /api/restaurants/:id/analytics
+ *    - PUT /api/restaurants/:id/menu
+ *    - POST /api/restaurants/:id/menu/item
+ *    - PUT /api/restaurants/:id/menu/item/:itemId
+ *    - DELETE /api/restaurants/:id/menu/item/:itemId
+ *    - GET /api/restaurants/:id/earnings
+ *    - POST /api/restaurants/:id/withdraw
+ * 
+ * 🚴 Deliverers (8):
+ *    - POST /api/deliverers/register
+ *    - GET /api/deliverers/available
+ *    - GET /api/deliverers/:address
+ *    - PUT /api/deliverers/:address/status
+ *    - POST /api/deliverers/stake
+ *    - POST /api/deliverers/unstake
+ *    - GET /api/deliverers/:address/orders
+ *    - GET /api/deliverers/:address/earnings
+ * 
+ * 📦 Orders (11):
+ *    - POST /api/orders/create
+ *    - GET /api/orders/:id
+ *    - GET /api/orders/client/:address
+ *    - GET /api/orders/client/:address?status=CREATED
+ *    - POST /api/orders/:id/confirm-preparation
+ *    - POST /api/orders/:id/assign-deliverer
+ *    - POST /api/orders/:id/confirm-pickup
+ *    - POST /api/orders/:id/update-gps
+ *    - POST /api/orders/:id/confirm-delivery
+ *    - POST /api/orders/:id/dispute
+ *    - POST /api/orders/:id/review
+ *    - GET /api/orders/history/:address
+ * 
+ * 🔐 Admin (7):
+ *    - GET /api/admin/stats
+ *    - GET /api/admin/disputes
+ *    - GET /api/admin/disputes?status=VOTING
+ *    - POST /api/admin/resolve-dispute/:id
+ *    - GET /api/admin/users
+ *    - GET /api/admin/restaurants
+ *    - GET /api/admin/deliverers
+ *    - POST /api/admin/deliverers/:address/slash
+ * 
+ * 📊 Analytics (5):
+ *    - GET /api/analytics/dashboard
+ *    - GET /api/analytics/orders
+ *    - GET /api/analytics/orders?period=week
+ *    - GET /api/analytics/revenue
+ *    - GET /api/analytics/users
+ * 
+ * 🔮 Oracles (5) - Optionnel (Sprint 6):
+ *    - GET /api/oracles/price
+ *    - GET /api/oracles/price?pair=ETH/USD
+ *    - POST /api/oracles/convert
+ *    - POST /api/oracles/gps/verify
+ *    - GET /api/oracles/weather
+ * 
+ * ⚖️ Disputes (3) - Optionnel (Sprint 6):
+ *    - POST /api/disputes/:id/vote
+ *    - GET /api/disputes/:id/votes
+ *    - POST /api/disputes/:id/resolve
+ * 
+ * 🪙 Tokens (3) - Optionnel:
+ *    - GET /api/tokens/rate
+ *    - POST /api/tokens/burn
+ *    - POST /api/tokens/use-discount
+ * 
+ * 💳 Payments (2) - Optionnel (Stripe):
+ *    - POST /api/payments/stripe/create-intent
+ *    - POST /api/payments/stripe/confirm
+ * 
+ * 🔒 Tests Sécurité & Validation:
+ *    - Protection injection NoSQL
+ *    - Protection XSS
+ *    - Validation adresses Ethereum
+ *    - Validation emails
+ *    - Rate limiting (optionnel)
+ * 
+ * ⚡ Tests Performance:
+ *    - Temps de réponse /health
+ *    - Temps de réponse /restaurants
+ * 
+ * Total: ~62+ endpoints testés
  * 
  * Exécution : npm test ou node src/tests/api-tests.js
  */
@@ -293,6 +395,29 @@ async function testRestaurants() {
     };
     const res = await api.post(`/restaurants/${TEST_DATA.mongoId}/menu/item`, itemData, getAuthHeaders(TEST_DATA.restaurantAddress));
     if (![201, 200, 401, 403, 404, 400].includes(res.status)) {
+      throw new Error(`Status inattendu: ${res.status}`);
+    }
+  });
+
+  // PUT /api/restaurants/:id/menu/item/:itemId
+  await runTest('PUT /api/restaurants/:id/menu/item/:itemId - Modifier item menu (avec auth)', async () => {
+    const updateItemData = {
+      name: 'Updated Pizza',
+      price: 20.00,
+      description: 'Updated description',
+      category: 'Pizza',
+      available: true
+    };
+    const res = await api.put(`/restaurants/${TEST_DATA.mongoId}/menu/item/item123`, updateItemData, getAuthHeaders(TEST_DATA.restaurantAddress));
+    if (![200, 401, 403, 404, 400].includes(res.status)) {
+      throw new Error(`Status inattendu: ${res.status}`);
+    }
+  });
+
+  // DELETE /api/restaurants/:id/menu/item/:itemId
+  await runTest('DELETE /api/restaurants/:id/menu/item/:itemId - Supprimer item menu (avec auth)', async () => {
+    const res = await api.delete(`/restaurants/${TEST_DATA.mongoId}/menu/item/item123`, getAuthHeaders(TEST_DATA.restaurantAddress));
+    if (![200, 204, 401, 403, 404, 400].includes(res.status)) {
       throw new Error(`Status inattendu: ${res.status}`);
     }
   });
@@ -1022,7 +1147,8 @@ async function checkServerAvailable() {
 async function runAllTests() {
   console.log('╔══════════════════════════════════════════════════════════════╗');
   console.log('║     DONE Food Delivery - Tests API Complets                  ║');
-  console.log('║     Basé sur API_DOCUMENTATION.md (62 endpoints)             ║');
+  console.log('║     Tests de TOUS les endpoints existants                    ║');
+  console.log('║     Basé sur les routes définies dans backend/src/routes/     ║');
   console.log('╚══════════════════════════════════════════════════════════════╝');
   console.log(`\n🌐 URL de base: ${BASE_URL}`);
   console.log(`📅 Date: ${new Date().toISOString()}\n`);

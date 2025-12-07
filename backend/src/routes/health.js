@@ -50,69 +50,77 @@
  * - infrastructure/README.md - Section "Health Checks"
  */
 
-/**
- * ========================================
- * PSEUDO-CODE - MESURE DE PERFORMANCE
- * ========================================
- *
- * const express = require('express');
- * const router = express.Router();
- * const mongoose = require('mongoose');
- *
- * router.get('/health', async (req, res) => {
- *   // 1. Créer objet health check
- *   const healthCheck = {
- *     uptime: process.uptime(), // ← MESURE UPTIME
- *     message: 'OK',
- *     timestamp: Date.now(),
- *     checks: {
- *       database: 'unknown',
- *       blockchain: 'unknown',
- *       ipfs: 'unknown'
- *     }
- *   };
- *
- *   try {
- *     // 2. Check MongoDB (MESURE LATENCE)
- *     const dbCheckStart = Date.now();
- *     if (mongoose.connection.readyState === 1) {
- *       await mongoose.connection.db.admin().ping();
- *       const dbLatency = Date.now() - dbCheckStart;
- *       healthCheck.checks.database = `connected (${dbLatency}ms)`;
- *     } else {
- *       healthCheck.checks.database = 'disconnected';
- *       throw new Error('Database not connected');
- *     }
- *
- *     // 3. Check Blockchain RPC (MESURE LATENCE)
- *     const rpcCheckStart = Date.now();
- *     const provider = require('../services/blockchainService').getProvider();
- *     await provider.getBlockNumber();
- *     const rpcLatency = Date.now() - rpcCheckStart;
- *     healthCheck.checks.blockchain = `connected (${rpcLatency}ms)`;
- *
- *     // 4. Check IPFS (MESURE LATENCE)
- *     const ipfsCheckStart = Date.now();
- *     const ipfsService = require('../services/ipfsService');
- *     await ipfsService.testConnection();
- *     const ipfsLatency = Date.now() - ipfsCheckStart;
- *     healthCheck.checks.ipfs = `connected (${ipfsLatency}ms)`;
- *
- *     // 5. Tout OK → 200
- *     res.status(200).json(healthCheck);
- *
- *   } catch (error) {
- *     // 6. Erreur → 503
- *     healthCheck.message = error.message;
- *     res.status(503).json(healthCheck);
- *   }
- * });
- *
- * module.exports = router;
- */
+const express = require('express');
+const router = express.Router();
+const mongoose = require('mongoose');
+const { getProvider } = require('../config/blockchain');
+const ipfsService = require('../services/ipfsService');
 
-// TODO: Implémenter GET /health endpoint
-// TODO: Check MongoDB connection
-// TODO: Check Blockchain RPC
-// TODO: Check IPFS
-// TODO: Return 200 si OK, 503 si problème
+router.get('/health', async (req, res) => {
+  // 1. Créer objet health check
+  const healthCheck = {
+    uptime: process.uptime(),
+    message: 'OK',
+    timestamp: Date.now(),
+    checks: {
+      database: 'unknown',
+      blockchain: 'unknown',
+      ipfs: 'unknown'
+    }
+  };
+
+  try {
+    // 2. Check MongoDB (MESURE LATENCE)
+    const dbCheckStart = Date.now();
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.connection.db.admin().ping();
+      const dbLatency = Date.now() - dbCheckStart;
+      healthCheck.checks.database = `connected (${dbLatency}ms)`;
+    } else {
+      healthCheck.checks.database = 'disconnected';
+      throw new Error('Database not connected');
+    }
+
+    // 3. Check Blockchain RPC (MESURE LATENCE)
+    const rpcCheckStart = Date.now();
+    try {
+      const provider = getProvider();
+      if (provider) {
+        await provider.getBlockNumber();
+        const rpcLatency = Date.now() - rpcCheckStart;
+        healthCheck.checks.blockchain = `connected (${rpcLatency}ms)`;
+      } else {
+        healthCheck.checks.blockchain = 'not initialized';
+        throw new Error('Blockchain provider not initialized');
+      }
+    } catch (rpcError) {
+      healthCheck.checks.blockchain = 'disconnected';
+      throw new Error(`Blockchain RPC failed: ${rpcError.message}`);
+    }
+
+    // 4. Check IPFS (MESURE LATENCE)
+    const ipfsCheckStart = Date.now();
+    try {
+      const ipfsConnected = await ipfsService.testConnection();
+      const ipfsLatency = Date.now() - ipfsCheckStart;
+      if (ipfsConnected) {
+        healthCheck.checks.ipfs = `connected (${ipfsLatency}ms)`;
+      } else {
+        healthCheck.checks.ipfs = 'not configured';
+      }
+    } catch (ipfsError) {
+      healthCheck.checks.ipfs = 'disconnected';
+      throw new Error(`IPFS connection failed: ${ipfsError.message}`);
+    }
+
+    // 5. Tout OK → 200
+    res.status(200).json(healthCheck);
+
+  } catch (error) {
+    // 6. Erreur → 503
+    healthCheck.message = error.message;
+    res.status(503).json(healthCheck);
+  }
+});
+
+module.exports = router;
