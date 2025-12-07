@@ -186,8 +186,12 @@ async function getOrder(req, res) {
   try {
     const orderId = req.orderId || parseInt(req.params.id);
     
-    // Récupérer depuis MongoDB
-    const order = await Order.findByOrderId(orderId);
+    // Récupérer depuis MongoDB avec populate
+    const order = await Order.findOne({ orderId })
+      .populate('client', 'address name email')
+      .populate('restaurant', 'address name')
+      .populate('deliverer', 'address name');
+    
     if (!order) {
       return res.status(404).json({
         error: "Not Found",
@@ -195,20 +199,52 @@ async function getOrder(req, res) {
       });
     }
     
-    // Récupérer depuis blockchain (si disponible)
+    // Récupérer depuis blockchain (si disponible) - avant les vérifications pour éviter les erreurs
     let blockchainOrder = null;
     try {
       blockchainOrder = await blockchainService.getOrder(orderId);
     } catch (blockchainError) {
+      // Erreur non-critique, continuer sans données blockchain
       console.warn("Could not fetch order from blockchain:", blockchainError.message);
     }
     
-    // Récupérer les détails IPFS
+    // Gérer les cas où client/restaurant peuvent être des strings (adresses) ou des objets peuplés
+    const orderClientAddress = order.client?.address || (typeof order.client === 'string' ? order.client : null);
+    const orderRestaurantAddress = order.restaurant?.address || (typeof order.restaurant === 'string' ? order.restaurant : null);
+    
+    // Si les adresses sont manquantes, essayer de les récupérer depuis la blockchain
+    if (!orderClientAddress || !orderRestaurantAddress) {
+      if (blockchainOrder) {
+        // Utiliser les données blockchain comme fallback
+        if (!orderClientAddress && blockchainOrder.client) {
+          order.client = { address: blockchainOrder.client, name: 'Unknown' };
+        }
+        if (!orderRestaurantAddress && blockchainOrder.restaurant) {
+          order.restaurant = { address: blockchainOrder.restaurant, name: 'Unknown' };
+        }
+      } else {
+        // Si ni MongoDB ni blockchain n'ont les données, retourner une erreur
+        return res.status(500).json({
+          error: "Internal Server Error",
+          message: "Order data is incomplete. Client or restaurant information missing."
+        });
+      }
+    }
+    
+    // Récupérer les détails IPFS (seulement si hash valide)
     let ipfsData = null;
-    try {
-      ipfsData = await ipfsService.getJSON(order.ipfsHash);
-    } catch (ipfsError) {
-      console.warn("Could not fetch IPFS data:", ipfsError.message);
+    if (order.ipfsHash) {
+      try {
+        // La validation est faite dans ipfsService.getJSON
+        ipfsData = await ipfsService.getJSON(order.ipfsHash);
+      } catch (ipfsError) {
+        // Ne logger que si ce n'est pas un hash invalide (hash de test, etc.)
+        if (!ipfsError.message || !ipfsError.message.includes('Invalid IPFS')) {
+          console.warn("Could not fetch IPFS data:", ipfsError.message);
+        }
+        // Hash invalide ou erreur de récupération, continuer sans données IPFS
+        ipfsData = null;
+      }
     }
     
     return res.status(200).json({
@@ -217,17 +253,17 @@ async function getOrder(req, res) {
         orderId: order.orderId,
         txHash: order.txHash,
         status: order.status,
-        client: {
-          address: order.client.address,
-          name: order.client.name
-        },
-        restaurant: {
-          address: order.restaurant.address,
-          name: order.restaurant.name
-        },
+        client: order.client ? {
+          address: order.client.address || 'Unknown',
+          name: order.client.name || 'Unknown'
+        } : null,
+        restaurant: order.restaurant ? {
+          address: order.restaurant.address || 'Unknown',
+          name: order.restaurant.name || 'Unknown'
+        } : null,
         deliverer: order.deliverer ? {
-          address: order.deliverer.address,
-          name: order.deliverer.name
+          address: order.deliverer.address || order.deliverer,
+          name: order.deliverer.name || 'Unknown'
         } : null,
         items: order.items,
         deliveryAddress: order.deliveryAddress,
@@ -292,10 +328,10 @@ async function getOrdersByClient(req, res) {
       orders: orders.map(order => ({
         orderId: order.orderId,
         status: order.status,
-        restaurant: {
-          name: order.restaurant.name,
-          address: order.restaurant.address
-        },
+        restaurant: order.restaurant ? {
+          name: order.restaurant.name || 'Unknown',
+          address: order.restaurant.address || order.restaurant
+        } : null,
         totalAmount: order.totalAmount,
         createdAt: order.createdAt,
         completedAt: order.completedAt
@@ -331,7 +367,9 @@ async function confirmPreparation(req, res) {
     const restaurantAddress = req.userAddress;
     
     // Vérifier que la commande existe
-    const order = await Order.findByOrderId(orderId);
+    const order = await Order.findOne({ orderId })
+      .populate('restaurant', 'address name');
+    
     if (!order) {
       return res.status(404).json({
         error: "Not Found",
@@ -339,8 +377,17 @@ async function confirmPreparation(req, res) {
       });
     }
     
+    // Vérifier que les relations sont peuplées
+    const orderRestaurantAddress = order.restaurant?.address || order.restaurant;
+    if (!orderRestaurantAddress) {
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Order data is incomplete. Restaurant information missing."
+      });
+    }
+    
     // Vérifier que le restaurant est le propriétaire
-    if (order.restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+    if (!orderRestaurantAddress || orderRestaurantAddress.toString().toLowerCase() !== restaurantAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this order"
@@ -378,9 +425,10 @@ async function confirmPreparation(req, res) {
     
     // Notifier le client
     try {
+      const clientAddr = order.client?.address || order.client;
       await notificationService.notifyClientOrderUpdate(
         orderId,
-        order.client.address,
+        clientAddr,
         'PREPARING',
         { message: "Your order is being prepared" }
       );
@@ -424,7 +472,7 @@ async function assignDeliverer(req, res) {
     }
     
     // Vérifier que la commande existe
-    const order = await Order.findByOrderId(orderId);
+    const order = await Order.findOne({ orderId });
     if (!order) {
       return res.status(404).json({
         error: "Not Found",
@@ -522,7 +570,7 @@ async function confirmPickup(req, res) {
     const delivererAddress = req.userAddress;
     
     // Vérifier que la commande existe
-    const order = await Order.findByOrderId(orderId);
+    const order = await Order.findOne({ orderId });
     if (!order) {
       return res.status(404).json({
         error: "Not Found",
@@ -531,7 +579,8 @@ async function confirmPickup(req, res) {
     }
     
     // Vérifier que le livreur est assigné
-    if (!order.deliverer || order.deliverer.address.toLowerCase() !== delivererAddress.toLowerCase()) {
+    const orderDelivererAddress = order.deliverer?.address || order.deliverer;
+    if (!orderDelivererAddress || orderDelivererAddress.toString().toLowerCase() !== delivererAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not assigned to this order"
@@ -568,9 +617,10 @@ async function confirmPickup(req, res) {
     
     // Notifier le client
     try {
+      const clientAddr = order.client?.address || order.client;
       await notificationService.notifyClientOrderUpdate(
         orderId,
-        order.client.address,
+        clientAddr,
         'IN_DELIVERY',
         { message: "Your order is on the way" }
       );
@@ -615,7 +665,8 @@ async function updateGPSLocation(req, res) {
     }
     
     // Vérifier que la commande existe
-    const order = await Order.findByOrderId(orderId);
+    const order = await Order.findOne({ orderId })
+      .populate('deliverer', 'address name');
     if (!order) {
       return res.status(404).json({
         error: "Not Found",
@@ -624,7 +675,8 @@ async function updateGPSLocation(req, res) {
     }
     
     // Vérifier que le livreur est assigné
-    if (!order.deliverer || order.deliverer.address.toLowerCase() !== delivererAddress.toLowerCase()) {
+    const orderDelivererAddress = order.deliverer?.address || order.deliverer;
+    if (!orderDelivererAddress || orderDelivererAddress.toString().toLowerCase() !== delivererAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not assigned to this order"
@@ -666,7 +718,9 @@ async function confirmDelivery(req, res) {
     const clientAddress = req.userAddress;
     
     // Vérifier que la commande existe
-    const order = await Order.findByOrderId(orderId);
+    const order = await Order.findOne({ orderId })
+      .populate('client', 'address name')
+      .populate('deliverer', 'address name');
     if (!order) {
       return res.status(404).json({
         error: "Not Found",
@@ -675,7 +729,8 @@ async function confirmDelivery(req, res) {
     }
     
     // Vérifier que le client est le propriétaire
-    if (order.client.address.toLowerCase() !== clientAddress.toLowerCase()) {
+    const orderClientAddress = order.client?.address || order.client;
+    if (!orderClientAddress || orderClientAddress.toString().toLowerCase() !== clientAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this order"
@@ -715,7 +770,10 @@ async function confirmDelivery(req, res) {
       await Restaurant.incrementOrderCount(order.restaurant._id);
     }
     if (order.deliverer && order.deliverer._id) {
-      await Deliverer.incrementDeliveryCount(order.deliverer.address);
+      const delivererAddr = order.deliverer?.address || order.deliverer;
+      if (delivererAddr) {
+        await Deliverer.incrementDeliveryCount(delivererAddr.toString());
+      }
     }
     
     // Notifier le client
@@ -764,7 +822,11 @@ async function openDispute(req, res) {
     const openerAddress = req.userAddress;
     
     // Vérifier que la commande existe
-    const order = await Order.findByOrderId(orderId);
+    const order = await Order.findOne({ orderId })
+      .populate('client', 'address name')
+      .populate('restaurant', 'address name')
+      .populate('deliverer', 'address name');
+    
     if (!order) {
       return res.status(404).json({
         error: "Not Found",
@@ -772,10 +834,22 @@ async function openDispute(req, res) {
       });
     }
     
+    // Vérifier que les relations sont peuplées
+    const orderClientAddress = order.client?.address || order.client;
+    const orderRestaurantAddress = order.restaurant?.address || order.restaurant;
+    if (!orderClientAddress || !orderRestaurantAddress) {
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Order data is incomplete. Client or restaurant information missing."
+      });
+    }
+    
     // Vérifier que l'utilisateur est impliqué dans la commande
-    const isClient = order.client.address.toLowerCase() === openerAddress.toLowerCase();
-    const isRestaurant = order.restaurant.address.toLowerCase() === openerAddress.toLowerCase();
-    const isDeliverer = order.deliverer && order.deliverer.address.toLowerCase() === openerAddress.toLowerCase();
+    const orderDelivererAddress = order.deliverer?.address || order.deliverer;
+    
+    const isClient = orderClientAddress && orderClientAddress.toString().toLowerCase() === openerAddress.toLowerCase();
+    const isRestaurant = orderRestaurantAddress && orderRestaurantAddress.toString().toLowerCase() === openerAddress.toLowerCase();
+    const isDeliverer = orderDelivererAddress && orderDelivererAddress.toString().toLowerCase() === openerAddress.toLowerCase();
     
     if (!isClient && !isRestaurant && !isDeliverer) {
       return res.status(403).json({
@@ -911,16 +985,16 @@ async function getOrderHistory(req, res) {
         orderId: order.orderId,
         status: order.status,
         client: order.client ? {
-          name: order.client.name,
-          address: order.client.address
+          name: order.client.name || 'Unknown',
+          address: order.client.address || order.client
         } : null,
         restaurant: order.restaurant ? {
-          name: order.restaurant.name,
-          address: order.restaurant.address
+          name: order.restaurant.name || 'Unknown',
+          address: order.restaurant.address || order.restaurant
         } : null,
         deliverer: order.deliverer ? {
-          name: order.deliverer.name,
-          address: order.deliverer.address
+          name: order.deliverer.name || 'Unknown',
+          address: order.deliverer.address || order.deliverer
         } : null,
         totalAmount: order.totalAmount,
         createdAt: order.createdAt,
@@ -953,7 +1027,9 @@ async function submitReview(req, res) {
     const clientAddress = req.userAddress;
     
     // Vérifier que la commande existe
-    const order = await Order.findByOrderId(orderId);
+    const order = await Order.findOne({ orderId })
+      .populate('client', 'address name')
+      .populate('restaurant', 'address name');
     if (!order) {
       return res.status(404).json({
         error: "Not Found",
@@ -962,7 +1038,8 @@ async function submitReview(req, res) {
     }
     
     // Vérifier que le client est le propriétaire
-    if (order.client.address.toLowerCase() !== clientAddress.toLowerCase()) {
+    const orderClientAddress = order.client?.address || order.client;
+    if (!orderClientAddress || orderClientAddress.toString().toLowerCase() !== clientAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this order"

@@ -100,20 +100,69 @@ async function uploadMultipleImages(files, fileNames = []) {
  * @param {string} ipfsHash - IPFS file hash
  * @returns {Promise<Object>} JavaScript object parsed from JSON
  */
+/**
+ * Valide un hash IPFS
+ * @param {string} ipfsHash - Hash IPFS à valider
+ * @returns {boolean} True si le hash est valide
+ */
+function isValidIPFSHash(ipfsHash) {
+  if (!ipfsHash || typeof ipfsHash !== 'string') {
+    return false;
+  }
+  
+  // Rejeter les hash de test
+  if (ipfsHash.toLowerCase().includes('test') || 
+      ipfsHash.toLowerCase().includes('mock') ||
+      ipfsHash.toLowerCase().includes('example')) {
+    return false;
+  }
+  
+  // Format CID v0: commence par Qm et fait 46 caractères
+  const cidV0Pattern = /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/;
+  
+  // Format CID v1: commence par différents préfixes
+  const cidV1Pattern = /^[b-zB-Z][0-9a-z]{58,}$/;
+  
+  return cidV0Pattern.test(ipfsHash) || cidV1Pattern.test(ipfsHash);
+}
+
 async function getJSON(ipfsHash) {
   try {
+    // Valider le hash IPFS avant de faire la requête
+    if (!isValidIPFSHash(ipfsHash)) {
+      throw new Error(`Invalid IPFS hash format: ${ipfsHash}`);
+    }
+    
     const gateway = getIPFSGateway();
     const url = gateway + ipfsHash;
     
     const response = await axios.get(url, {
-      timeout: 10000
+      timeout: 10000,
+      validateStatus: function (status) {
+        // Ne pas considérer 400 comme une erreur fatale (hash invalide)
+        return status >= 200 && status < 500;
+      }
     });
+    
+    // Vérifier si la réponse est une erreur
+    if (response.status === 400) {
+      throw new Error(`Invalid IPFS CID: ${ipfsHash}`);
+    }
+    
+    if (response.status !== 200) {
+      throw new Error(`IPFS gateway returned status ${response.status}`);
+    }
     
     const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
     
     return data;
   } catch (error) {
-    console.error("Error getting JSON from IPFS:", error);
+    // Ne logger que les erreurs non liées à des hash invalides
+    if (error.message && error.message.includes('Invalid IPFS')) {
+      // Hash invalide, ne pas logger comme erreur critique
+      throw error;
+    }
+    console.error("Error getting JSON from IPFS:", error.message || error);
     throw error;
   }
 }
@@ -172,6 +221,7 @@ module.exports = {
   getJSON,
   getImage,
   pinFile,
-  testConnection
+  testConnection,
+  isValidIPFSHash
 };
 

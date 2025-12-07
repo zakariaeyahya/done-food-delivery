@@ -282,6 +282,27 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 // Gérer les erreurs non capturées
 process.on("unhandledRejection", (reason, promise) => {
+  // Filtrer silencieusement les erreurs "filter not found" qui sont non-critiques
+  // Ces erreurs surviennent avec certains providers RPC qui ne supportent pas les filtres persistants
+  if (reason && typeof reason === 'object') {
+    const error = reason;
+    
+    // Vérifier plusieurs formats d'erreur possibles
+    const isFilterNotFoundError = 
+      (error.code === 'UNKNOWN_ERROR' && 
+       error.error && 
+       error.error.message === 'filter not found') ||
+      (error.message && error.message.includes('filter not found')) ||
+      (error.shortMessage && error.shortMessage.includes('filter not found'));
+    
+    if (isFilterNotFoundError) {
+      // Erreur non-critique, ne pas logger ni arrêter le serveur
+      // Ces erreurs sont normales avec certains providers RPC publics
+      return;
+    }
+  }
+  
+  // Pour les autres erreurs, logger et arrêter le serveur
   console.error("Unhandled Rejection at:", promise, "reason:", reason);
   gracefulShutdown("unhandledRejection");
 });

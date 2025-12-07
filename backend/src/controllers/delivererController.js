@@ -36,14 +36,24 @@ async function registerDeliverer(req, res) {
       });
     }
     
+    // Valeur par défaut pour location si non fournie (Paris par défaut)
+    const defaultLocation = {
+      lat: 48.8566,  // Paris
+      lng: 2.3522
+    };
+    
+    const delivererLocation = location && location.lat && location.lng 
+      ? { lat: parseFloat(location.lat), lng: parseFloat(location.lng) }
+      : defaultLocation;
+    
     const deliverer = new Deliverer({
       address: address.toLowerCase(),
       name,
       phone,
       vehicleType: vehicleType || 'bike',
       currentLocation: {
-        lat: location.lat,
-        lng: location.lng,
+        lat: delivererLocation.lat,
+        lng: delivererLocation.lng,
         lastUpdated: new Date()
       },
       isAvailable: false,

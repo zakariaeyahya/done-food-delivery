@@ -74,7 +74,8 @@ function getMinimalABI(contractName) {
       "function burn(uint256 amount) external",
       "function balanceOf(address account) external view returns (uint256)",
       "function transfer(address to, uint256 amount) external returns (bool)",
-      "function calculateReward(uint256 foodPrice) external pure returns (uint256)"
+      "function calculateReward(uint256 foodPrice) external pure returns (uint256)",
+      "event Transfer(address indexed from, address indexed to, uint256 value)"
     ],
     DoneStaking: [
       "function stakeAsDeliverer() external payable",
@@ -113,12 +114,82 @@ async function initBlockchain() {
     }
 
     provider = new ethers.JsonRpcProvider(rpcUrl);
+    
+    // Intercepter les erreurs du provider pour gérer silencieusement les erreurs "filter not found"
+    // Ces erreurs sont non-critiques et surviennent avec certains providers RPC qui n'ont pas de support
+    // persistant pour les filtres d'événements
+    
+    // Intercepter les erreurs au niveau du provider
+    const originalEmit = provider.emit.bind(provider);
+    provider.emit = function(event, ...args) {
+      // Filtrer silencieusement les erreurs "filter not found" qui sont non-critiques
+      if (event === 'error' && args[0]) {
+        const error = args[0];
+        if (error.code === 'UNKNOWN_ERROR' && 
+            error.error && 
+            error.error.message === 'filter not found') {
+          // Ne pas émettre cette erreur - elle est non-critique
+          return false;
+        }
+      }
+      return originalEmit(event, ...args);
+    };
+    
+    // Intercepter les erreurs au niveau de la méthode _send du provider
+    // Cela capture les erreurs avant qu'elles ne soient loggées
+    const originalSend = provider._send.bind(provider);
+    if (originalSend) {
+      provider._send = function(payload, callback) {
+        const wrappedCallback = function(error, result) {
+          // Filtrer les erreurs "filter not found" avant le callback
+          if (error && error.code === 'UNKNOWN_ERROR' && 
+              error.error && error.error.message === 'filter not found') {
+            // Erreur non-critique, ne pas la propager
+            return;
+          }
+          // Appeler le callback original pour les autres erreurs
+          if (callback) {
+            callback(error, result);
+          }
+        };
+        return originalSend(payload, wrappedCallback);
+      };
+    }
+    
+    // Intercepter les erreurs au niveau du gestionnaire d'erreurs interne
+    provider.on('error', (error) => {
+      // Filtrer silencieusement les erreurs "filter not found"
+      if (error && error.code === 'UNKNOWN_ERROR' && 
+          error.error && error.error.message === 'filter not found') {
+        // Erreur non-critique, ne pas logger
+        return;
+      }
+      // Pour les autres erreurs, les laisser passer normalement
+    });
 
     if (!process.env.PRIVATE_KEY) {
       throw new Error("PRIVATE_KEY is not defined in .env");
     }
-
-    wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+    
+    // Valider et normaliser la clé privée
+    let privateKey = process.env.PRIVATE_KEY.trim();
+    
+    // Si la clé ne commence pas par 0x, l'ajouter
+    if (!privateKey.startsWith('0x')) {
+      privateKey = '0x' + privateKey;
+    }
+    
+    // Valider que la clé privée a la bonne longueur (66 caractères avec 0x)
+    if (privateKey.length !== 66) {
+      throw new Error(`Invalid private key length: ${privateKey.length} (expected 66 characters including 0x prefix). Please check your PRIVATE_KEY in .env`);
+    }
+    
+    // Valider que la clé privée est hexadécimale
+    if (!/^0x[a-fA-F0-9]{64}$/.test(privateKey)) {
+      throw new Error("Invalid private key format. Private key must be a 64-character hexadecimal string (optionally prefixed with 0x).");
+    }
+    
+    wallet = new ethers.Wallet(privateKey, provider);
 
     const orderManagerAddress = process.env.ORDER_MANAGER_ADDRESS;
     const paymentSplitterAddress = process.env.PAYMENT_SPLITTER_ADDRESS;

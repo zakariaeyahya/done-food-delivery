@@ -59,6 +59,11 @@ class IPFSCacheService {
       try {
         file = await ipfsService.getJSON(ipfsHash);
       } catch (jsonError) {
+        // Si c'est une erreur de hash invalide, ne pas essayer de récupérer comme image
+        if (jsonError.message && jsonError.message.includes('Invalid IPFS')) {
+          throw jsonError; // Propager l'erreur de hash invalide
+        }
+        
         // If not JSON, try to get as image/binary
         const gateway = getIPFSGateway();
         const url = gateway + ipfsHash;

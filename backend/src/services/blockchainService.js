@@ -627,21 +627,77 @@ async function listenEvents() {
     });
     
     // S'abonner à l'event Transfer (pour détecter les mints)
-    token.on("Transfer", (from, to, amount, event) => {
-      // Si from = address(0), c'est un mint
-      if (from === ethers.ZeroAddress) {
-        blockchainEvents.emit("TokensMinted", {
-          to,
-          amount: amount.toString()
+    // Vérifier si l'événement Transfer existe dans l'ABI avant de s'abonner
+    try {
+      const tokenABI = token.interface;
+      const transferFragment = tokenABI.getEvent("Transfer");
+      
+      if (transferFragment) {
+        token.on("Transfer", (from, to, amount, event) => {
+          // Si from = address(0), c'est un mint
+          if (from === ethers.ZeroAddress) {
+            blockchainEvents.emit("TokensMinted", {
+              to,
+              amount: amount.toString()
+            });
+          }
         });
+        console.log("✅ Transfer event listener started");
+      } else {
+        console.warn("⚠️  Transfer event not found in token ABI, skipping Transfer listener");
       }
-    });
+    } catch (transferError) {
+      console.warn("⚠️  Could not set up Transfer event listener:", transferError.message);
+      // Ne pas faire échouer l'initialisation si Transfer n'est pas disponible
+    }
+    
+    // Gérer silencieusement les erreurs "filter not found" des listeners d'événements
+    // Ces erreurs sont non-critiques et surviennent avec certains providers RPC
+    const provider = getProvider();
+    if (provider && provider.on) {
+      provider.on('error', (error) => {
+        // Filtrer silencieusement les erreurs "filter not found"
+        if (error && error.code === 'UNKNOWN_ERROR' && 
+            error.error && error.error.message === 'filter not found') {
+          // Erreur non-critique, ne pas logger
+          return;
+        }
+        // Logger les autres erreurs
+        console.error("⚠️  Provider error:", error.message || error);
+      });
+    }
+    
+    // Intercepter les erreurs au niveau des contrats eux-mêmes
+    // Wrapper les listeners pour capturer les erreurs de filtres
+    const wrapEventListener = (contract, eventName, handler) => {
+      try {
+        contract.on(eventName, handler);
+      } catch (error) {
+        // Si l'erreur est "filter not found", l'ignorer silencieusement
+        if (error && error.code === 'UNKNOWN_ERROR' && 
+            error.error && error.error.message === 'filter not found') {
+          return;
+        }
+        throw error;
+      }
+    };
     
     // Logger que l'écoute des events est démarrée
     console.log("✅ Blockchain events listener started");
+    console.log("ℹ️  Note: Some RPC providers may not support persistent event filters.");
+    console.log("   Filter errors are handled silently and won't affect server operation.");
   } catch (error) {
+    // Vérifier si c'est une erreur "filter not found"
+    if (error && error.code === 'UNKNOWN_ERROR' && 
+        error.error && error.error.message === 'filter not found') {
+      // Erreur non-critique, continuer sans arrêter
+      console.warn("⚠️  Event filters not supported by RPC provider. Continuing without real-time events.");
+      return;
+    }
+    
     console.error("Error starting event listener:", error);
-    throw error;
+    // Ne pas faire crasher le serveur si l'écoute des événements échoue
+    console.warn("⚠️  Continuing without event listeners. Some real-time features may not work.");
   }
 }
 
