@@ -1,11 +1,12 @@
 const User = require("../models/User");
 const Order = require("../models/Order");
+const blockchainService = require("../services/blockchainService");
 const { ethers } = require("ethers");
 
 /**
  * Controller for managing users (clients)
  * @notice Manages registration, profile and history of clients
- * @dev Uses MongoDB only (without blockchain for Phase 6)
+ * @dev Uses MongoDB and blockchain services
  */
 
 /**
@@ -72,7 +73,7 @@ async function registerUser(req, res) {
 
 /**
  * Gets user profile
- * @dev Implemented - MongoDB only (without token balance)
+ * @dev Retrieves user profile with token balance from blockchain
  * 
  * @param {Object} req - Express Request
  * @param {Object} res - Express Response
@@ -91,6 +92,15 @@ async function getUserProfile(req, res) {
       });
     }
     
+    // Récupérer la balance de tokens depuis la blockchain
+    let tokenBalance = "0";
+    try {
+      tokenBalance = await blockchainService.getTokenBalance(normalizedAddress);
+    } catch (blockchainError) {
+      console.warn("Error getting token balance from blockchain:", blockchainError.message);
+      // En cas d'erreur, continuer avec balance 0
+    }
+    
     return res.status(200).json({
       success: true,
       user: {
@@ -98,7 +108,8 @@ async function getUserProfile(req, res) {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        deliveryAddresses: user.deliveryAddresses
+        deliveryAddresses: user.deliveryAddresses,
+        tokenBalance
       }
     });
   } catch (error) {
@@ -223,7 +234,7 @@ async function getUserOrders(req, res) {
 
 /**
  * Gets user tokens and transaction history
- * @dev Temporary mock - Returns empty data (Phase 6)
+ * @dev Retrieves token balance from blockchain and transaction history
  * 
  * @param {Object} req - Express Request
  * @param {Object} res - Express Response
@@ -242,10 +253,28 @@ async function getUserTokens(req, res) {
       });
     }
     
+    // Récupérer la balance de tokens depuis la blockchain
+    let balance = "0";
+    let transactions = [];
+    
+    try {
+      balance = await blockchainService.getTokenBalance(normalizedAddress);
+      
+      // TODO: Récupérer l'historique des transactions depuis les events blockchain
+      // Pour l'instant, on retourne un tableau vide
+      // Les transactions peuvent être récupérées depuis les events Transfer du contrat Token
+      transactions = [];
+    } catch (blockchainError) {
+      console.warn("Error getting token balance from blockchain:", blockchainError.message);
+      // En cas d'erreur blockchain, retourner balance 0 mais continuer
+      // Cela permet à l'API de fonctionner même si la blockchain n'est pas configurée
+    }
+    
     return res.status(200).json({
       success: true,
-      balance: "0",
-      transactions: []
+      balance,
+      transactions,
+      address: normalizedAddress
     });
   } catch (error) {
     console.error("Error getting user tokens:", error);

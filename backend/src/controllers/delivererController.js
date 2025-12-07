@@ -1,12 +1,13 @@
 const gpsTracker = require("../utils/gpsTracker");
 const Deliverer = require("../models/Deliverer");
 const Order = require("../models/Order");
+const blockchainService = require("../services/blockchainService");
 const { ethers } = require("ethers");
 
 /**
  * Controller for managing deliverers
  * @notice Manages registration, staking, availability and earnings of deliverers
- * @dev Uses MongoDB only for Phase 6 (mocks for staking)
+ * @dev Uses MongoDB and blockchain services
  */
 
 /**
@@ -76,7 +77,7 @@ async function registerDeliverer(req, res) {
 
 /**
  * Gets deliverer details
- * @dev Implemented - MongoDB only (without blockchain synchronization)
+ * @dev Retrieves deliverer profile with blockchain staking status
  * 
  * @param {Object} req - Express Request
  * @param {Object} res - Express Response
@@ -95,6 +96,33 @@ async function getDeliverer(req, res) {
       });
     }
     
+    // Récupérer le statut de staking depuis la blockchain
+    let isStakedBlockchain = false;
+    let stakedAmountBlockchain = "0";
+    
+    try {
+      isStakedBlockchain = await blockchainService.isStaked(normalizedAddress);
+      
+      // Récupérer le montant staké depuis le contrat
+      if (isStakedBlockchain) {
+        const staking = require("../config/blockchain").getContractInstance("staking");
+        const stakedAmountWei = await staking.stakedAmount(normalizedAddress);
+        stakedAmountBlockchain = ethers.formatEther(stakedAmountWei);
+        
+        // Synchroniser avec MongoDB
+        if (deliverer.isStaked !== isStakedBlockchain || deliverer.stakedAmount !== parseFloat(stakedAmountBlockchain)) {
+          deliverer.isStaked = isStakedBlockchain;
+          deliverer.stakedAmount = parseFloat(stakedAmountBlockchain);
+          await deliverer.save();
+        }
+      }
+    } catch (blockchainError) {
+      console.warn("Error getting staking status from blockchain:", blockchainError.message);
+      // En cas d'erreur, utiliser les valeurs MongoDB
+      isStakedBlockchain = deliverer.isStaked;
+      stakedAmountBlockchain = deliverer.stakedAmount.toString();
+    }
+    
     return res.status(200).json({
       success: true,
       deliverer: {
@@ -104,8 +132,8 @@ async function getDeliverer(req, res) {
         vehicleType: deliverer.vehicleType,
         currentLocation: deliverer.currentLocation,
         isAvailable: deliverer.isAvailable,
-        isStaked: deliverer.isStaked,
-        stakedAmount: deliverer.stakedAmount,
+        isStaked: isStakedBlockchain,
+        stakedAmount: stakedAmountBlockchain,
         rating: deliverer.rating,
         totalDeliveries: deliverer.totalDeliveries
       }
@@ -123,7 +151,7 @@ async function getDeliverer(req, res) {
 
 /**
  * Gets available deliverers
- * @dev Implemented - MongoDB only (without blockchain verification)
+ * @dev Retrieves available deliverers with blockchain staking verification
  * 
  * @param {Object} req - Express Request
  * @param {Object} res - Express Response
@@ -132,9 +160,37 @@ async function getAvailableDeliverers(req, res) {
   try {
     const { location } = req.query;
     
-    const deliverers = await Deliverer.getAvailableDeliverers();
+    // Récupérer les livreurs disponibles depuis MongoDB
+    let deliverers = await Deliverer.getAvailableDeliverers();
     
-    let availableDeliverers = deliverers.map(d => d.toObject());
+    // Vérifier le statut de staking sur la blockchain pour chaque livreur
+    const verifiedDeliverers = [];
+    for (const deliverer of deliverers) {
+      try {
+        const isStakedBlockchain = await blockchainService.isStaked(deliverer.address);
+        
+        // Synchroniser avec MongoDB si nécessaire
+        if (deliverer.isStaked !== isStakedBlockchain) {
+          deliverer.isStaked = isStakedBlockchain;
+          await deliverer.save();
+        }
+        
+        // Ne garder que les livreurs stakés sur la blockchain
+        if (isStakedBlockchain) {
+          verifiedDeliverers.push(deliverer);
+        }
+      } catch (blockchainError) {
+        console.warn(`Error verifying staking for ${deliverer.address}:`, blockchainError.message);
+        // En cas d'erreur, utiliser la valeur MongoDB
+        if (deliverer.isStaked) {
+          verifiedDeliverers.push(deliverer);
+        }
+      }
+    }
+    
+    let availableDeliverers = verifiedDeliverers.map(d => d.toObject());
+    
+    // Filtrer par distance si location fournie
     if (location) {
       try {
         const locationData = typeof location === 'string' ? JSON.parse(location) : location;
@@ -227,27 +283,18 @@ async function updateDelivererStatus(req, res) {
 
 /**
  * Stakes a deliverer (deposit guarantee)
- * @dev Temporary mock - Saves to MongoDB only (Phase 6)
+ * @dev Stakes deliverer on blockchain and synchronizes with MongoDB
  * 
  * @param {Object} req - Express Request
  * @param {Object} res - Express Response
  */
 async function stakeAsDeliverer(req, res) {
   try {
-    const { address, amount } = req.body;
+    const { address, amount, delivererPrivateKey } = req.body;
     
     const normalizedAddress = address.toLowerCase();
     
-    const minimumStake = ethers.parseEther("0.1");
-    const stakeAmountWei = ethers.parseEther(amount.toString());
-    
-    if (stakeAmountWei < minimumStake) {
-      return res.status(400).json({
-        error: "Bad Request",
-        message: "Minimum stake is 0.1 ETH"
-      });
-    }
-    
+    // Vérifier que le livreur existe
     const deliverer = await Deliverer.findByAddress(normalizedAddress);
     if (!deliverer) {
       return res.status(404).json({
@@ -256,6 +303,43 @@ async function stakeAsDeliverer(req, res) {
       });
     }
     
+    // Valider le montant minimum
+    const minimumStake = ethers.parseEther("0.1");
+    const stakeAmountWei = ethers.parseEther(amount.toString());
+    
+    if (stakeAmountWei < minimumStake) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Minimum stake is 0.1 MATIC"
+      });
+    }
+    
+    // Vérifier que la clé privée est fournie
+    if (!delivererPrivateKey) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "delivererPrivateKey is required to sign the transaction"
+      });
+    }
+    
+    // Staker sur la blockchain
+    let blockchainResult;
+    try {
+      blockchainResult = await blockchainService.stakeDeliverer(
+        normalizedAddress,
+        amount.toString(),
+        delivererPrivateKey
+      );
+    } catch (blockchainError) {
+      console.error("Error staking on blockchain:", blockchainError);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to stake on blockchain",
+        details: blockchainError.message
+      });
+    }
+    
+    // Synchroniser avec MongoDB
     const updatedDeliverer = await Deliverer.findOneAndUpdate(
       { address: normalizedAddress },
       { 
@@ -269,7 +353,9 @@ async function stakeAsDeliverer(req, res) {
     
     return res.status(200).json({
       success: true,
-      message: "Stake saved in MongoDB (mock - blockchain not available)",
+      txHash: blockchainResult.txHash,
+      blockNumber: blockchainResult.blockNumber,
+      message: "Stake successful on blockchain",
       deliverer: {
         address: updatedDeliverer.address,
         isStaked: updatedDeliverer.isStaked,
@@ -289,7 +375,7 @@ async function stakeAsDeliverer(req, res) {
 
 /**
  * Unstakes a deliverer
- * @dev Temporary mock - MongoDB only (Phase 6)
+ * @dev Unstakes deliverer on blockchain and synchronizes with MongoDB
  * 
  * @param {Object} req - Express Request
  * @param {Object} res - Express Response
@@ -297,9 +383,11 @@ async function stakeAsDeliverer(req, res) {
 async function unstake(req, res) {
   try {
     const address = req.body.address || req.userAddress || req.validatedAddress;
+    const { delivererPrivateKey } = req.body;
     
     const normalizedAddress = address.toLowerCase();
     
+    // Vérifier que le livreur existe
     const deliverer = await Deliverer.findByAddress(normalizedAddress);
     if (!deliverer) {
       return res.status(404).json({
@@ -308,6 +396,7 @@ async function unstake(req, res) {
       });
     }
     
+    // Vérifier qu'il n'y a pas de commandes actives
     const activeOrders = await Order.find({ 
       deliverer: deliverer._id,
       status: 'IN_DELIVERY'
@@ -320,6 +409,31 @@ async function unstake(req, res) {
       });
     }
     
+    // Vérifier que la clé privée est fournie
+    if (!delivererPrivateKey) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "delivererPrivateKey is required to sign the transaction"
+      });
+    }
+    
+    // Unstake sur la blockchain
+    let blockchainResult;
+    try {
+      blockchainResult = await blockchainService.unstake(
+        normalizedAddress,
+        delivererPrivateKey
+      );
+    } catch (blockchainError) {
+      console.error("Error unstaking on blockchain:", blockchainError);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to unstake on blockchain",
+        details: blockchainError.message
+      });
+    }
+    
+    // Synchroniser avec MongoDB
     const updatedDeliverer = await Deliverer.findOneAndUpdate(
       { address: normalizedAddress },
       { 
@@ -333,7 +447,9 @@ async function unstake(req, res) {
     
     return res.status(200).json({
       success: true,
-      message: "Unstake saved in MongoDB (mock - blockchain not available)",
+      txHash: blockchainResult.txHash,
+      blockNumber: blockchainResult.blockNumber,
+      message: "Unstake successful on blockchain",
       deliverer: {
         address: updatedDeliverer.address,
         isStaked: updatedDeliverer.isStaked,
