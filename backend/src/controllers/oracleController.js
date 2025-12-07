@@ -1,28 +1,23 @@
-// Importer les services nécessaires
 const priceOracleService = require("../services/priceOracleService");
 const gpsOracleService = require("../services/gpsOracleService");
 
 /**
- * Controller pour gérer les requêtes HTTP liées aux Oracles
- * @notice Gère les interactions avec Chainlink Oracles (prix, GPS, météo)
- * @dev Intègre les services priceOracleService et gpsOracleService
+ * Controller for managing HTTP requests related to Oracles
+ * @notice Manages interactions with Chainlink Oracles (price, GPS, weather)
+ * @dev Integrates priceOracleService and gpsOracleService
  */
 
 /**
- * Récupère le prix MATIC/USD depuis Chainlink Oracle
- * @dev TODO: Implémenter avec priceOracleService
+ * Gets MATIC/USD price from Chainlink Oracle
+ * @dev TODO: Implement with priceOracleService
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getPrice(req, res) {
   try {
     const pair = req.query.pair || 'MATIC/USD';
     
-    // TODO: Appeler priceOracleService.getMaticUsdPrice()
-    // const price = await priceOracleService.getMaticUsdPrice();
-    
-    // Réponse temporaire
     return res.status(200).json({
       success: true,
       data: {
@@ -43,20 +38,16 @@ async function getPrice(req, res) {
 }
 
 /**
- * Convertit un montant fiat (EUR/USD) en crypto (MATIC)
- * @dev TODO: Implémenter avec priceOracleService
+ * Converts fiat amount (EUR/USD) to crypto (MATIC)
+ * @dev TODO: Implement with priceOracleService
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function convertCurrency(req, res) {
   try {
     const { amount, from, to } = req.body;
     
-    // TODO: Appeler priceOracleService.convertUSDtoMATIC()
-    // const convertedAmount = await priceOracleService.convertUSDtoMATIC(amount);
-    
-    // Réponse temporaire
     return res.status(200).json({
       success: true,
       data: {
@@ -79,21 +70,17 @@ async function convertCurrency(req, res) {
 }
 
 /**
- * Vérifie que la livraison a été effectuée dans une zone acceptable (GPS Oracle)
- * @dev TODO: Implémenter avec gpsOracleService
+ * Verifies that delivery was made in an acceptable zone (GPS Oracle)
+ * @dev TODO: Implement with gpsOracleService
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function verifyGPSDelivery(req, res) {
   try {
     const { orderId, delivererLat, delivererLng, clientLat, clientLng } = req.body;
     
-    // TODO: Appeler gpsOracleService.verifyDelivery()
-    // const verification = await gpsOracleService.verifyDelivery(orderId, delivererLat, delivererLng, clientLat, clientLng);
-    
-    // Calculer distance (formule Haversine simplifiée)
-    const R = 6371; // Rayon de la Terre en km
+    const R = 6371;
     const dLat = (clientLat - delivererLat) * Math.PI / 180;
     const dLng = (clientLng - delivererLng) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -102,7 +89,7 @@ async function verifyGPSDelivery(req, res) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     const distance = R * c;
     
-    const maxRange = 2.0; // 2 km
+    const maxRange = 2.0;
     const withinRange = distance <= maxRange;
     
     return res.status(200).json({
@@ -125,11 +112,11 @@ async function verifyGPSDelivery(req, res) {
 }
 
 /**
- * Récupère les données météo pour ajuster frais de livraison
- * @dev TODO: Implémenter avec API météo externe
+ * Gets weather data to adjust delivery fees
+ * @dev TODO: Implement with external weather API
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getWeather(req, res) {
   try {
@@ -143,10 +130,6 @@ async function getWeather(req, res) {
       });
     }
     
-    // TODO: Appeler API météo externe (OpenWeatherMap, etc.)
-    // const weather = await weatherService.getWeather(lat, lng);
-    
-    // Réponse temporaire
     return res.status(200).json({
       success: true,
       data: {
@@ -173,7 +156,6 @@ async function getWeather(req, res) {
   }
 }
 
-// Exporter toutes les fonctions
 module.exports = {
   getPrice,
   convertCurrency,

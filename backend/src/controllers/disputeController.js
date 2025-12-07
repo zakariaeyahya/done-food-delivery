@@ -1,18 +1,17 @@
-// Importer les services nécessaires
 const arbitrationService = require("../services/arbitrationService");
 
 /**
- * Controller pour gérer les requêtes HTTP liées à l'Arbitrage
- * @notice Gère le système d'arbitrage décentralisé avec vote communautaire
- * @dev Intègre le service arbitrationService
+ * Controller for managing HTTP requests related to Arbitration
+ * @notice Manages decentralized arbitration system with community voting
+ * @dev Integrates arbitrationService
  */
 
 /**
- * Voter sur un litige (arbitrage décentralisé)
- * @dev TODO: Implémenter avec arbitrationService
+ * Votes on a dispute (decentralized arbitration)
+ * @dev TODO: Implement with arbitrationService
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function voteDispute(req, res) {
   try {
@@ -20,10 +19,6 @@ async function voteDispute(req, res) {
     const { voterAddress, winner, reason } = req.body;
     const userAddress = req.userAddress || voterAddress;
     
-    // TODO: Appeler arbitrationService.voteDispute()
-    // const result = await arbitrationService.voteDispute(disputeId, userAddress, winner, reason);
-    
-    // Réponse temporaire
     return res.status(200).json({
       success: true,
       data: {
@@ -48,20 +43,16 @@ async function voteDispute(req, res) {
 }
 
 /**
- * Récupérer tous les votes d'un litige
- * @dev TODO: Implémenter avec arbitrationService
+ * Gets all votes for a dispute
+ * @dev TODO: Implement with arbitrationService
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getDisputeVotes(req, res) {
   try {
     const disputeId = req.params.id || req.orderId;
     
-    // TODO: Appeler arbitrationService.getDisputeVotes()
-    // const votes = await arbitrationService.getDisputeVotes(disputeId);
-    
-    // Réponse temporaire
     return res.status(200).json({
       success: true,
       data: {
@@ -95,21 +86,17 @@ async function getDisputeVotes(req, res) {
 }
 
 /**
- * Résoudre automatiquement un litige après vote
- * @dev TODO: Implémenter avec arbitrationService
+ * Automatically resolves a dispute after voting
+ * @dev TODO: Implement with arbitrationService
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function resolveDispute(req, res) {
   try {
     const disputeId = req.params.id || req.orderId;
     const { force } = req.body || {};
     
-    // TODO: Appeler arbitrationService.resolveDispute()
-    // const result = await arbitrationService.resolveDispute(disputeId, force);
-    
-    // Réponse temporaire
     return res.status(200).json({
       success: true,
       data: {
@@ -130,7 +117,6 @@ async function resolveDispute(req, res) {
   }
 }
 
-// Exporter toutes les fonctions
 module.exports = {
   voteDispute,
   getDisputeVotes,

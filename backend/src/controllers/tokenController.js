@@ -1,23 +1,18 @@
-// Importer les services nécessaires
-// const blockchainService = require("../services/blockchainService");
-
 /**
- * Controller pour gérer les requêtes HTTP liées aux Tokens DONE
- * @notice Gère les opérations sur les tokens DONE (burn, use-discount, rate)
- * @dev Intègre blockchainService pour interactions avec DoneToken.sol
+ * Controller for managing HTTP requests related to DONE Tokens
+ * @notice Manages operations on DONE tokens (burn, use-discount, rate)
+ * @dev Integrates blockchainService for interactions with DoneToken.sol
  */
 
 /**
- * Récupère le taux de conversion tokens DONE
- * @dev Retourne les taux de conversion pour promotions
+ * Gets DONE token conversion rate
+ * @dev Returns conversion rates for promotions
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getTokenRate(req, res) {
   try {
-    // Taux de conversion : 1 DONE = 0.10 EUR
-    // Taux de minting : 1 DONE par 10 EUR dépensés
     return res.status(200).json({
       success: true,
       data: {
@@ -40,27 +35,17 @@ async function getTokenRate(req, res) {
 }
 
 /**
- * Consommer des tokens DONE pour une promotion/réduction
- * @dev TODO: Implémenter avec blockchainService
+ * Burns DONE tokens for a promotion/discount
+ * @dev TODO: Implement with blockchainService
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function burnTokens(req, res) {
   try {
     const { userAddress, amount, orderId, discountAmount } = req.body;
     const address = req.userAddress || userAddress;
     
-    // TODO: Vérifier balance tokens via blockchainService
-    // const balance = await blockchainService.getTokenBalance(address);
-    
-    // TODO: Appeler blockchainService.burnTokens()
-    // const result = await blockchainService.burnTokens(address, amount);
-    
-    // Calculer nouveau balance
-    // const newBalance = balance - parseFloat(amount);
-    
-    // Réponse temporaire
     return res.status(200).json({
       success: true,
       data: {
@@ -81,37 +66,19 @@ async function burnTokens(req, res) {
 }
 
 /**
- * Utiliser des tokens DONE pour obtenir une réduction sur une commande
- * @dev TODO: Implémenter avec blockchainService
+ * Uses DONE tokens to get a discount on an order
+ * @dev TODO: Implement with blockchainService
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function useDiscount(req, res) {
   try {
     const { userAddress, tokensToUse, orderId } = req.body;
     const address = req.userAddress || userAddress;
     
-    // TODO: Vérifier balance tokens via blockchainService
-    // const balance = await blockchainService.getTokenBalance(address);
-    // if (balance < parseFloat(tokensToUse)) {
-    //   return res.status(400).json({
-    //     error: "Bad Request",
-    //     message: "Insufficient token balance"
-    //   });
-    // }
-    
-    // TODO: Récupérer total commande
-    // const order = await Order.findOne({ orderId });
-    // const originalTotal = order.totalAmount;
-    
-    // Calculer réduction (1 DONE = 0.10 EUR)
     const discountAmount = (parseFloat(tokensToUse) * 0.10).toFixed(2);
     
-    // TODO: Appeler blockchainService.burnTokens()
-    // const result = await blockchainService.burnTokens(address, tokensToUse);
-    
-    // Réponse temporaire
     return res.status(200).json({
       success: true,
       data: {
@@ -132,7 +99,6 @@ async function useDiscount(req, res) {
   }
 }
 
-// Exporter toutes les fonctions
 module.exports = {
   getTokenRate,
   burnTokens,

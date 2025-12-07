@@ -9,12 +9,12 @@ const morgan = require("morgan");
 
 // Importer les configurations
 const { connectDB, disconnectDB } = require("./config/database");
-// const { initBlockchain, listenEvents } = require("./config/blockchain"); // Commenté temporairement
+const { initBlockchain } = require("./config/blockchain");
 const { initIPFS } = require("./config/ipfs");
 
-// Importer les services (commentés temporairement car nécessitent blockchain)
-// const notificationService = require("./services/notificationService");
-// const blockchainService = require("./services/blockchainService");
+// Importer les services
+const notificationService = require("./services/notificationService");
+const blockchainService = require("./services/blockchainService");
 
 // Importer les routes
 const orderRoutes = require("./routes/orders");
@@ -115,23 +115,28 @@ async function initializeConnections() {
     await connectDB();
     console.log("✅ MongoDB connected");
 
-    // Initialiser la connexion blockchain (commenté temporairement)
-    // console.log("Initializing blockchain connection...");
-    // await initBlockchain();
-    // console.log("✅ Blockchain connected");
+    // Initialiser la connexion blockchain
+    try {
+      console.log("Initializing blockchain connection...");
+      await initBlockchain();
+      console.log("✅ Blockchain connected");
+      
+      // Démarrer l'écoute des events blockchain
+      await blockchainService.listenEvents();
+      console.log("✅ Blockchain events listener started");
+    } catch (blockchainError) {
+      console.warn("⚠️  Blockchain initialization failed (continuing without blockchain):", blockchainError.message);
+      console.warn("⚠️  Some features may not work. Please check your .env configuration.");
+    }
 
     // Initialiser IPFS
     console.log("Initializing IPFS...");
     await initIPFS();
     console.log("✅ IPFS initialized");
 
-    // Initialiser le service de notifications avec Socket.io (commenté temporairement)
-    // notificationService.initNotificationService(io);
-    // console.log("✅ Notification service initialized");
-
-    // Démarrer l'écoute des events blockchain (commenté temporairement)
-    // await blockchainService.listenEvents();
-    // console.log("✅ Blockchain events listener started");
+    // Initialiser le service de notifications avec Socket.io
+    notificationService.initNotificationService(io);
+    console.log("✅ Notification service initialized");
 
     // Configurer les rooms Socket.io pour les notifications
     io.on("connection", (socket) => {

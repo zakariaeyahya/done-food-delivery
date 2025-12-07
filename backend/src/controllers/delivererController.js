@@ -1,32 +1,25 @@
-// Importer les services nécessaires
 const gpsTracker = require("../utils/gpsTracker");
-
-// Importer les modèles MongoDB
 const Deliverer = require("../models/Deliverer");
 const Order = require("../models/Order");
-
-// Importer ethers pour validation d'adresses et conversions
 const { ethers } = require("ethers");
 
 /**
- * Controller pour gérer les livreurs
- * @notice Gère l'enregistrement, staking, disponibilité et earnings des livreurs
- * @dev Utilise MongoDB uniquement pour Phase 6 (mocks pour staking)
+ * Controller for managing deliverers
+ * @notice Manages registration, staking, availability and earnings of deliverers
+ * @dev Uses MongoDB only for Phase 6 (mocks for staking)
  */
 
 /**
- * Enregistre un nouveau livreur
- * @dev Implémenté - MongoDB uniquement
+ * Registers a new deliverer
+ * @dev Implemented - MongoDB only
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function registerDeliverer(req, res) {
   try {
-    // Récupérer les données du body
     const { address, name, phone, vehicleType, location } = req.body;
     
-    // Valider address Ethereum
     if (!address || !ethers.isAddress(address)) {
       return res.status(400).json({
         error: "Bad Request",
@@ -34,7 +27,6 @@ async function registerDeliverer(req, res) {
       });
     }
     
-    // Vérifier si le livreur existe déjà
     const existingDeliverer = await Deliverer.findByAddress(address.toLowerCase());
     if (existingDeliverer) {
       return res.status(409).json({
@@ -43,7 +35,6 @@ async function registerDeliverer(req, res) {
       });
     }
     
-    // Créer Deliverer dans MongoDB
     const deliverer = new Deliverer({
       address: address.toLowerCase(),
       name,
@@ -62,7 +53,6 @@ async function registerDeliverer(req, res) {
     });
     await deliverer.save();
     
-    // Retourner succès
     return res.status(201).json({
       success: true,
       deliverer: {
@@ -74,10 +64,8 @@ async function registerDeliverer(req, res) {
       }
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error registering deliverer:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to register deliverer",
@@ -87,21 +75,18 @@ async function registerDeliverer(req, res) {
 }
 
 /**
- * Récupère les détails d'un livreur
- * @dev Implémenté - MongoDB uniquement (sans synchronisation blockchain)
+ * Gets deliverer details
+ * @dev Implemented - MongoDB only (without blockchain synchronization)
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getDeliverer(req, res) {
   try {
-    // Récupérer address depuis params ou req.validatedAddress
     const address = req.params.address || req.validatedAddress || req.userAddress;
     
-    // Normaliser l'adresse
     const normalizedAddress = address.toLowerCase();
     
-    // Fetch Deliverer depuis MongoDB
     const deliverer = await Deliverer.findByAddress(normalizedAddress);
     if (!deliverer) {
       return res.status(404).json({
@@ -110,7 +95,6 @@ async function getDeliverer(req, res) {
       });
     }
     
-    // Retourner deliverer (sans synchronisation blockchain pour Phase 6)
     return res.status(200).json({
       success: true,
       deliverer: {
@@ -127,10 +111,8 @@ async function getDeliverer(req, res) {
       }
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error getting deliverer:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get deliverer",
@@ -140,21 +122,18 @@ async function getDeliverer(req, res) {
 }
 
 /**
- * Récupère les livreurs disponibles
- * @dev Implémenté - MongoDB uniquement (sans vérification blockchain)
+ * Gets available deliverers
+ * @dev Implemented - MongoDB only (without blockchain verification)
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getAvailableDeliverers(req, res) {
   try {
-    // Récupérer location depuis query (optionnel)
     const { location } = req.query;
     
-    // Fetch deliverers avec isAvailable=true et isStaked=true depuis MongoDB
     const deliverers = await Deliverer.getAvailableDeliverers();
     
-    // Filtrer par distance via gpsTracker.calculateDistance() si location fournie
     let availableDeliverers = deliverers.map(d => d.toObject());
     if (location) {
       try {
@@ -170,7 +149,6 @@ async function getAvailableDeliverers(req, res) {
           );
         });
         
-        // Filtrer par maxDistance et trier par distance
         availableDeliverers = availableDeliverers
           .filter(d => d.distance <= (maxDistance || 10))
           .sort((a, b) => a.distance - b.distance);
@@ -179,7 +157,6 @@ async function getAvailableDeliverers(req, res) {
       }
     }
     
-    // Retourner array of available deliverers triés par distance
     return res.status(200).json({
       success: true,
       deliverers: availableDeliverers.map(d => ({
@@ -192,10 +169,8 @@ async function getAvailableDeliverers(req, res) {
       }))
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error getting available deliverers:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get available deliverers",
@@ -205,18 +180,16 @@ async function getAvailableDeliverers(req, res) {
 }
 
 /**
- * Met à jour le statut de disponibilité d'un livreur
- * @dev Implémenté - MongoDB uniquement
+ * Updates deliverer availability status
+ * @dev Implemented - MongoDB only
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function updateDelivererStatus(req, res) {
   try {
-    // Récupérer address depuis params ou req.userAddress
     const address = req.params.address || req.userAddress || req.validatedAddress;
     
-    // Récupérer isAvailable depuis body
     const { isAvailable } = req.body;
     
     if (typeof isAvailable !== 'boolean') {
@@ -226,10 +199,8 @@ async function updateDelivererStatus(req, res) {
       });
     }
     
-    // Normaliser l'adresse
     const normalizedAddress = address.toLowerCase();
     
-    // Update Deliverer.isAvailable dans MongoDB
     const updatedDeliverer = await Deliverer.setAvailability(normalizedAddress, isAvailable);
     
     if (!updatedDeliverer) {
@@ -239,16 +210,13 @@ async function updateDelivererStatus(req, res) {
       });
     }
     
-    // Retourner succès
     return res.status(200).json({
       success: true,
       isAvailable: updatedDeliverer.isAvailable
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error updating deliverer status:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to update deliverer status",
@@ -258,21 +226,18 @@ async function updateDelivererStatus(req, res) {
 }
 
 /**
- * Stake un livreur (dépôt de garantie)
- * @dev Mock temporaire - Sauvegarde dans MongoDB seulement (Phase 6)
+ * Stakes a deliverer (deposit guarantee)
+ * @dev Temporary mock - Saves to MongoDB only (Phase 6)
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function stakeAsDeliverer(req, res) {
   try {
-    // Récupérer address et amount depuis body
     const { address, amount } = req.body;
     
-    // Normaliser l'adresse
     const normalizedAddress = address.toLowerCase();
     
-    // Valide amount >= 0.1 ETH (en wei)
     const minimumStake = ethers.parseEther("0.1");
     const stakeAmountWei = ethers.parseEther(amount.toString());
     
@@ -283,7 +248,6 @@ async function stakeAsDeliverer(req, res) {
       });
     }
     
-    // Vérifier que le livreur existe
     const deliverer = await Deliverer.findByAddress(normalizedAddress);
     if (!deliverer) {
       return res.status(404).json({
@@ -292,8 +256,6 @@ async function stakeAsDeliverer(req, res) {
       });
     }
     
-    // Mock temporaire - Update Deliverer dans MongoDB seulement
-    // TODO: Appeler blockchainService.stakeDeliverer() quand blockchain sera disponible
     const updatedDeliverer = await Deliverer.findOneAndUpdate(
       { address: normalizedAddress },
       { 
@@ -305,7 +267,6 @@ async function stakeAsDeliverer(req, res) {
       { new: true }
     );
     
-    // Retourner succès (mock txHash)
     return res.status(200).json({
       success: true,
       message: "Stake saved in MongoDB (mock - blockchain not available)",
@@ -316,10 +277,8 @@ async function stakeAsDeliverer(req, res) {
       }
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error staking deliverer:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to stake deliverer",
@@ -329,21 +288,18 @@ async function stakeAsDeliverer(req, res) {
 }
 
 /**
- * Retire le stake d'un livreur
- * @dev Mock temporaire - MongoDB seulement (Phase 6)
+ * Unstakes a deliverer
+ * @dev Temporary mock - MongoDB only (Phase 6)
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function unstake(req, res) {
   try {
-    // Récupérer address depuis body ou req.userAddress
     const address = req.body.address || req.userAddress || req.validatedAddress;
     
-    // Normaliser l'adresse
     const normalizedAddress = address.toLowerCase();
     
-    // Vérifier que le livreur existe
     const deliverer = await Deliverer.findByAddress(normalizedAddress);
     if (!deliverer) {
       return res.status(404).json({
@@ -352,7 +308,6 @@ async function unstake(req, res) {
       });
     }
     
-    // Vérifier pas de livraisons actives (order.status IN_DELIVERY where deliverer = address)
     const activeOrders = await Order.find({ 
       deliverer: deliverer._id,
       status: 'IN_DELIVERY'
@@ -365,8 +320,6 @@ async function unstake(req, res) {
       });
     }
     
-    // Mock temporaire - Update Deliverer dans MongoDB seulement
-    // TODO: Appeler blockchainService.unstake() quand blockchain sera disponible
     const updatedDeliverer = await Deliverer.findOneAndUpdate(
       { address: normalizedAddress },
       { 
@@ -378,7 +331,6 @@ async function unstake(req, res) {
       { new: true }
     );
     
-    // Retourner succès (mock txHash)
     return res.status(200).json({
       success: true,
       message: "Unstake saved in MongoDB (mock - blockchain not available)",
@@ -389,10 +341,8 @@ async function unstake(req, res) {
       }
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error unstaking deliverer:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to unstake deliverer",
@@ -402,21 +352,18 @@ async function unstake(req, res) {
 }
 
 /**
- * Récupère les commandes d'un livreur
- * @dev Implémenté - MongoDB uniquement
+ * Gets deliverer orders
+ * @dev Implemented - MongoDB only
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getDelivererOrders(req, res) {
   try {
-    // Récupérer address depuis params ou req.userAddress
     const address = req.params.address || req.userAddress || req.validatedAddress;
     
-    // Normaliser l'adresse
     const normalizedAddress = address.toLowerCase();
     
-    // Récupérer le livreur pour obtenir son ID MongoDB
     const deliverer = await Deliverer.findByAddress(normalizedAddress);
     if (!deliverer) {
       return res.status(404).json({
@@ -425,25 +372,20 @@ async function getDelivererOrders(req, res) {
       });
     }
     
-    // Récupérer status depuis query (optionnel)
     const { status } = req.query;
     
-    // Fetch orders du deliverer depuis MongoDB via Order.getOrdersByDeliverer()
     const orders = await Order.getOrdersByDeliverer(deliverer._id, {
       status
     });
     
-    // Retourner array of orders
     return res.status(200).json({
       success: true,
       orders,
       count: orders.length
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error getting deliverer orders:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get deliverer orders",
@@ -453,21 +395,18 @@ async function getDelivererOrders(req, res) {
 }
 
 /**
- * Récupère les earnings d'un livreur
- * @dev Implémenté - Calculs MongoDB uniquement
+ * Gets deliverer earnings
+ * @dev Implemented - MongoDB calculations only
  * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
  */
 async function getDelivererEarnings(req, res) {
   try {
-    // Récupérer address depuis params ou req.userAddress
     const address = req.params.address || req.userAddress || req.validatedAddress;
     
-    // Normaliser l'adresse
     const normalizedAddress = address.toLowerCase();
     
-    // Récupérer le livreur
     const deliverer = await Deliverer.findByAddress(normalizedAddress);
     if (!deliverer) {
       return res.status(404).json({
@@ -476,10 +415,8 @@ async function getDelivererEarnings(req, res) {
       });
     }
     
-    // Récupérer startDate et endDate depuis query
     const { startDate, endDate } = req.query;
     
-    // Construire la requête
     const query = { 
       deliverer: deliverer._id,
       status: 'DELIVERED'
@@ -491,21 +428,16 @@ async function getDelivererEarnings(req, res) {
       if (endDate) query.completedAt.$lte = new Date(endDate);
     }
     
-    // Calculer depuis MongoDB orders
     const orders = await Order.find(query);
     
-    // Sum delivererAmount (20% du deliveryFee approximativement)
     const totalEarnings = orders.reduce((sum, order) => {
-      // Convertir wei en MATIC (approximation, 1e18)
       const deliveryFeeMATIC = parseFloat(order.deliveryFee) / 1e18;
-      return sum + (deliveryFeeMATIC * 0.2); // 20% du deliveryFee
+      return sum + (deliveryFeeMATIC * 0.2);
     }, 0);
     
-    // Calcule stats
     const completedDeliveries = orders.length;
     const averageEarning = completedDeliveries > 0 ? totalEarnings / completedDeliveries : 0;
     
-    // Retourner earnings
     return res.status(200).json({
       success: true,
       earnings: {
@@ -515,10 +447,8 @@ async function getDelivererEarnings(req, res) {
       }
     });
   } catch (error) {
-    // Logger l'erreur
     console.error("Error getting deliverer earnings:", error);
     
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get deliverer earnings",
@@ -527,7 +457,6 @@ async function getDelivererEarnings(req, res) {
   }
 }
 
-// Exporter toutes les fonctions
 module.exports = {
   registerDeliverer,
   getDeliverer,
