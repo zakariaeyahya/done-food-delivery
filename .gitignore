@@ -27,7 +27,6 @@ out/
 
 # Hardhat
 cache/
-artifacts/
 typechain-types/
 coverage/
 coverage.json
