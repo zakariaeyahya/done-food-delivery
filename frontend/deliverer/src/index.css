@@ -4,7 +4,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-gray-200; /* FIX: border-border n'existe pas */
   }
   
   body {
@@ -127,4 +127,3 @@
     @apply animate-pulse;
   }
 }
-
