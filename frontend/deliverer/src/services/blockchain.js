@@ -16,9 +16,9 @@ export const DELIVERER_ROLE = ethers.keccak256(
 );
 
 // ABIs
-import DoneOrderManagerABI from "../../../contracts/artifacts/DoneOrderManager.json";
-import DoneStakingABI from "../../../contracts/artifacts/DoneStaking.json";
-import DonePaymentSplitterABI from "../../../contracts/artifacts/DonePaymentSplitter.json";
+import DoneOrderManagerABI from "../../../../contracts/artifacts/contracts/DoneOrderManager.sol/DoneOrderManager.json";
+import DoneStakingABI from "../../../../contracts/artifacts/contracts/DoneStaking.sol/DoneStaking.json";
+import DonePaymentSplitterABI from "../../../../contracts/artifacts/contracts/DonePaymentSplitter.sol/DonePaymentSplitter.json";
 
 
 // Variables globales

@@ -39,10 +39,20 @@ const app = express();
 // Créer le serveur HTTP
 const server = http.createServer(app);
 
+// Liste des origines autorisées pour CORS
+const allowedOrigins = [
+  "http://localhost:3001", // Client
+  "http://localhost:5175", // Deliverer
+  "http://localhost:5176", // Deliverer (alternative port)
+  "http://localhost:3002", // Restaurant
+  "http://localhost:3003", // Admin
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 // Initialiser Socket.io avec CORS configuré
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3001",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -56,7 +66,16 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 
 // Middleware CORS pour autoriser les requêtes cross-origin
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3001",
+  origin: function (origin, callback) {
+    // Autoriser les requêtes sans origine (comme les apps mobiles ou Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 

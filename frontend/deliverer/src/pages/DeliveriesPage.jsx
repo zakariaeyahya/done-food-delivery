@@ -1,92 +1,34 @@
-/**
- * Page DeliveriesPage - Gestion et historique des livraisons
- */
-
 import { useState, useEffect } from "react";
+import { useApp } from "../App";
 import api from "../services/api";
 
 function DeliveriesPage() {
+  const { address } = useApp();
   const [deliveries, setDeliveries] = useState([]);
-  const [filter, setFilter] = useState("all"); // all, active, completed, cancelled
-  const [selectedDelivery, setSelectedDelivery] = useState(null);
-  const [address, setAddress] = useState(null);
+  const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(false);
 
-  /** Charger adresse wallet */
   useEffect(() => {
-    loadWalletAddress();
-  }, []);
-
-  /** Charger livraisons lorsque adresse ou filtres changent */
-  useEffect(() => {
-    if (address) {
-      loadDeliveries();
-    }
+    if (address) loadDeliveries();
   }, [address, filter]);
 
-  /** Récupérer adresse MetaMask */
-  async function loadWalletAddress() {
-    try {
-      if (!window.ethereum) return;
-
-      const accounts = await window.ethereum.request({
-        method: "eth_accounts",
-      });
-
-      if (accounts.length > 0) {
-        setAddress(accounts[0]);
-      }
-    } catch (err) {
-      console.error("Erreur chargement wallet :", err);
-    }
-  }
-
-  /** Charger liste des livraisons */
   async function loadDeliveries() {
     setLoading(true);
-
     try {
-      const filters =
-        filter !== "all" ? { status: filter.toUpperCase() } : {};
-
+      const filters = filter !== "all" ? { status: filter.toUpperCase() } : {};
       const orders = await api.getDelivererOrders(address, filters);
       setDeliveries(orders);
     } catch (err) {
-      console.error("Erreur chargement livraisons :", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
   }
 
-  /** Voir détails d’une livraison */
-  async function handleViewDetails(orderId) {
-    try {
-      const order = await api.getOrder(orderId);
-      setSelectedDelivery(order);
-    } catch (err) {
-      alert("Erreur : " + err.message);
-    }
-  }
-
-  /** Continuer une livraison active */
-  function handleContinueDelivery(orderId) {
-    window.location.href = `/?orderId=${orderId}`;
-  }
-
-  /** Export CSV */
-  function handleExportCSV() {
-    const csvRows = [];
-
-    // En-têtes
-    csvRows.push(
-      ["Order ID", "Restaurant", "Client", "Status", "Earnings", "Date"].join(
-        ","
-      )
-    );
-
-    // Données
-    deliveries.forEach((d) => {
-      csvRows.push(
+  function exportCSV() {
+    const rows = [
+      ["Order ID", "Restaurant", "Client", "Status", "Earnings", "Date"].join(","),
+      ...deliveries.map((d) =>
         [
           d.orderId,
           d.restaurant?.name || "",
@@ -95,26 +37,29 @@ function DeliveriesPage() {
           d.earnings || 0,
           new Date(d.createdAt).toLocaleDateString(),
         ].join(",")
-      );
-    });
-
-    const csvBlob = new Blob([csvRows.join("\n")], {
-      type: "text/csv;charset=utf-8;",
-    });
-
-    const url = URL.createObjectURL(csvBlob);
-
+      ),
+    ];
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
     const link = document.createElement("a");
-    link.href = url;
+    link.href = URL.createObjectURL(blob);
     link.download = "deliveries.csv";
     link.click();
   }
 
+  if (!address) {
+    return (
+      <div className="page">
+        <div className="card center">
+          <p>Connectez votre wallet</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="deliveries-page">
+    <div className="page">
       <h1>Mes Livraisons</h1>
 
-      {/* Filtres */}
       <div className="filters">
         {["all", "active", "completed", "cancelled"].map((f) => (
           <button
@@ -122,100 +67,49 @@ function DeliveriesPage() {
             onClick={() => setFilter(f)}
             className={filter === f ? "active" : ""}
           >
-            {f === "all"
-              ? "Toutes"
-              : f === "active"
-              ? "En cours"
-              : f === "completed"
-              ? "Complétées"
-              : "Annulées"}
+            {f === "all" ? "Toutes" : f === "active" ? "En cours" : f === "completed" ? "Complétées" : "Annulées"}
           </button>
         ))}
       </div>
 
-      {/* Liste livraisons */}
       {loading ? (
-        <div>Chargement...</div>
+        <div className="card center">Chargement...</div>
       ) : deliveries.length === 0 ? (
-        <div>Aucune livraison</div>
+        <div className="card center">Aucune livraison</div>
       ) : (
         <>
-          <table className="deliveries-table">
+          <table>
             <thead>
               <tr>
-                <th>Order ID</th>
+                <th>ID</th>
                 <th>Restaurant</th>
                 <th>Client</th>
                 <th>Status</th>
                 <th>Gains</th>
                 <th>Date</th>
-                <th>Actions</th>
               </tr>
             </thead>
-
             <tbody>
-              {deliveries.map((delivery) => (
-                <tr key={delivery.orderId}>
-                  <td>{delivery.orderId}</td>
-                  <td>{delivery.restaurant?.name}</td>
-                  <td>{delivery.client?.name}</td>
+              {deliveries.map((d) => (
+                <tr key={d.orderId}>
+                  <td>{d.orderId}</td>
+                  <td>{d.restaurant?.name}</td>
+                  <td>{d.client?.name}</td>
                   <td>
-                    <span
-                      className={`status-badge status-${delivery.status?.toLowerCase()}`}
-                    >
-                      {delivery.status}
+                    <span className={`badge badge-${d.status?.toLowerCase()}`}>
+                      {d.status}
                     </span>
                   </td>
-                  <td>{delivery.earnings || 0} MATIC</td>
-                  <td>
-                    {delivery.createdAt
-                      ? new Date(delivery.createdAt).toLocaleDateString()
-                      : ""}
-                  </td>
-                  <td>
-                    {delivery.status === "IN_DELIVERY" ? (
-                      <button
-                        onClick={() => handleContinueDelivery(delivery.orderId)}
-                      >
-                        Continuer livraison
-                      </button>
-                    ) : delivery.status === "DELIVERED" ? (
-                      <button onClick={() => handleViewDetails(delivery.orderId)}>
-                        Voir détails
-                      </button>
-                    ) : null}
-                  </td>
+                  <td>{d.earnings || 0} MATIC</td>
+                  <td>{d.createdAt ? new Date(d.createdAt).toLocaleDateString() : ""}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-
-          <button onClick={handleExportCSV} className="btn-secondary">
+          <button onClick={exportCSV} className="btn-secondary">
             Export CSV
           </button>
         </>
-      )}
-
-      {/* Modal détails */}
-      {selectedDelivery && (
-        <div className="modal">
-          <div className="modal-content">
-            <h2>Détails Livraison #{selectedDelivery.orderId}</h2>
-
-            <p><strong>Restaurant :</strong> {selectedDelivery.restaurant?.name}</p>
-            <p><strong>Client :</strong> {selectedDelivery.client?.name}</p>
-            <p><strong>Total :</strong> {selectedDelivery.totalAmount} MATIC</p>
-            <p><strong>Status :</strong> {selectedDelivery.status}</p>
-
-            {/* Espace prévu pour timeline + GPS replay */}
-            <div className="delivery-details-extended">
-              <p>Timeline : à implémenter</p>
-              <p>GPS replay : à implémenter</p>
-            </div>
-
-            <button onClick={() => setSelectedDelivery(null)}>Fermer</button>
-          </div>
-        </div>
       )}
     </div>
   );
