@@ -16,10 +16,14 @@ function DeliveriesPage() {
     setLoading(true);
     try {
       const filters = filter !== "all" ? { status: filter.toUpperCase() } : {};
-      const orders = await api.getDelivererOrders(address, filters);
+      const response = await api.getDelivererOrders(address, filters);
+
+      // Ensure we have an array
+      const orders = Array.isArray(response) ? response : (response?.orders || []);
       setDeliveries(orders);
     } catch (err) {
       console.error(err);
+      setDeliveries([]); // Set empty array on error
     } finally {
       setLoading(false);
     }

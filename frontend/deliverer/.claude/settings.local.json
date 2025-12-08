@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(cat:*)",
+      "Bash(NODE_ENV=development node:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill /F /PID 8476)",
+      "Bash(cmd //c \"taskkill /F /PID 8476\")",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

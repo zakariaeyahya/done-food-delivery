@@ -40,6 +40,7 @@ function ProfilePage() {
   function disconnect() {
     if (confirm("Déconnexion ?")) {
       setAddress(null);
+      localStorage.removeItem('walletAddress');
       window.location.href = "/";
     }
   }

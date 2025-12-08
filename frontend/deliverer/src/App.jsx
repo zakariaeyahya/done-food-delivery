@@ -47,7 +47,10 @@ function App() {
       window.ethereum
         .request({ method: "eth_accounts" })
         .then((accounts) => {
-          if (accounts.length > 0) setAddress(accounts[0]);
+          if (accounts.length > 0) {
+            setAddress(accounts[0]);
+            localStorage.setItem('walletAddress', accounts[0]);
+          }
         })
         .catch(console.error);
     }
@@ -60,7 +63,9 @@ function App() {
     }
     try {
       const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-      setAddress(accounts[0]);
+      const walletAddress = accounts[0];
+      setAddress(walletAddress);
+      localStorage.setItem('walletAddress', walletAddress);
     } catch (error) {
       alert("Erreur connexion wallet");
     }

@@ -9,6 +9,7 @@ function HomePage() {
   const { address, connectWallet } = useApp();
   const [isOnline, setIsOnline] = useState(false);
   const [activeDelivery, setActiveDelivery] = useState(null);
+  const [isRegistered, setIsRegistered] = useState(true);
   const [stats, setStats] = useState({
     todayDeliveries: 0,
     todayEarnings: 0,
@@ -16,6 +17,12 @@ function HomePage() {
     stakedAmount: 0,
   });
   const [loading, setLoading] = useState(false);
+  const [registering, setRegistering] = useState(false);
+  const [registerForm, setRegisterForm] = useState({
+    name: "",
+    phone: "",
+    vehicleType: "bike"
+  });
 
   useEffect(() => {
     if (address) {
@@ -25,22 +32,72 @@ function HomePage() {
 
   async function loadData() {
     try {
-      const [active, earnings, rating, stakeInfo] = await Promise.all([
-        api.getActiveDelivery(address).catch(() => null),
-        api.getEarnings(address, "today").catch(() => ({})),
-        api.getRating(address).catch(() => ({ rating: 0 })),
-        blockchain.getStakeInfo(address).catch(() => ({ amount: 0 })),
-      ]);
+      // Check if user is registered as deliverer
+      const delivererData = await api.getDeliverer(address).catch((err) => {
+        if (err.response?.status === 404) {
+          setIsRegistered(false);
+          return null;
+        }
+        return null;
+      });
 
+      if (!delivererData) {
+        setIsRegistered(false);
+        return;
+      }
+
+      setIsRegistered(true);
+
+      // Load active delivery (may not exist - that's ok)
+      const active = await api.getActiveDelivery(address).catch(() => null);
       setActiveDelivery(active);
+
+      // Load earnings (with auth - may fail)
+      const earnings = await api.getEarnings(address, "today").catch(() => ({
+        completedDeliveries: 0,
+        totalEarnings: 0
+      }));
+
+      // Load stake info from blockchain (may fail if contract not deployed)
+      const stakeInfo = await blockchain.getStakeInfo(address).catch((err) => {
+        console.warn("Blockchain stake info not available:", err.message);
+        return { amount: 0, isStaked: false };
+      });
+
       setStats({
         todayDeliveries: earnings.completedDeliveries || 0,
         todayEarnings: earnings.totalEarnings || 0,
-        rating: rating.rating || 0,
+        rating: 0, // Rating endpoint doesn't exist yet
         stakedAmount: stakeInfo.amount || 0,
       });
     } catch (err) {
       console.error("Erreur chargement:", err);
+    }
+  }
+
+  async function handleRegister(e) {
+    e.preventDefault();
+
+    if (!registerForm.name || !registerForm.phone) {
+      alert("Veuillez remplir tous les champs");
+      return;
+    }
+
+    setRegistering(true);
+    try {
+      await api.registerDeliverer({
+        address: address,
+        name: registerForm.name,
+        phone: registerForm.phone,
+        vehicleType: registerForm.vehicleType
+      });
+      alert("Inscription réussie !");
+      await loadData();
+    } catch (err) {
+      const errorMsg = err.response?.data?.details || err.response?.data?.message || err.message;
+      alert("Erreur lors de l'inscription: " + errorMsg);
+    } finally {
+      setRegistering(false);
     }
   }
 
@@ -65,6 +122,49 @@ function HomePage() {
           <button onClick={connectWallet} className="btn-primary">
             Connecter MetaMask
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isRegistered) {
+    return (
+      <div className="page">
+        <div className="card">
+          <h2>Inscription Livreur</h2>
+          <p>Complétez votre profil pour commencer</p>
+          <p className="mb-1"><strong>Adresse:</strong> {address}</p>
+
+          <form onSubmit={handleRegister}>
+            <input
+              type="text"
+              placeholder="Nom complet"
+              value={registerForm.name}
+              onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+              required
+            />
+
+            <input
+              type="tel"
+              placeholder="Téléphone (ex: +33612345678)"
+              value={registerForm.phone}
+              onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
+              required
+            />
+
+            <select
+              value={registerForm.vehicleType}
+              onChange={(e) => setRegisterForm({ ...registerForm, vehicleType: e.target.value })}
+            >
+              <option value="bike">Vélo</option>
+              <option value="scooter">Scooter</option>
+              <option value="car">Voiture</option>
+            </select>
+
+            <button type="submit" disabled={registering} className="btn-primary">
+              {registering ? "Inscription..." : "S'inscrire"}
+            </button>
+          </form>
         </div>
       </div>
     );

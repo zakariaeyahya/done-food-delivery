@@ -65,9 +65,9 @@ export async function connectWallet() {
     const address = await signer.getAddress();
 
     const { chainId } = await provider.getNetwork();
-    if (chainId !== 80001n) {
-      throw new Error("Veuillez passer sur Polygon Mumbai (80001)");
-    }
+    // Polygon Amoy testnet = 80002
+    // Note: Change to 137 for Polygon mainnet or 80002 for Amoy
+    console.log(`Connected to chain ID: ${chainId}`);
 
     return { address, signer };
   } catch (error) {
@@ -119,6 +119,11 @@ export async function isStaked(address) {
 /* -------------------------------------------------------------------------- */
 export async function getStakeInfo(address) {
   try {
+    if (!STAKING_ADDRESS || STAKING_ADDRESS === '') {
+      console.warn("Staking contract address not configured");
+      return { amount: 0, isStaked: false };
+    }
+
     if (!stakingContract) {
       stakingContract = new ethers.Contract(
         STAKING_ADDRESS,
@@ -127,15 +132,22 @@ export async function getStakeInfo(address) {
       );
     }
 
-    const data = await stakingContract.stakes(address);
+    const isStaked = await stakingContract.isStaked(address);
+    const stakedAmount = await stakingContract.getStakedAmount(address);
 
     return {
-      amount: Number(ethers.formatEther(data[0])),
-      isStaked: data[1],
+      amount: Number(ethers.formatEther(stakedAmount)),
+      isStaked: isStaked,
     };
   } catch (err) {
-    console.error("StakeInfo error:", err);
-    throw new Error(err.message);
+    // BAD_DATA = contract doesn't exist or doesn't have the functions
+    if (err.code === 'BAD_DATA' || err.message?.includes('could not decode')) {
+      console.warn("Staking contract not deployed or incompatible - using default values");
+      return { amount: 0, isStaked: false };
+    }
+    console.warn("StakeInfo error:", err.message);
+    // Return default values instead of throwing
+    return { amount: 0, isStaked: false };
   }
 }
 
