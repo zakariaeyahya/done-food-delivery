@@ -8,13 +8,38 @@ import axios from 'axios';
 // Configuration de base
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+// Create axios instance
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Interceptor to add dev auth headers
+apiClient.interceptors.request.use((config) => {
+  // Get current wallet address from localStorage or window
+  const address = window.ethereum?.selectedAddress || localStorage.getItem('walletAddress');
+
+  if (address) {
+    // Dev mode: use mock signature
+    config.headers['Authorization'] = 'Bearer mock_signature_for_testing';
+    config.headers['x-wallet-address'] = address;
+    config.headers['x-message'] = 'auth';
+  }
+
+  return config;
+});
+
 /**
  * Headers d'authentification
  */
 function authHeaders(address) {
   return {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${address}`
+    "Authorization": "Bearer mock_signature_for_testing",
+    "x-wallet-address": address,
+    "x-message": "auth"
   };
 }
 
@@ -32,9 +57,7 @@ async function getAvailableOrders(location) {
       lng: location.lng.toString(),
     });
 
-    const response = await axios.get(
-      `${API_BASE_URL}/deliverers/available?${params}`
-    );
+    const response = await apiClient.get(`/deliverers/available?${params}`);
     return response.data;
   } catch (error) {
     console.error("Error fetching available orders:", error);
@@ -50,10 +73,9 @@ async function acceptOrder(orderId, delivererAddress) {
     if (!orderId) throw new Error("Order ID is required");
     if (!delivererAddress) throw new Error("Deliverer address is required");
 
-    const response = await axios.post(
-      `${API_BASE_URL}/deliverers/orders/${orderId}/accept`,
-      { delivererAddress },
-      { headers: authHeaders(delivererAddress) }
+    const response = await apiClient.post(
+      `/deliverers/orders/${orderId}/accept`,
+      { delivererAddress }
     );
 
     return response.data;
@@ -71,10 +93,9 @@ async function confirmPickup(orderId, delivererAddress) {
     if (!orderId) throw new Error("Order ID is required");
     if (!delivererAddress) throw new Error("Deliverer address is required");
 
-    const response = await axios.post(
-      `${API_BASE_URL}/orders/${orderId}/confirm-pickup`,
-      { delivererAddress },
-      { headers: authHeaders(delivererAddress) }
+    const response = await apiClient.post(
+      `/orders/${orderId}/confirm-pickup`,
+      { delivererAddress }
     );
 
     return response.data;
@@ -92,10 +113,9 @@ async function confirmDelivery(orderId, delivererAddress) {
     if (!orderId) throw new Error("Order ID is required");
     if (!delivererAddress) throw new Error("Deliverer address is required");
 
-    const response = await axios.post(
-      `${API_BASE_URL}/orders/${orderId}/confirm-delivery`,
-      { delivererAddress },
-      { headers: authHeaders(delivererAddress) }
+    const response = await apiClient.post(
+      `/orders/${orderId}/confirm-delivery`,
+      { delivererAddress }
     );
 
     return response.data;
@@ -108,17 +128,16 @@ async function confirmDelivery(orderId, delivererAddress) {
 /* -------------------------------------------------------------------------- */
 /* 5. Mettre à jour la position GPS                                           */
 /* -------------------------------------------------------------------------- */
-async function updateGPSLocation(orderId, lat, lng) {
+async function updateGPSLocation(orderId, location) {
   try {
     if (!orderId) throw new Error("Order ID is required");
-    if (lat === undefined || lng === undefined) {
-      throw new Error("Latitude and longitude are required");
+    if (!location || !location.lat || !location.lng) {
+      throw new Error("Location with lat and lng is required");
     }
 
-    const response = await axios.post(
-      `${API_BASE_URL}/orders/${orderId}/update-gps`,
-      { lat, lng },
-      { headers: { "Content-Type": "application/json" } }
+    const response = await apiClient.post(
+      `/orders/${orderId}/update-gps`,
+      { lat: location.lat, lng: location.lng }
     );
 
     return response.data;
@@ -136,15 +155,17 @@ async function getEarnings(address, period = "week") {
     if (!address) throw new Error("Address is required");
 
     const params = new URLSearchParams({ period });
-
-    const response = await axios.get(
-      `${API_BASE_URL}/deliverers/${address}/earnings?${params}`
-    );
+    const response = await apiClient.get(`/deliverers/${address}/earnings?${params}`);
 
     return response.data;
   } catch (error) {
+    // 403 = User doesn't have DELIVERER_ROLE - needs to register first
+    if (error.response?.status === 403) {
+      console.warn("User not registered as deliverer yet");
+      return { completedDeliveries: 0, totalEarnings: 0 };
+    }
     console.error("Error fetching earnings:", error);
-    throw new Error(`Failed to get earnings: ${error.message}`);
+    return { completedDeliveries: 0, totalEarnings: 0 };
   }
 }
 
@@ -155,14 +176,19 @@ async function getRating(address) {
   try {
     if (!address) throw new Error("Address is required");
 
-    const response = await axios.get(
-      `${API_BASE_URL}/deliverers/${address}/rating`
-    );
+    // TODO: Backend route doesn't exist yet - return mock data
+    console.warn("Rating endpoint not implemented - using mock data");
+    return {
+      rating: 4.5,
+      totalDeliveries: 0,
+      reviews: []
+    };
 
-    return response.data;
+    // const response = await apiClient.get(`/deliverers/${address}/rating`);
+    // return response.data;
   } catch (error) {
     console.error("Error fetching rating:", error);
-    throw new Error(`Failed to get rating: ${error.message}`);
+    return { rating: 0, totalDeliveries: 0, reviews: [] };
   }
 }
 
@@ -173,10 +199,9 @@ async function updateStatus(address, isOnline) {
   try {
     if (!address) throw new Error("Address is required");
 
-    const response = await axios.put(
-      `${API_BASE_URL}/deliverers/${address}/status`,
-      { isAvailable: isOnline },
-      { headers: authHeaders(address) }
+    const response = await apiClient.put(
+      `/deliverers/${address}/status`,
+      { isAvailable: isOnline }
     );
 
     return response.data;
@@ -197,9 +222,9 @@ async function getDelivererOrders(address, filters = {}) {
     if (filters.status) params.append("status", filters.status);
 
     const queryString = params.toString();
-    const url = `${API_BASE_URL}/deliverers/${address}/orders${queryString ? `?${queryString}` : ""}`;
+    const url = `/deliverers/${address}/orders${queryString ? `?${queryString}` : ""}`;
 
-    const response = await axios.get(url);
+    const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
     console.error("Error fetching deliverer orders:", error);
@@ -214,12 +239,17 @@ async function getActiveDelivery(address) {
   try {
     if (!address) throw new Error("Address is required");
 
-    const response = await axios.get(
-      `${API_BASE_URL}/deliverers/${address}/active-delivery`
-    );
+    // TODO: Backend route doesn't exist yet - return null
+    // This is normal - no active delivery is expected most of the time
+    return null;
 
-    return response.data || null;
+    // const response = await apiClient.get(`/deliverers/${address}/active-delivery`);
+    // return response.data || null;
   } catch (error) {
+    // 404 is normal - no active delivery
+    if (error.response?.status === 404) {
+      return null;
+    }
     console.error("Error fetching active delivery:", error);
     return null;
   }
@@ -232,7 +262,7 @@ async function getOrder(orderId) {
   try {
     if (!orderId) throw new Error("Order ID is required");
 
-    const response = await axios.get(`${API_BASE_URL}/orders/${orderId}`);
+    const response = await apiClient.get(`/orders/${orderId}`);
     return response.data;
   } catch (error) {
     console.error("Error fetching order:", error);
@@ -247,12 +277,7 @@ async function registerDeliverer(data) {
   try {
     if (!data || !data.address) throw new Error("Address is required");
 
-    const response = await axios.post(
-      `${API_BASE_URL}/deliverers/register`,
-      data,
-      { headers: authHeaders(data.address) }
-    );
-
+    const response = await apiClient.post(`/deliverers/register`, data);
     return response.data;
   } catch (error) {
     console.error("Error registering deliverer:", error);
@@ -267,11 +292,15 @@ async function getDeliverer(address) {
   try {
     if (!address) throw new Error("Address is required");
 
-    const response = await axios.get(`${API_BASE_URL}/deliverers/${address}`);
+    const response = await apiClient.get(`/deliverers/${address}`);
     return response.data;
   } catch (error) {
+    // 404 is expected if deliverer not registered yet - don't log it
+    if (error.response?.status === 404) {
+      throw error; // Re-throw to let caller handle registration
+    }
     console.error("Error fetching deliverer:", error);
-    throw new Error(`Failed to get deliverer: ${error.message}`);
+    throw error;
   }
 }
 

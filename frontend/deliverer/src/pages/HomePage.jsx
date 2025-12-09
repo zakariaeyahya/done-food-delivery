@@ -1,169 +1,213 @@
-/**
- * Page HomePage - Accueil livreur
- */
-
 import { useState, useEffect } from "react";
+import { useApp } from "../App";
 import api from "../services/api";
 import blockchain from "../services/blockchain";
-
-import ConnectWallet from "../components/ConnectWallet";
 import AvailableOrders from "../components/AvailableOrders";
 import ActiveDelivery from "../components/ActiveDelivery";
 
 function HomePage() {
+  const { address, connectWallet } = useApp();
   const [isOnline, setIsOnline] = useState(false);
   const [activeDelivery, setActiveDelivery] = useState(null);
-
+  const [isRegistered, setIsRegistered] = useState(true);
   const [stats, setStats] = useState({
     todayDeliveries: 0,
     todayEarnings: 0,
     rating: 0,
     stakedAmount: 0,
   });
-
-  const [address, setAddress] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [registering, setRegistering] = useState(false);
+  const [registerForm, setRegisterForm] = useState({
+    name: "",
+    phone: "",
+    vehicleType: "bike"
+  });
 
-  /** Charger wallet au démarrage */
-  useEffect(() => {
-    loadWalletAddress();
-  }, []);
-
-  /** Charger livraison active + stats si wallet connecté */
   useEffect(() => {
     if (address) {
-      loadActiveDelivery();
-      loadStats();
+      loadData();
     }
   }, [address]);
 
-  /** Charger adresse MetaMask */
-  async function loadWalletAddress() {
+  async function loadData() {
     try {
-      if (!window.ethereum) return;
-
-      const accounts = await window.ethereum.request({
-        method: "eth_accounts",
+      // Check if user is registered as deliverer
+      const delivererData = await api.getDeliverer(address).catch((err) => {
+        if (err.response?.status === 404) {
+          setIsRegistered(false);
+          return null;
+        }
+        return null;
       });
 
-      if (accounts.length > 0) {
-        setAddress(accounts[0]);
+      if (!delivererData) {
+        setIsRegistered(false);
+        return;
       }
-    } catch (err) {
-      console.error("Erreur chargement wallet :", err);
-    }
-  }
 
-  /** Charger livraison active */
-  async function loadActiveDelivery() {
-    try {
-      const active = await api.getActiveDelivery(address);
+      setIsRegistered(true);
+
+      // Load active delivery (may not exist - that's ok)
+      const active = await api.getActiveDelivery(address).catch(() => null);
       setActiveDelivery(active);
-    } catch (err) {
-      console.error("Erreur livraison active :", err);
-    }
-  }
 
-  /** Charger statistiques du jour */
-  async function loadStats() {
-    try {
-      const earnings = await api.getEarnings(address, "today");
-      const rating = await api.getRating(address);
-      const stakeInfo = await blockchain.getStakeInfo(address);
+      // Load earnings (with auth - may fail)
+      const earnings = await api.getEarnings(address, "today").catch(() => ({
+        completedDeliveries: 0,
+        totalEarnings: 0
+      }));
+
+      // Load stake info from blockchain (may fail if contract not deployed)
+      const stakeInfo = await blockchain.getStakeInfo(address).catch((err) => {
+        console.warn("Blockchain stake info not available:", err.message);
+        return { amount: 0, isStaked: false };
+      });
 
       setStats({
         todayDeliveries: earnings.completedDeliveries || 0,
         todayEarnings: earnings.totalEarnings || 0,
-        rating: rating.rating || 0,
+        rating: 0, // Rating endpoint doesn't exist yet
         stakedAmount: stakeInfo.amount || 0,
       });
     } catch (err) {
-      console.error("Erreur chargement stats :", err);
+      console.error("Erreur chargement:", err);
     }
   }
 
-  /** Changer statut en ligne/hors ligne */
-  async function handleToggleStatus() {
-    const newStatus = !isOnline;
-    setLoading(true);
+  async function handleRegister(e) {
+    e.preventDefault();
 
+    if (!registerForm.name || !registerForm.phone) {
+      alert("Veuillez remplir tous les champs");
+      return;
+    }
+
+    setRegistering(true);
     try {
-      await api.updateStatus(address, newStatus);
-      setIsOnline(newStatus);
+      await api.registerDeliverer({
+        address: address,
+        name: registerForm.name,
+        phone: registerForm.phone,
+        vehicleType: registerForm.vehicleType
+      });
+      alert("Inscription réussie !");
+      await loadData();
     } catch (err) {
-      alert("Erreur : " + err.message);
+      const errorMsg = err.response?.data?.details || err.response?.data?.message || err.message;
+      alert("Erreur lors de l'inscription: " + errorMsg);
+    } finally {
+      setRegistering(false);
+    }
+  }
+
+  async function toggleStatus() {
+    setLoading(true);
+    try {
+      await api.updateStatus(address, !isOnline);
+      setIsOnline(!isOnline);
+    } catch (err) {
+      alert("Erreur: " + err.message);
     } finally {
       setLoading(false);
     }
   }
 
-  return (
-    <div className="home-page">
-      <h1>Bienvenue, Livreur !</h1>
+  if (!address) {
+    return (
+      <div className="page">
+        <div className="card center">
+          <h2>Bienvenue sur DONE Livreur 🚀</h2>
+          <p>Connectez votre wallet pour commencer</p>
+          <button onClick={connectWallet} className="btn-primary">
+            Connecter MetaMask
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-      {/* Si wallet non connecté → montrer ConnectWallet */}
-      {!address ? (
-        <ConnectWallet />
+  if (!isRegistered) {
+    return (
+      <div className="page">
+        <div className="card">
+          <h2>Inscription Livreur</h2>
+          <p>Complétez votre profil pour commencer</p>
+          <p className="mb-1"><strong>Adresse:</strong> {address}</p>
+
+          <form onSubmit={handleRegister}>
+            <input
+              type="text"
+              placeholder="Nom complet"
+              value={registerForm.name}
+              onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+              required
+            />
+
+            <input
+              type="tel"
+              placeholder="Téléphone (ex: +33612345678)"
+              value={registerForm.phone}
+              onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
+              required
+            />
+
+            <select
+              value={registerForm.vehicleType}
+              onChange={(e) => setRegisterForm({ ...registerForm, vehicleType: e.target.value })}
+            >
+              <option value="bike">Vélo</option>
+              <option value="scooter">Scooter</option>
+              <option value="car">Voiture</option>
+            </select>
+
+            <button type="submit" disabled={registering} className="btn-primary">
+              {registering ? "Inscription..." : "S'inscrire"}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page">
+      <h1>Tableau de bord</h1>
+
+      <label className="toggle">
+        <input type="checkbox" checked={isOnline} onChange={toggleStatus} disabled={loading} />
+        <span>{isOnline ? "🟢 En ligne" : "🔴 Hors ligne"}</span>
+      </label>
+
+      {activeDelivery ? (
+        <ActiveDelivery order={activeDelivery} />
       ) : (
         <>
-          {/* Toggle statut */}
-          <div className="status-toggle">
-            <label>
-              <input
-                type="checkbox"
-                checked={isOnline}
-                onChange={handleToggleStatus}
-                disabled={loading}
-              />
-              <span>{isOnline ? "🟢 En ligne" : "🔴 Hors ligne"}</span>
-            </label>
+          <div className="stats-grid">
+            <div className="card">
+              <h3>Livraisons</h3>
+              <p className="big">{stats.todayDeliveries}</p>
+            </div>
+            <div className="card">
+              <h3>Gains</h3>
+              <p className="big">{stats.todayEarnings} MATIC</p>
+            </div>
+            <div className="card">
+              <h3>Rating</h3>
+              <p className="big">{stats.rating.toFixed(1)}/5</p>
+            </div>
+            <div className="card">
+              <h3>Staké</h3>
+              <p className="big">{stats.stakedAmount} MATIC</p>
+            </div>
           </div>
 
-          {/* Livraison active */}
-          {activeDelivery ? (
-            <ActiveDelivery order={activeDelivery} />
+          {isOnline ? (
+            <AvailableOrders limit={5} />
           ) : (
-            <>
-              {/* Statistiques rapides */}
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <h3>Livraisons aujourd'hui</h3>
-                  <p className="stat-value">{stats.todayDeliveries}</p>
-                </div>
-
-                <div className="stat-card">
-                  <h3>Gains aujourd'hui</h3>
-                  <p className="stat-value">{stats.todayEarnings} MATIC</p>
-                </div>
-
-                <div className="stat-card">
-                  <h3>Rating</h3>
-                  <p className="stat-value">{stats.rating.toFixed(1)}/5</p>
-                </div>
-
-                <div className="stat-card">
-                  <h3>Staké</h3>
-                  <p className="stat-value">{stats.stakedAmount} MATIC</p>
-                </div>
-              </div>
-
-              {/* Commandes disponibles */}
-              {isOnline ? (
-                <>
-                  <AvailableOrders limit={5} />
-                  <button
-                    onClick={() => (window.location.href = "/deliveries")}
-                    className="btn-secondary"
-                  >
-                    Voir toutes les commandes
-                  </button>
-                </>
-              ) : (
-                <div className="offline-message">
-                  Passez en ligne pour voir les commandes disponibles.
-                </div>
-              )}
-            </>
+            <div className="card center">
+              <p>Passez en ligne pour voir les commandes</p>
+            </div>
           )}
         </>
       )}
