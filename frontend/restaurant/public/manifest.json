@@ -1,0 +1,10 @@
+{
+  "name": "DONE Restaurant Dashboard",
+  "short_name": "DONE Restaurant",
+  "description": "Restaurant dashboard for Done Food Delivery platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#16a34a",
+  "orientation": "portrait-primary"
+}

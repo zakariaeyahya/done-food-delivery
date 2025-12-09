@@ -4,103 +4,232 @@
  * @dev Affiche détails commande, items, client, statut, actions
  */
 
-// TODO: Importer React et hooks nécessaires
-// import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from "react";
 
-// TODO: Importer utils
-// import { formatAddress } from '../utils/web3';
-// import { formatPrice, formatDate } from '../utils/formatters';
+// Utils (remplace si tu as déjà)
+import { formatAddress } from "../utils/web3";
+import { formatPrice, formatDate } from "../utils/formatters";
+
+// Gateway IPFS
+const IPFS_GATEWAY =
+  import.meta.env.VITE_IPFS_GATEWAY || "https://ipfs.io/ipfs/";
 
 /**
  * Composant OrderCard
  * @param {Object} order - Données de la commande
- * @param {Function} onConfirmPreparation - Callback pour confirmer préparation
- * @returns {JSX.Element} Carte de commande
+ * @param {(orderId: string|number) => void} onConfirmPreparation
+ * @returns {JSX.Element}
  */
-// TODO: Créer le composant OrderCard
-// function OrderCard({ order, onConfirmPreparation }) {
-//   // State pour le temps écoulé
-//   const [elapsedTime, setElapsedTime] = useState('');
-//   
-//   // TODO: useEffect pour calculer temps écoulé
-//   // useEffect(() => {
-//   //   const interval = setInterval(() => {
-//   //     const now = new Date();
-//   //     const created = new Date(order.createdAt);
-//   //     const diff = Math.floor((now - created) / 1000 / 60); // minutes
-//   //     setElapsedTime(`${diff} min`);
-//   //   }, 60000); // Update chaque minute
-//   //   
-//   //   RETOURNER () => clearInterval(interval);
-//   // }, [order.createdAt]);
-//   
-//   // TODO: Fonction pour obtenir la couleur du badge selon le statut
-//   // function getStatusColor(status) {
-//   //   const colors = {
-//   //     'CREATED': 'yellow',
-//   //     'PREPARING': 'orange',
-//   //     'IN_DELIVERY': 'blue',
-//   //     'DELIVERED': 'green',
-//   //     'DISPUTED': 'red'
-//   //   };
-//   //   RETOURNER colors[status] || 'gray';
-//   // }
-//   
-//   // TODO: Render du composant
-//   // RETOURNER (
-//   //   <div className="order-card">
-//   //     <div className="order-header">
-//   //       <span className="order-id">Commande #{order.orderId}</span>
-//   //       <span className={`badge badge-${getStatusColor(order.status)}`}>
-//   //         {order.status}
-//   //       </span>
-//   //       <span className="elapsed-time">{elapsedTime}</span>
-//   //     </div>
-//   //     
-//   //     <div className="order-items">
-//   //       <h4>Items:</h4>
-//   //       {order.items.map((item, index) => (
-//   //         <div key={index} className="order-item">
-//   //           SI item.image:
-//   //             <img src={`${IPFS_GATEWAY}${item.image}`} alt={item.name} />
-//   //           <span>{item.quantity}x {item.name}</span>
-//   //           <span>{formatPrice(item.price * item.quantity)} MATIC</span>
-//   //         </div>
-//   //       ))}
-//   //     </div>
-//   //     
-//   //     <div className="order-info">
-//   //       <div className="client-info">
-//   //         <h4>Client:</h4>
-//   //         <p>{order.client?.name || 'N/A'}</p>
-//   //         <p>{formatAddress(order.client?.address)}</p>
-//   //         SI order.client?.phone:
-//   //           <p>{order.client.phone}</p>
-//   //       </div>
-//   //       
-//   //       <div className="delivery-address">
-//   //         <h4>Adresse de livraison:</h4>
-//   //         <p>{order.deliveryAddress}</p>
-//   //       </div>
-//   //     </div>
-//   //     
-//   //     <div className="order-footer">
-//   //       <div className="total">
-//   //         <span>Total: {formatPrice(order.totalAmount)} MATIC</span>
-//   //       </div>
-//   //       
-//   //       SI order.status === 'CREATED' && onConfirmPreparation:
-//   //         <button
-//   //           onClick={() => onConfirmPreparation(order.orderId)}
-//   //           className="btn btn-primary"
-//   //         >
-//   //           Confirmer préparation
-//   //         </button>
-//   //     </div>
-//   //   </div>
-//   // );
-// }
+function OrderCard({ order, onConfirmPreparation }) {
+  const [elapsedTime, setElapsedTime] = useState("");
 
-// TODO: Exporter le composant
-// export default OrderCard;
+  useEffect(() => {
+    if (!order?.createdAt) return;
 
+    function updateElapsed() {
+      const now = new Date();
+      const created = new Date(order.createdAt);
+      const diffMin = Math.max(
+        0,
+        Math.floor((now.getTime() - created.getTime()) / 1000 / 60)
+      );
+
+      if (diffMin < 1) setElapsedTime("à l’instant");
+      else if (diffMin < 60) setElapsedTime(`${diffMin} min`);
+      else {
+        const h = Math.floor(diffMin / 60);
+        const m = diffMin % 60;
+        setElapsedTime(`${h}h ${m}m`);
+      }
+    }
+
+    updateElapsed();
+    const interval = setInterval(updateElapsed, 60000);
+    return () => clearInterval(interval);
+  }, [order?.createdAt]);
+
+  function getStatusTone(status) {
+    const map = {
+      CREATED: "warning",
+      PREPARING: "secondary",
+      IN_DELIVERY: "info",
+      DELIVERED: "success",
+      DISPUTED: "error",
+      CANCELED: "error",
+    };
+    return map[status] || "neutral";
+  }
+
+  const statusText = useMemo(() => {
+    const map = {
+      CREATED: "Nouvelle",
+      PREPARING: "En préparation",
+      IN_DELIVERY: "En livraison",
+      DELIVERED: "Livrée",
+      DISPUTED: "Litige",
+      CANCELED: "Annulée",
+    };
+    return map[order?.status] || order?.status || "—";
+  }, [order?.status]);
+
+  const itemsTotal = useMemo(() => {
+    return (order?.items || []).reduce(
+      (sum, it) => sum + Number(it.price || 0) * Number(it.quantity || 0),
+      0
+    );
+  }, [order?.items]);
+
+  if (!order) return null;
+
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-soft dark:bg-neutral-800">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="font-display text-lg font-semibold text-neutral-900 dark:text-neutral-50">
+            Commande #{order.orderId}
+          </span>
+          <StatusBadge tone={getStatusTone(order.status)}>
+            {statusText}
+          </StatusBadge>
+        </div>
+
+        <div className="flex items-center gap-3 text-sm text-neutral-500 dark:text-neutral-400">
+          <span>{formatDate?.(order.createdAt) || ""}</span>
+          <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs dark:bg-neutral-700">
+            {elapsedTime}
+          </span>
+        </div>
+      </div>
+
+      {/* Items */}
+      <div className="mt-4 space-y-2">
+        <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+          Items
+        </h4>
+
+        <div className="space-y-2">
+          {(order.items || []).map((item, index) => {
+            const lineTotal =
+              Number(item.price || 0) * Number(item.quantity || 0);
+
+            return (
+              <div
+                key={item._id || `${item.name}-${index}`}
+                className="flex items-center justify-between gap-3 rounded-xl bg-neutral-50 p-2 dark:bg-neutral-900/40"
+              >
+                <div className="flex items-center gap-3">
+                  {item.image && (
+                    <img
+                      src={`${IPFS_GATEWAY}${item.image}`}
+                      alt={item.name}
+                      className="h-12 w-12 rounded-lg object-cover"
+                    />
+                  )}
+                  <div>
+                    <p className="font-medium text-neutral-900 dark:text-neutral-50">
+                      {item.quantity}x {item.name}
+                    </p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                      {formatPrice?.(item.price) ?? item.price} MATIC / unité
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
+                  {formatPrice?.(lineTotal) ?? lineTotal} MATIC
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Info client + adresse */}
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="rounded-xl bg-neutral-50 p-3 dark:bg-neutral-900/40">
+          <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+            Client
+          </h4>
+          <div className="mt-2 space-y-1 text-sm">
+            <p className="font-medium text-neutral-900 dark:text-neutral-50">
+              {order.client?.name || "N/A"}
+            </p>
+            {order.client?.address && (
+              <p className="text-neutral-600 dark:text-neutral-300">
+                {formatAddress?.(order.client.address) || order.client.address}
+              </p>
+            )}
+            {order.client?.phone && (
+              <p className="text-neutral-600 dark:text-neutral-300">
+                {order.client.phone}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-neutral-50 p-3 dark:bg-neutral-900/40">
+          <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+            Adresse de livraison
+          </h4>
+          <p className="mt-2 text-sm text-neutral-700 dark:text-neutral-200">
+            {order.deliveryAddress || "—"}
+          </p>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-sm text-neutral-500 dark:text-neutral-400">
+          Total items:{" "}
+          <span className="font-semibold text-neutral-900 dark:text-neutral-50">
+            {formatPrice?.(itemsTotal) ?? itemsTotal} MATIC
+          </span>
+        </div>
+
+        <div className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
+          Total:{" "}
+          {formatPrice?.(order.totalAmount) ?? order.totalAmount} MATIC
+        </div>
+
+        {order.status === "CREATED" && onConfirmPreparation && (
+          <button
+            onClick={() => onConfirmPreparation(order.orderId)}
+            className="rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-primary-600"
+          >
+            Confirmer préparation
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- UI Bits ---------------- */
+
+function StatusBadge({ tone = "neutral", children }) {
+  const styles = {
+    warning:
+      "bg-warning-100 text-warning-800 dark:bg-warning-900/30 dark:text-warning-200",
+    secondary:
+      "bg-secondary-100 text-secondary-800 dark:bg-secondary-900/30 dark:text-secondary-200",
+    info:
+      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200",
+    success:
+      "bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-200",
+    error:
+      "bg-error-100 text-error-800 dark:bg-error-900/30 dark:text-error-200",
+    neutral:
+      "bg-neutral-100 text-neutral-800 dark:bg-neutral-700 dark:text-neutral-100",
+  };
+
+  return (
+    <span
+      className={`rounded-full px-2.5 py-1 text-xs font-medium ${styles[tone]}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+export default OrderCard;

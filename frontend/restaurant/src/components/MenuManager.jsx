@@ -4,264 +4,497 @@
  * @dev Upload images IPFS, gestion catégories, activation/désactivation items
  */
 
-// TODO: Importer React et hooks nécessaires
-// import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from "react";
+import * as api from "../services/api";
 
-// TODO: Importer les services
-// import * as api from '../services/api';
+const CATEGORIES = ["Entrées", "Plats", "Desserts", "Boissons"];
+const IPFS_GATEWAY =
+  import.meta.env.VITE_IPFS_GATEWAY || "https://ipfs.io/ipfs/";
 
-/**
- * Composant MenuManager
- * @param {string} restaurantId - ID du restaurant
- * @param {string} restaurantAddress - Adresse wallet du restaurant
- * @returns {JSX.Element} Gestionnaire de menu
- */
-// TODO: Créer le composant MenuManager
-// function MenuManager({ restaurantId, restaurantAddress }) {
-//   // State pour le menu
-//   const [menu, setMenu] = useState([]);
-//   
-//   // State pour l'item sélectionné (édition)
-//   const [selectedItem, setSelectedItem] = useState(null);
-//   
-//   // State pour modal ouverte
-//   const [isModalOpen, setIsModalOpen] = useState(false);
-//   
-//   // State pour upload en cours
-//   const [uploading, setUploading] = useState(false);
-//   
-//   // State pour catégorie sélectionnée
-//   const [selectedCategory, setSelectedCategory] = useState('all');
-//   
-//   // State pour formulaire
-//   const [formData, setFormData] = useState({
-//     name: '',
-//     description: '',
-//     price: 0,
-//     category: 'Plats',
-//     image: null,
-//     available: true
-//   });
-//   
-//   // TODO: useEffect pour charger le menu
-//   // useEffect(() => {
-//   //   SI restaurantId:
-//   //     fetchMenu();
-//   // }, [restaurantId]);
-//   
-//   // TODO: Fonction pour charger le menu depuis l'API
-//   // async function fetchMenu() {
-//   //   ESSAYER:
-//   //     const restaurant = await api.getRestaurant(restaurantId);
-//   //     setMenu(restaurant.menu || []);
-//   //   CATCH error:
-//   //     console.error('Error fetching menu:', error);
-//   //     showError('Erreur lors du chargement du menu');
-//   // }
-//   
-//   // TODO: Fonction pour ouvrir modal d'ajout
-//   // function handleOpenAddModal() {
-//   //   setSelectedItem(null);
-//   //   setFormData({
-//   //     name: '',
-//   //     description: '',
-//   //     price: 0,
-//   //     category: 'Plats',
-//   //     image: null,
-//   //     available: true
-//   //   });
-//   //   setIsModalOpen(true);
-//   // }
-//   
-//   // TODO: Fonction pour ouvrir modal d'édition
-//   // function handleOpenEditModal(item) {
-//   //   setSelectedItem(item);
-//   //   setFormData({
-//   //     name: item.name,
-//   //     description: item.description,
-//   //     price: item.price,
-//   //     category: item.category,
-//   //     image: item.image,
-//   //     available: item.available
-//   //   });
-//   //   setIsModalOpen(true);
-//   // }
-//   
-//   // TODO: Fonction pour upload image vers IPFS
-//   // async function handleImageUpload(file) {
-//   //   ESSAYER:
-//   //     setUploading(true);
-//   //     const result = await api.uploadImage(file);
-//   //     setFormData(prev => ({ ...prev, image: result.ipfsHash }));
-//   //   CATCH error:
-//   //     console.error('Error uploading image:', error);
-//   //     showError('Erreur lors de l\'upload de l\'image');
-//   //   FINALLY:
-//   //     setUploading(false);
-//   // }
-//   
-//   // TODO: Fonction pour ajouter un item
-//   // async function handleAddItem() {
-//   //   ESSAYER:
-//   //     SI !formData.name || !formData.price:
-//   //       showError('Nom et prix sont requis');
-//   //       RETOURNER;
-//   //     
-//   //     await api.addMenuItem(restaurantId, formData, restaurantAddress);
-//   //     await fetchMenu();
-//   //     setIsModalOpen(false);
-//   //     showSuccess('Item ajouté avec succès');
-//   //   CATCH error:
-//   //     console.error('Error adding item:', error);
-//   //     showError(`Erreur: ${error.message}`);
-//   // }
-//   
-//   // TODO: Fonction pour modifier un item
-//   // async function handleUpdateItem() {
-//   //   ESSAYER:
-//   //     SI !selectedItem:
-//   //       RETOURNER;
-//   //     
-//   //     await api.updateMenuItem(restaurantId, selectedItem._id, formData, restaurantAddress);
-//   //     await fetchMenu();
-//   //     setIsModalOpen(false);
-//   //     showSuccess('Item modifié avec succès');
-//   //   CATCH error:
-//   //     console.error('Error updating item:', error);
-//   //     showError(`Erreur: ${error.message}`);
-//   // }
-//   
-//   // TODO: Fonction pour supprimer un item
-//   // async function handleDeleteItem(itemId) {
-//   //   SI !confirm('Êtes-vous sûr de vouloir supprimer cet item?')):
-//   //     RETOURNER;
-//   //   
-//   //   ESSAYER:
-//   //     await api.deleteMenuItem(restaurantId, itemId, restaurantAddress);
-//   //     await fetchMenu();
-//   //     showSuccess('Item supprimé avec succès');
-//   //   CATCH error:
-//   //     console.error('Error deleting item:', error);
-//   //     showError(`Erreur: ${error.message}`);
-//   // }
-//   
-//   // TODO: Fonction pour toggle disponibilité
-//   // async function handleToggleAvailability(item) {
-//   //   ESSAYER:
-//   //     await api.updateMenuItem(
-//   //       restaurantId,
-//   //       item._id,
-//   //       { available: !item.available },
-//   //       restaurantAddress
-//   //     );
-//   //     await fetchMenu();
-//   //   CATCH error:
-//   //     console.error('Error toggling availability:', error);
-//   //     showError(`Erreur: ${error.message}`);
-//   // }
-//   
-//   // TODO: Fonction pour filtrer par catégorie
-//   // function getFilteredMenu() {
-//   //   SI selectedCategory === 'all':
-//   //     RETOURNER menu;
-//   //   RETOURNER menu.filter(item => item.category === selectedCategory);
-//   // }
-//   
-//   // TODO: Render du composant
-//   // RETOURNER (
-//   //   <div className="menu-manager">
-//   //     <div className="menu-header">
-//   //       <h2>Gestion du Menu</h2>
-//   //       <button onClick={handleOpenAddModal} className="btn btn-primary">
-//   //         Ajouter un item
-//   //       </button>
-//   //     </div>
-//   //     
-//   //     <div className="menu-filters">
-//   //       <button onClick={() => setSelectedCategory('all')}>Toutes</button>
-//   //       <button onClick={() => setSelectedCategory('Entrées')}>Entrées</button>
-//   //       <button onClick={() => setSelectedCategory('Plats')}>Plats</button>
-//   //       <button onClick={() => setSelectedCategory('Desserts')}>Desserts</button>
-//   //       <button onClick={() => setSelectedCategory('Boissons')}>Boissons</button>
-//   //     </div>
-//   //     
-//   //     <div className="menu-grid">
-//   //       {getFilteredMenu().map(item => (
-//   //         <div key={item._id} className="menu-item-card">
-//   //           SI item.image:
-//   //             <img src={`${IPFS_GATEWAY}${item.image}`} alt={item.name} />
-//   //           <h3>{item.name}</h3>
-//   //           <p>{item.description}</p>
-//   //           <p>{formatPrice(item.price)} MATIC</p>
-//   //           <div className="item-actions">
-//   //             <button onClick={() => handleOpenEditModal(item)}>Modifier</button>
-//   //             <button onClick={() => handleDeleteItem(item._id)}>Supprimer</button>
-//   //             <label>
-//   //               <input
-//   //                 type="checkbox"
-//   //                 checked={item.available}
-//   //                 onChange={() => handleToggleAvailability(item)}
-//   //               />
-//   //               Disponible
-//   //             </label>
-//   //           </div>
-//   //         </div>
-//   //       ))}
-//   //     </div>
-//   //     
-//   //     {/* Modal pour ajouter/modifier item */}
-//   //     SI isModalOpen:
-//   //       <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
-//   //         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-//   //           <h3>{selectedItem ? 'Modifier' : 'Ajouter'} un item</h3>
-//   //           <form>
-//   //             <input
-//   //               type="text"
-//   //               placeholder="Nom"
-//   //               value={formData.name}
-//   //               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-//   //             />
-//   //             <textarea
-//   //               placeholder="Description"
-//   //               value={formData.description}
-//   //               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-//   //             />
-//   //             <input
-//   //               type="number"
-//   //               placeholder="Prix (MATIC)"
-//   //               value={formData.price}
-//   //               onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-//   //             />
-//   //             <select
-//   //               value={formData.category}
-//   //               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-//   //             >
-//   //               <option>Entrées</option>
-//   //               <option>Plats</option>
-//   //               <option>Desserts</option>
-//   //               <option>Boissons</option>
-//   //             </select>
-//   //             <input
-//   //               type="file"
-//   //               accept="image/*"
-//   //               onChange={(e) => handleImageUpload(e.target.files[0])}
-//   //             />
-//   //             SI uploading:
-//   //               <p>Upload en cours...</p>
-//   //             <button
-//   //               type="button"
-//   //               onClick={selectedItem ? handleUpdateItem : handleAddItem}
-//   //               className="btn btn-primary"
-//   //             >
-//   //               {selectedItem ? 'Modifier' : 'Ajouter'}
-//   //             </button>
-//   //           </form>
-//   //         </div>
-//   //       </div>
-//   //   </div>
-//   // );
-// }
+// Helpers simples (remplace si tu as déjà dans utils)
+function formatPrice(v) {
+  if (v == null || Number.isNaN(Number(v))) return "0";
+  return Number(v).toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+}
 
-// TODO: Exporter le composant
-// export default MenuManager;
+function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }) {
+  const [menu, setMenu] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [loadingMenu, setLoadingMenu] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    price: 0,
+    category: "Plats",
+    image: null, // ipfs hash
+    available: true,
+  });
+
+  useEffect(() => {
+    if (restaurantId) fetchMenu();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantId]);
+
+  async function fetchMenu() {
+    try {
+      setLoadingMenu(true);
+      const restaurant = await api.getRestaurant(restaurantId);
+      setMenu(restaurant?.menu || []);
+    } catch (e) {
+      console.error("Error fetching menu:", e);
+      showError?.("Erreur lors du chargement du menu");
+    } finally {
+      setLoadingMenu(false);
+    }
+  }
+
+  function handleOpenAddModal() {
+    setSelectedItem(null);
+    setFormData({
+      name: "",
+      description: "",
+      price: 0,
+      category: "Plats",
+      image: null,
+      available: true,
+    });
+    setIsModalOpen(true);
+  }
+
+  function handleOpenEditModal(item) {
+    setSelectedItem(item);
+    setFormData({
+      name: item.name || "",
+      description: item.description || "",
+      price: Number(item.price || 0),
+      category: item.category || "Plats",
+      image: item.image || null,
+      available: Boolean(item.available),
+    });
+    setIsModalOpen(true);
+  }
+
+  async function handleImageUpload(file) {
+    if (!file) return;
+    try {
+      setUploading(true);
+      const result = await api.uploadImage(file);
+      setFormData((prev) => ({ ...prev, image: result.ipfsHash }));
+      showSuccess?.("Image uploadée sur IPFS");
+    } catch (e) {
+      console.error("Error uploading image:", e);
+      showError?.("Erreur lors de l'upload de l'image");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleAddItem() {
+    try {
+      if (!formData.name?.trim() || !formData.price) {
+        showError?.("Nom et prix sont requis");
+        return;
+      }
+
+      await api.addMenuItem(restaurantId, formData, restaurantAddress);
+      await fetchMenu();
+      setIsModalOpen(false);
+      showSuccess?.("Item ajouté avec succès");
+    } catch (e) {
+      console.error("Error adding item:", e);
+      showError?.(`Erreur: ${e.message}`);
+    }
+  }
+
+  async function handleUpdateItem() {
+    try {
+      if (!selectedItem) return;
+
+      await api.updateMenuItem(
+        restaurantId,
+        selectedItem._id,
+        formData,
+        restaurantAddress
+      );
+
+      await fetchMenu();
+      setIsModalOpen(false);
+      showSuccess?.("Item modifié avec succès");
+    } catch (e) {
+      console.error("Error updating item:", e);
+      showError?.(`Erreur: ${e.message}`);
+    }
+  }
+
+  async function handleDeleteItem(itemId) {
+    const ok = window.confirm("Êtes-vous sûr de vouloir supprimer cet item ?");
+    if (!ok) return;
+
+    try {
+      await api.deleteMenuItem(restaurantId, itemId, restaurantAddress);
+      await fetchMenu();
+      showSuccess?.("Item supprimé avec succès");
+    } catch (e) {
+      console.error("Error deleting item:", e);
+      showError?.(`Erreur: ${e.message}`);
+    }
+  }
+
+  async function handleToggleAvailability(item) {
+    try {
+      await api.updateMenuItem(
+        restaurantId,
+        item._id,
+        { available: !item.available },
+        restaurantAddress
+      );
+      await fetchMenu();
+    } catch (e) {
+      console.error("Error toggling availability:", e);
+      showError?.(`Erreur: ${e.message}`);
+    }
+  }
+
+  const filteredMenu = useMemo(() => {
+    if (selectedCategory === "all") return menu;
+    return menu.filter((i) => i.category === selectedCategory);
+  }, [menu, selectedCategory]);
+
+  const categoriesCount = useMemo(() => {
+    const counts = { all: menu.length };
+    CATEGORIES.forEach((c) => {
+      counts[c] = menu.filter((m) => m.category === c).length;
+    });
+    return counts;
+  }, [menu]);
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-display text-2xl text-neutral-900 dark:text-neutral-50">
+            Gestion du Menu
+          </h2>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            Ajoute, modifie et gère la disponibilité de tes plats
+          </p>
+        </div>
+
+        <button
+          onClick={handleOpenAddModal}
+          className="rounded-2xl bg-primary-500 px-4 py-3 font-semibold text-white shadow-soft transition hover:bg-primary-600"
+        >
+          + Ajouter un item
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2">
+        <CategoryButton
+          active={selectedCategory === "all"}
+          onClick={() => setSelectedCategory("all")}
+          label={`Toutes (${categoriesCount.all})`}
+        />
+        {CATEGORIES.map((c) => (
+          <CategoryButton
+            key={c}
+            active={selectedCategory === c}
+            onClick={() => setSelectedCategory(c)}
+            label={`${c} (${categoriesCount[c] ?? 0})`}
+          />
+        ))}
+      </div>
+
+      {/* Menu grid */}
+      {loadingMenu ? (
+        <div className="grid place-items-center rounded-2xl bg-white p-10 shadow-soft dark:bg-neutral-800">
+          <div className="animate-pulse text-neutral-500 dark:text-neutral-300">
+            Chargement du menu...
+          </div>
+        </div>
+      ) : filteredMenu.length === 0 ? (
+        <div className="grid place-items-center rounded-2xl bg-white p-10 text-sm text-neutral-500 shadow-soft dark:bg-neutral-800 dark:text-neutral-300">
+          Aucun item dans cette catégorie.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {filteredMenu.map((item) => (
+            <MenuItemCard
+              key={item._id}
+              item={item}
+              onEdit={() => handleOpenEditModal(item)}
+              onDelete={() => handleDeleteItem(item._id)}
+              onToggle={() => handleToggleAvailability(item)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Modal Add/Edit */}
+      {isModalOpen && (
+        <Modal onClose={() => setIsModalOpen(false)}>
+          <h3 className="font-display text-xl text-neutral-900 dark:text-neutral-50">
+            {selectedItem ? "Modifier un item" : "Ajouter un item"}
+          </h3>
+
+          <div className="mt-4 space-y-3">
+            <Input
+              label="Nom"
+              placeholder="Ex: Burger maison"
+              value={formData.name}
+              onChange={(v) => setFormData((p) => ({ ...p, name: v }))}
+            />
+
+            <Textarea
+              label="Description"
+              placeholder="Décris le plat..."
+              value={formData.description}
+              onChange={(v) => setFormData((p) => ({ ...p, description: v }))}
+            />
+
+            <Input
+              label="Prix (MATIC)"
+              type="number"
+              min="0"
+              step="0.0001"
+              value={formData.price}
+              onChange={(v) =>
+                setFormData((p) => ({ ...p, price: parseFloat(v || "0") }))
+              }
+            />
+
+            <Select
+              label="Catégorie"
+              value={formData.category}
+              onChange={(v) => setFormData((p) => ({ ...p, category: v }))}
+              options={CATEGORIES}
+            />
+
+            {/* Image upload */}
+            <div className="space-y-2">
+              <label className="block text-sm text-neutral-600 dark:text-neutral-300">
+                Image
+              </label>
+
+              {formData.image && (
+                <div className="flex items-center gap-3 rounded-xl bg-neutral-50 p-2 dark:bg-neutral-900/40">
+                  <img
+                    src={`${IPFS_GATEWAY}${formData.image}`}
+                    alt="preview"
+                    className="h-16 w-16 rounded-lg object-cover"
+                  />
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400 break-all">
+                    {formData.image}
+                  </div>
+                </div>
+              )}
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e.target.files?.[0])}
+                className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-secondary-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-secondary-800 hover:file:bg-secondary-200 dark:file:bg-secondary-900/30 dark:file:text-secondary-200"
+              />
+
+              {uploading && (
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  Upload en cours...
+                </p>
+              )}
+            </div>
+
+            {/* Available */}
+            <label className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200">
+              <input
+                type="checkbox"
+                checked={formData.available}
+                onChange={(e) =>
+                  setFormData((p) => ({
+                    ...p,
+                    available: e.target.checked,
+                  }))
+                }
+                className="rounded border-neutral-300 text-primary-600 focus:ring-primary-200 dark:border-neutral-600 dark:bg-neutral-800"
+              />
+              Disponible à la commande
+            </label>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="flex-1 rounded-xl bg-neutral-100 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600"
+              >
+                Annuler
+              </button>
+
+              <button
+                onClick={selectedItem ? handleUpdateItem : handleAddItem}
+                disabled={uploading}
+                className="flex-1 rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {selectedItem ? "Modifier" : "Ajouter"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- UI Components ---------------- */
+
+function CategoryButton({ label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={[
+        "rounded-full px-3 py-1.5 text-sm font-medium transition",
+        active
+          ? "bg-primary-500 text-white shadow-soft"
+          : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700",
+      ].join(" ")}
+    >
+      {label}
+    </button>
+  );
+}
+
+function MenuItemCard({ item, onEdit, onDelete, onToggle }) {
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-soft dark:bg-neutral-800">
+      {item.image && (
+        <img
+          src={`${IPFS_GATEWAY}${item.image}`}
+          alt={item.name}
+          className="mb-3 h-40 w-full rounded-xl object-cover"
+        />
+      )}
+
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h3 className="font-display text-lg text-neutral-900 dark:text-neutral-50">
+            {item.name}
+          </h3>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            {item.description || "—"}
+          </p>
+        </div>
+
+        <span className="rounded-full bg-secondary-100 px-2.5 py-1 text-xs font-semibold text-secondary-800 dark:bg-secondary-900/30 dark:text-secondary-200">
+          {item.category}
+        </span>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between">
+        <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
+          {formatPrice(item.price)} MATIC
+        </p>
+
+        <label className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200">
+          <input
+            type="checkbox"
+            checked={Boolean(item.available)}
+            onChange={onToggle}
+            className="rounded border-neutral-300 text-primary-600 focus:ring-primary-200 dark:border-neutral-600 dark:bg-neutral-800"
+          />
+          Disponible
+        </label>
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        <button
+          onClick={onEdit}
+          className="flex-1 rounded-xl bg-neutral-100 px-3 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600"
+        >
+          Modifier
+        </button>
+        <button
+          onClick={onDelete}
+          className="flex-1 rounded-xl bg-error-100 px-3 py-2 text-sm font-semibold text-error-800 hover:bg-error-200 dark:bg-error-900/30 dark:text-error-200 dark:hover:bg-error-900/50"
+        >
+          Supprimer
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Modal({ children, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-strong dark:bg-neutral-800"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Input({ label, type = "text", value, onChange, ...props }) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-sm text-neutral-600 dark:text-neutral-300">
+        {label}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 dark:focus:border-primary-500 dark:focus:ring-primary-900"
+        {...props}
+      />
+    </div>
+  );
+}
+
+function Textarea({ label, value, onChange, ...props }) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-sm text-neutral-600 dark:text-neutral-300">
+        {label}
+      </label>
+      <textarea
+        rows={3}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 dark:focus:border-primary-500 dark:focus:ring-primary-900"
+        {...props}
+      />
+    </div>
+  );
+}
+
+function Select({ label, value, onChange, options }) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-sm text-neutral-600 dark:text-neutral-300">
+        {label}
+      </label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 dark:focus:border-primary-500 dark:focus:ring-primary-900"
+      >
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+export default MenuManager;

@@ -4,190 +4,332 @@
  * @dev Détecte MetaMask, connecte le wallet, vérifie le rôle RESTAURANT_ROLE, fetch restaurant profile
  */
 
-// TODO: Importer React et hooks nécessaires
-// import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from "react";
+import { ethers } from "ethers";
 
-// TODO: Importer les services
-// import * as blockchain from '../services/blockchain';
-// import * as api from '../services/api';
-// import { formatAddress, formatBalance } from '../utils/web3';
+import * as blockchain from "../services/blockchain";
+import * as api from "../services/api";
+import { formatAddress, formatBalance } from "../utils/web3";
 
 /**
  * Composant ConnectWallet
- * @returns {JSX.Element} Composant de connexion wallet restaurant
+ * @param {(payload: {address: string, restaurant: any, balance: string, network: any} | null) => void} onConnect
+ * @returns {JSX.Element}
  */
-// TODO: Créer le composant ConnectWallet
-// function ConnectWallet({ onConnect }) {
-//   // State pour l'adresse connectée
-//   const [address, setAddress] = useState(null);
-//   
-//   // State pour l'état de connexion en cours
-//   const [isConnecting, setIsConnecting] = useState(false);
-//   
-//   // State pour vérifier le rôle RESTAURANT_ROLE
-//   const [hasRole, setHasRole] = useState(false);
-//   
-//   // State pour les données du restaurant
-//   const [restaurant, setRestaurant] = useState(null);
-//   
-//   // State pour le solde MATIC
-//   const [balance, setBalance] = useState('0');
-//   
-//   // State pour le réseau actuel
-//   const [network, setNetwork] = useState(null);
-//   
-//   // State pour les erreurs
-//   const [error, setError] = useState(null);
-//   
-//   // State pour vérifier si MetaMask est installé
-//   const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(false);
-//   
-//   // TODO: useEffect pour vérifier MetaMask au montage
-//   // useEffect(() => {
-//   //   SI window.ethereum:
-//   //     setIsMetaMaskInstalled(true);
-//   //     
-//   //     // Vérifier si wallet déjà connecté (localStorage)
-//   //     const savedAddress = localStorage.getItem('restaurantWalletAddress');
-//   //     SI savedAddress:
-//   //       setAddress(savedAddress);
-//   //       checkRoleAndFetchRestaurant(savedAddress);
-//   //   SINON:
-//   //     setIsMetaMaskInstalled(false);
-//   // }, []);
-//   
-//   // TODO: Fonction pour vérifier le rôle RESTAURANT_ROLE
-//   // async function checkRole(address) {
-//   //   ESSAYER:
-//   //     const RESTAURANT_ROLE = ethers.keccak256(ethers.toUtf8Bytes("RESTAURANT_ROLE"));
-//   //     const hasRestaurantRole = await blockchain.hasRole(RESTAURANT_ROLE, address);
-//   //     setHasRole(hasRestaurantRole);
-//   //     
-//   //     SI !hasRestaurantRole:
-//   //       setError('Cette adresse n\'a pas le rôle RESTAURANT_ROLE. Veuillez contacter l\'administrateur.');
-//   //     
-//   //     RETOURNER hasRestaurantRole;
-//   //   CATCH error:
-//   //     console.error('Error checking role:', error);
-//   //     setError(`Erreur lors de la vérification du rôle: ${error.message}`);
-//   //     RETOURNER false;
-//   // }
-//   
-//   // TODO: Fonction pour récupérer le profil restaurant depuis l'API
-//   // async function fetchRestaurantProfile(address) {
-//   //   ESSAYER:
-//   //     // Chercher restaurant par address dans la base de données
-//   //     // Note: L'API devrait avoir une route GET /api/restaurants/by-address/:address
-//   //     // OU on peut utiliser getRestaurant avec l'ID si on le connaît
-//   //     const restaurant = await api.getRestaurantByAddress(address);
-//   //     setRestaurant(restaurant);
-//   //     
-//   //     // Appeler callback onConnect si fourni
-//   //     SI onConnect:
-//   //       onConnect({ address, restaurant });
-//   //   CATCH error:
-//   //     console.error('Error fetching restaurant profile:', error);
-//   //     setError(`Erreur lors de la récupération du profil: ${error.message}`);
-//   // }
-//   
-//   // TODO: Fonction pour vérifier rôle et fetch restaurant
-//   // async function checkRoleAndFetchRestaurant(address) {
-//   //   const hasRestaurantRole = await checkRole(address);
-//   //   SI hasRestaurantRole:
-//   //     await fetchRestaurantProfile(address);
-//   //     await fetchBalance(address);
-//   // }
-//   
-//   // TODO: Fonction pour récupérer le solde MATIC
-//   // async function fetchBalance(address) {
-//   //   ESSAYER:
-//   //     const balance = await blockchain.getBalance(address);
-//   //     setBalance(formatBalance(balance));
-//   //   CATCH error:
-//   //     console.error('Error fetching balance:', error);
-//   // }
-//   
-//   // TODO: Fonction pour connecter le wallet
-//   // async function handleConnect() {
-//   //   ESSAYER:
-//   //     setIsConnecting(true);
-//   //     setError(null);
-//   //     
-//   //     // Connecter wallet via blockchain service
-//   //     const { address: connectedAddress } = await blockchain.connectWallet();
-//   //     setAddress(connectedAddress);
-//   //     localStorage.setItem('restaurantWalletAddress', connectedAddress);
-//   //     
-//   //     // Vérifier le rôle RESTAURANT_ROLE
-//   //     await checkRoleAndFetchRestaurant(connectedAddress);
-//   //     
-//   //     setIsConnecting(false);
-//   //   CATCH error:
-//   //     console.error('Error connecting wallet:', error);
-//   //     setError(`Erreur de connexion: ${error.message}`);
-//   //     setIsConnecting(false);
-//   // }
-//   
-//   // TODO: Fonction pour déconnecter le wallet
-//   // function handleDisconnect() {
-//   //   setAddress(null);
-//   //   setHasRole(false);
-//   //   setRestaurant(null);
-//   //   setBalance('0');
-//   //   localStorage.removeItem('restaurantWalletAddress');
-//   //   
-//   //   SI onConnect:
-//   //     onConnect(null);
-//   // }
-//   
-//   // TODO: Render du composant
-//   // RETOURNER (
-//   //   <div className="connect-wallet">
-//   //     SI !isMetaMaskInstalled:
-//   //       <div className="error-message">
-//   //         <p>MetaMask n'est pas installé. Veuillez installer l'extension MetaMask.</p>
-//   //         <a href="https://metamask.io/" target="_blank" rel="noopener noreferrer">
-//   //           Installer MetaMask
-//   //         </a>
-//   //       </div>
-//   //     
-//   //     SINON SI !address:
-//   //       <button 
-//   //         onClick={handleConnect} 
-//   //         disabled={isConnecting}
-//   //         className="btn btn-primary"
-//   //       >
-//   //         {isConnecting ? 'Connexion...' : 'Connecter Wallet'}
-//   //       </button>
-//   //     
-//   //     SINON:
-//   //       <div className="wallet-info">
-//   //         SI !hasRole:
-//   //           <div className="error-message">
-//   //             <p>⚠️ Cette adresse n'a pas le rôle RESTAURANT_ROLE.</p>
-//   //             <p>Veuillez contacter l'administrateur pour obtenir ce rôle.</p>
-//   //           </div>
-//   //         
-//   //         SINON:
-//   //           <div className="wallet-details">
-//   //             <p>Adresse: {formatAddress(address)}</p>
-//   //             <p>Solde: {balance} MATIC</p>
-//   //             SI restaurant:
-//   //               <p>Restaurant: {restaurant.name}</p>
-//   //             <button onClick={handleDisconnect} className="btn btn-secondary">
-//   //               Déconnexion
-//   //             </button>
-//   //           </div>
-//   //       </div>
-//   //     
-//   //     SI error:
-//   //       <div className="error-message">
-//   //         <p>{error}</p>
-//   //       </div>
-//   //   </div>
-//   // );
-// }
+function ConnectWallet({ onConnect }) {
+  const [address, setAddress] = useState(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [hasRole, setHasRole] = useState(false);
+  const [restaurant, setRestaurant] = useState(null);
+  const [balance, setBalance] = useState("0");
+  const [network, setNetwork] = useState(null);
+  const [error, setError] = useState(null);
+  const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(false);
 
-// TODO: Exporter le composant
-// export default ConnectWallet;
+  const RESTAURANT_ROLE = useMemo(
+    () => ethers.keccak256(ethers.toUtf8Bytes("RESTAURANT_ROLE")),
+    []
+  );
 
+  // Vérifier MetaMask au montage + auto-reconnect si address sauvée
+  useEffect(() => {
+    const { ethereum } = window;
+    if (ethereum && ethereum.isMetaMask) {
+      setIsMetaMaskInstalled(true);
+
+      const savedAddress = localStorage.getItem("restaurantWalletAddress");
+      if (savedAddress) {
+        setAddress(savedAddress);
+        checkRoleAndFetchRestaurant(savedAddress);
+      }
+
+      // listeners changements de compte / réseau
+      ethereum.on("accountsChanged", handleAccountsChanged);
+      ethereum.on("chainChanged", handleChainChanged);
+    } else {
+      setIsMetaMaskInstalled(false);
+    }
+
+    return () => {
+      if (ethereum?.removeListener) {
+        ethereum.removeListener("accountsChanged", handleAccountsChanged);
+        ethereum.removeListener("chainChanged", handleChainChanged);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleAccountsChanged(accounts) {
+    if (!accounts || accounts.length === 0) {
+      handleDisconnect();
+      return;
+    }
+    const next = ethers.getAddress(accounts[0]);
+    setAddress(next);
+    localStorage.setItem("restaurantWalletAddress", next);
+    await checkRoleAndFetchRestaurant(next);
+  }
+
+  async function handleChainChanged() {
+    // Recheck réseau + balance (MetaMask force reload parfois)
+    if (address) {
+      await fetchNetwork();
+      await fetchBalance(address);
+    }
+  }
+
+  // ----- Role check -----
+  async function checkRole(addr) {
+    try {
+      setError(null);
+
+      const ok = await blockchain.hasRole(RESTAURANT_ROLE, addr);
+      setHasRole(ok);
+
+      if (!ok) {
+        setError(
+          "Cette adresse n'a pas le rôle RESTAURANT_ROLE. Veuillez contacter l'administrateur."
+        );
+      }
+      return ok;
+    } catch (e) {
+      console.error("Error checking role:", e);
+      setError(`Erreur lors de la vérification du rôle: ${e.message}`);
+      setHasRole(false);
+      return false;
+    }
+  }
+
+  // ----- API profile -----
+  async function fetchRestaurantProfile(addr) {
+    try {
+      setError(null);
+      const r = await api.getRestaurantByAddress(addr);
+      setRestaurant(r);
+
+      if (onConnect) {
+        onConnect({
+          address: addr,
+          restaurant: r,
+          balance,
+          network,
+        });
+      }
+    } catch (e) {
+      console.error("Error fetching restaurant profile:", e);
+      setRestaurant(null);
+      setError(`Erreur lors de la récupération du profil: ${e.message}`);
+    }
+  }
+
+  // ----- Balance -----
+  async function fetchBalance(addr) {
+    try {
+      const b = await blockchain.getBalance(addr);
+      setBalance(formatBalance(b));
+    } catch (e) {
+      console.error("Error fetching balance:", e);
+      // pas bloquant
+    }
+  }
+
+  // ----- Network -----
+  async function fetchNetwork() {
+    try {
+      const net = await blockchain.getNetwork?.();
+      // fallback direct provider MetaMask
+      if (!net && window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const n = await provider.getNetwork();
+        setNetwork({
+          chainId: Number(n.chainId),
+          name: n.name,
+        });
+        return;
+      }
+      setNetwork(net || null);
+    } catch (e) {
+      console.error("Error fetching network:", e);
+      setNetwork(null);
+    }
+  }
+
+  // ----- Role + fetch all -----
+  async function checkRoleAndFetchRestaurant(addr) {
+    const ok = await checkRole(addr);
+    await fetchNetwork();
+    await fetchBalance(addr);
+    if (ok) {
+      await fetchRestaurantProfile(addr);
+    } else {
+      // si pas rôle, on informe quand même le parent
+      if (onConnect) {
+        onConnect({
+          address: addr,
+          restaurant: null,
+          balance,
+          network,
+          hasRole: false,
+        });
+      }
+    }
+  }
+
+  // ----- Connect -----
+  async function handleConnect() {
+    try {
+      setIsConnecting(true);
+      setError(null);
+
+      const res = await blockchain.connectWallet();
+      const connectedAddress =
+        res?.address ??
+        (Array.isArray(res) ? res[0] : null);
+
+      if (!connectedAddress) {
+        throw new Error("Adresse introuvable après connexion.");
+      }
+
+      const checksum = ethers.getAddress(connectedAddress);
+      setAddress(checksum);
+      localStorage.setItem("restaurantWalletAddress", checksum);
+
+      await checkRoleAndFetchRestaurant(checksum);
+    } catch (e) {
+      console.error("Error connecting wallet:", e);
+      setError(`Erreur de connexion: ${e.message}`);
+    } finally {
+      setIsConnecting(false);
+    }
+  }
+
+  // ----- Disconnect -----
+  function handleDisconnect() {
+    setAddress(null);
+    setHasRole(false);
+    setRestaurant(null);
+    setBalance("0");
+    setNetwork(null);
+    setError(null);
+    localStorage.removeItem("restaurantWalletAddress");
+
+    if (onConnect) onConnect(null);
+  }
+
+  // ----------------- UI -----------------
+  return (
+    <div className="rounded-2xl bg-white p-5 shadow-soft dark:bg-neutral-800">
+      <div className="flex items-center justify-between">
+        <h3 className="font-display text-lg text-neutral-900 dark:text-neutral-50">
+          Wallet Restaurant
+        </h3>
+
+        {address && (
+          <button
+            onClick={handleDisconnect}
+            className="rounded-xl bg-secondary-100 px-3 py-1.5 text-xs font-medium text-secondary-800 hover:bg-secondary-200 dark:bg-secondary-900/30 dark:text-secondary-200 dark:hover:bg-secondary-900/50"
+          >
+            Déconnexion
+          </button>
+        )}
+      </div>
+
+      {/* MetaMask not installed */}
+      {!isMetaMaskInstalled && (
+        <div className="mt-4 rounded-xl border border-warning-200 bg-warning-50 p-4 text-warning-800 dark:border-warning-900 dark:bg-warning-900/20 dark:text-warning-200">
+          <p className="mb-2 font-medium">
+            MetaMask n&apos;est pas installé.
+          </p>
+          <p className="text-sm">
+            Veuillez installer l&apos;extension pour continuer.
+          </p>
+          <a
+            className="mt-3 inline-block rounded-lg bg-warning-500 px-3 py-2 text-sm font-semibold text-white hover:bg-warning-600"
+            href="https://metamask.io/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Installer MetaMask
+          </a>
+        </div>
+      )}
+
+      {/* Connect button */}
+      {isMetaMaskInstalled && !address && (
+        <button
+          onClick={handleConnect}
+          disabled={isConnecting}
+          className="mt-4 w-full rounded-2xl bg-primary-500 px-4 py-3 font-semibold text-white shadow-soft transition hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isConnecting ? "Connexion..." : "Connecter Wallet"}
+        </button>
+      )}
+
+      {/* Connected section */}
+      {isMetaMaskInstalled && address && (
+        <div className="mt-4 space-y-3">
+          {!hasRole ? (
+            <div className="rounded-xl border border-error-200 bg-error-50 p-4 text-error-700 dark:border-error-800 dark:bg-error-900/20 dark:text-error-200">
+              <p className="font-medium">
+                ⚠️ Cette adresse n&apos;a pas le rôle RESTAURANT_ROLE.
+              </p>
+              <p className="text-sm">
+                Veuillez contacter l&apos;administrateur pour obtenir ce rôle.
+              </p>
+            </div>
+          ) : (
+            <>
+              <InfoRow label="Adresse" value={formatAddress(address)} />
+              <InfoRow label="Solde" value={`${balance} MATIC`} />
+              {network && (
+                <InfoRow
+                  label="Réseau"
+                  value={`${network.name ?? "Unknown"} (chainId: ${
+                    network.chainId ?? "?"
+                  })`}
+                />
+              )}
+              {restaurant && (
+                <div className="rounded-xl bg-neutral-50 p-3 dark:bg-neutral-900/40">
+                  <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    Restaurant
+                  </p>
+                  <p className="mt-1 font-medium text-neutral-900 dark:text-neutral-50">
+                    {restaurant.name}
+                  </p>
+                  {restaurant.address && (
+                    <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                      {restaurant.address}
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="mt-4 rounded-xl border border-error-200 bg-error-50 p-3 text-sm text-error-700 dark:border-error-800 dark:bg-error-900/20 dark:text-error-200">
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl bg-neutral-50 px-3 py-2 dark:bg-neutral-900/40">
+      <span className="text-sm text-neutral-500 dark:text-neutral-400">
+        {label}
+      </span>
+      <span className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+export default ConnectWallet;
