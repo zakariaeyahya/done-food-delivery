@@ -20,4 +20,3 @@ export function getImage(hash) {
   
   return `${gateway}/${hashClean}`;
 }
-

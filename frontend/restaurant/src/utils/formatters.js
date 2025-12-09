@@ -57,4 +57,3 @@ export function formatPrice(amount, currency = 'MATIC') {
     return `0.00 ${currency}`;
   }
 }
-

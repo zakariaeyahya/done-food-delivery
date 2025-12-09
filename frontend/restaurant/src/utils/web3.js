@@ -108,4 +108,3 @@ export function formatBalance(balance, decimals = 18, displayDecimals = 4) {
 export function formatPrice(price, decimals = 18, displayDecimals = 2) {
   return formatBalance(price, decimals, displayDecimals);
 }
-
