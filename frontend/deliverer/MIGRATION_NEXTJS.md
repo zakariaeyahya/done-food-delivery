@@ -75,11 +75,11 @@ src/
 - [x] Page transitions
 - [x] Loading skeletons
 
-### Phase 3: Pages principales
-- [ ] Dashboard (/)
-- [ ] Refonte AvailableOrders
-- [ ] Refonte ActiveDelivery
-- [ ] Page /deliveries
+### ✅ Phase 3: Pages principales - TERMINÉE
+- [x] Dashboard (/)
+- [x] Refonte AvailableOrders (OrdersList + OrderCard)
+- [x] Refonte ActiveDelivery (ActiveDeliveryCard)
+- [x] Page /deliveries
 
 ### Phase 4: Features secondaires
 - [ ] Page /earnings

@@ -50,14 +50,33 @@
 5. **Skeletons**
    - ✅ `src/components/ui/Skeleton.tsx` - Composants Skeleton (CardSkeleton, TableSkeleton)
 
+## ✅ Phase 3: Pages principales - TERMINÉE
+
+### Fichiers créés :
+
+1. **Dashboard (Page d'accueil)**
+   - ✅ `src/app/page.tsx` - Dashboard avec stats cards, toggle online/offline, inscription
+   - ✅ Composants de delivery refactorisés
+
+2. **Composants Delivery**
+   - ✅ `src/components/delivery/OrderCard.tsx` - Carte de commande avec design moderne
+   - ✅ `src/components/delivery/OrdersList.tsx` - Liste des commandes avec Socket.io
+   - ✅ `src/components/delivery/ActiveDeliveryCard.tsx` - Livraison active avec timeline animée
+
+3. **Page Deliveries**
+   - ✅ `src/app/deliveries/page.tsx` - Page avec filtres, table stylisée, export CSV
+
+4. **Composants Maps**
+   - ✅ `src/components/maps/NavigationMap.tsx` - Carte Google Maps adaptée Next.js
+
 ## 📋 Prochaines étapes
 
-### Phase 3: Pages principales
+### Phase 4: Features secondaires
 
-1. **Dashboard** (`src/app/page.tsx`)
-2. **Deliveries** (`src/app/deliveries/page.tsx`)
-3. **Earnings** (`src/app/earnings/page.tsx`)
-4. **Profile** (`src/app/profile/page.tsx`)
+1. **Earnings** (`src/app/earnings/page.tsx`)
+2. **Profile** (`src/app/profile/page.tsx`)
+3. **RatingDisplay** (refactorisé)
+4. **ConnectWallet** modal moderne
 
 ## ⚠️ Important
 
