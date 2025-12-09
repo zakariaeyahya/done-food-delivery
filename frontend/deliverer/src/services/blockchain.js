@@ -117,10 +117,17 @@ export async function isStaked(address) {
 /* -------------------------------------------------------------------------- */
 /* 4. Récupérer infos staking                                                 */
 /* -------------------------------------------------------------------------- */
+
+// Track if staking warning has been shown
+let stakingWarningShown = false;
+
 export async function getStakeInfo(address) {
   try {
     if (!STAKING_ADDRESS || STAKING_ADDRESS === '') {
-      console.warn("Staking contract address not configured");
+      if (!stakingWarningShown) {
+        console.info("ℹ️ Staking contract not configured - using default values");
+        stakingWarningShown = true;
+      }
       return { amount: 0, isStaked: false };
     }
 
@@ -141,11 +148,14 @@ export async function getStakeInfo(address) {
     };
   } catch (err) {
     // BAD_DATA = contract doesn't exist or doesn't have the functions
-    if (err.code === 'BAD_DATA' || err.message?.includes('could not decode')) {
-      console.warn("Staking contract not deployed or incompatible - using default values");
-      return { amount: 0, isStaked: false };
+    if (!stakingWarningShown) {
+      if (err.code === 'BAD_DATA' || err.message?.includes('could not decode')) {
+        console.info("ℹ️ Staking contract not deployed - using default values");
+      } else {
+        console.info("ℹ️ Staking unavailable:", err.message);
+      }
+      stakingWarningShown = true;
     }
-    console.warn("StakeInfo error:", err.message);
     // Return default values instead of throwing
     return { amount: 0, isStaked: false };
   }
