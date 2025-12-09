@@ -69,11 +69,11 @@ src/
 - [ ] Créer design system (Button, Card, Badge)
 - [ ] Setup providers
 
-### Phase 2: Layout & Navigation
-- [ ] Header avec navigation animée
-- [ ] Mobile bottom nav
-- [ ] Page transitions
-- [ ] Loading skeletons
+### ✅ Phase 2: Layout & Navigation - TERMINÉE
+- [x] Header avec navigation animée
+- [x] Mobile bottom nav
+- [x] Page transitions
+- [x] Loading skeletons
 
 ### Phase 3: Pages principales
 - [ ] Dashboard (/)

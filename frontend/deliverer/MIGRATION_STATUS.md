@@ -26,23 +26,31 @@
 6. **Documentation**
    - ✅ `MIGRATION_NEXTJS.md` - Plan de migration complet
 
+## ✅ Phase 2: Layout & Navigation - TERMINÉE
+
+### Fichiers créés :
+
+1. **Layout principal Next.js**
+   - ✅ `src/app/layout.tsx` - Root layout avec AppProvider, Header, MobileNav, Footer
+   - ✅ `src/app/loading.tsx` - Skeleton global avec CardSkeleton
+   - ✅ `src/app/error.tsx` - Error boundary avec UI moderne
+
+2. **Composants de layout**
+   - ✅ `src/components/layout/Header.tsx` - Header avec navigation animée (indicateur actif)
+   - ✅ `src/components/layout/MobileNav.tsx` - Navigation mobile bottom avec animations
+   - ✅ `src/components/layout/Footer.tsx` - Footer simple
+
+3. **Composants Wallet**
+   - ✅ `src/components/wallet/WalletBadge.tsx` - Badge wallet avec animation
+
+4. **Animations & Transitions**
+   - ✅ `src/lib/animations.ts` - Variants Framer Motion (fadeInUp, scaleIn, slideIn, etc.)
+   - ✅ `src/components/ui/PageTransition.tsx` - Wrapper pour transitions de page
+
+5. **Skeletons**
+   - ✅ `src/components/ui/Skeleton.tsx` - Composants Skeleton (CardSkeleton, TableSkeleton)
+
 ## 📋 Prochaines étapes
-
-### Phase 2: Layout & Navigation
-
-1. **Créer le layout principal Next.js**
-   - `src/app/layout.tsx` - Root layout avec AppProvider
-   - `src/app/page.tsx` - Page d'accueil (Dashboard)
-   - `src/app/loading.tsx` - Skeleton global
-   - `src/app/error.tsx` - Error boundary
-
-2. **Créer les composants de layout**
-   - `src/components/layout/Header.tsx` - Header avec navigation animée
-   - `src/components/layout/MobileNav.tsx` - Navigation mobile bottom
-   - `src/components/layout/Footer.tsx` - Footer
-
-3. **Créer les animations**
-   - `src/lib/animations.ts` - Variants Framer Motion
 
 ### Phase 3: Pages principales
 
