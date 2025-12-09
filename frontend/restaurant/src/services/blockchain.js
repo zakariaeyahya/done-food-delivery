@@ -1,404 +1,394 @@
 /**
  * Service Blockchain Web3 - Restaurant
- * @notice Gère toutes les interactions directes avec la blockchain Polygon Mumbai pour les restaurants
- * @dev Utilise ethers.js v6 pour interagir avec les smart contracts
+ * @notice Interactions blockchain Polygon Mumbai
+ * @dev ethers.js v6
  */
 
-// TODO: Importer ethers.js
-// import { ethers } from 'ethers';
+import { ethers } from "ethers";
 
-// TODO: Importer les ABIs des contrats (depuis artifacts ou config)
-// import DoneOrderManagerABI from '../../../contracts/artifacts/DoneOrderManager.json';
-// import DonePaymentSplitterABI from '../../../contracts/artifacts/DonePaymentSplitter.json';
+// ABIs (adapte les chemins si besoin)
+import DoneOrderManagerABI from "../../../contracts/artifacts/DoneOrderManager.json";
+import DonePaymentSplitterABI from "../../../contracts/artifacts/DonePaymentSplitter.json";
+
+/* ---------------- Config ---------------- */
+
+const ORDER_MANAGER_ADDRESS = import.meta.env.VITE_ORDER_MANAGER_ADDRESS;
+const PAYMENT_SPLITTER_ADDRESS = import.meta.env.VITE_PAYMENT_SPLITTER_ADDRESS;
+
+const MUMBAI_CHAIN_ID = 80001;
+
+// bytes32 role
+const RESTAURANT_ROLE = ethers.keccak256(
+  ethers.toUtf8Bytes("RESTAURANT_ROLE")
+);
+
+/* ---------------- Singletons ---------------- */
+
+let provider = null; // ethers.BrowserProvider
+let signer = null;   // ethers.JsonRpcSigner
+let orderManagerContract = null;
+let paymentSplitterContract = null;
+
+/* ---------------- Helpers ---------------- */
+
+function requireEnv() {
+  if (!ORDER_MANAGER_ADDRESS) {
+    throw new Error("Missing VITE_ORDER_MANAGER_ADDRESS in env");
+  }
+  if (!PAYMENT_SPLITTER_ADDRESS) {
+    throw new Error("Missing VITE_PAYMENT_SPLITTER_ADDRESS in env");
+  }
+}
+
+function getProvider() {
+  if (!window.ethereum) {
+    throw new Error(
+      "MetaMask is not installed. Please install MetaMask extension."
+    );
+  }
+
+  if (!provider) {
+    provider = new ethers.BrowserProvider(window.ethereum);
+  }
+
+  return provider;
+}
+
+async function switchToMumbaiNetwork() {
+  try {
+    const prov = getProvider();
+    const network = await prov.getNetwork();
+
+    if (network.chainId !== BigInt(MUMBAI_CHAIN_ID)) {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: `0x${MUMBAI_CHAIN_ID.toString(16)}` }],
+      });
+    }
+  } catch (error) {
+    // 4902 => chain not added
+    if (error?.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: `0x${MUMBAI_CHAIN_ID.toString(16)}`,
+            chainName: "Polygon Mumbai",
+            nativeCurrency: {
+              name: "MATIC",
+              symbol: "MATIC",
+              decimals: 18,
+            },
+            rpcUrls: ["https://rpc-mumbai.maticvigil.com"],
+            blockExplorerUrls: ["https://mumbai.polygonscan.com"],
+          },
+        ],
+      });
+    } else {
+      throw error;
+    }
+  }
+}
+
+function ensureContractsWithSigner() {
+  requireEnv();
+
+  if (!signer) throw new Error("Wallet not connected. Missing signer.");
+
+  if (!orderManagerContract) {
+    orderManagerContract = new ethers.Contract(
+      ORDER_MANAGER_ADDRESS,
+      DoneOrderManagerABI.abi,
+      signer
+    );
+  }
+
+  if (!paymentSplitterContract) {
+    paymentSplitterContract = new ethers.Contract(
+      PAYMENT_SPLITTER_ADDRESS,
+      DonePaymentSplitterABI.abi,
+      signer
+    );
+  }
+}
+
+function ensureContractsReadOnly() {
+  requireEnv();
+  const prov = getProvider();
+
+  if (!orderManagerContract) {
+    orderManagerContract = new ethers.Contract(
+      ORDER_MANAGER_ADDRESS,
+      DoneOrderManagerABI.abi,
+      prov
+    );
+  }
+
+  if (!paymentSplitterContract) {
+    paymentSplitterContract = new ethers.Contract(
+      PAYMENT_SPLITTER_ADDRESS,
+      DonePaymentSplitterABI.abi,
+      prov
+    );
+  }
+}
+
+/* ---------------- API ---------------- */
 
 /**
- * Configuration de base
- * @dev Récupère les adresses des contrats depuis les variables d'environnement
+ * 1. Connecter wallet MetaMask
+ * @returns {Promise<{address: string, signer: ethers.JsonRpcSigner}>}
  */
-// TODO: Définir les adresses des contrats depuis import.meta.env
-// const ORDER_MANAGER_ADDRESS = import.meta.env.VITE_ORDER_MANAGER_ADDRESS;
-// const PAYMENT_SPLITTER_ADDRESS = import.meta.env.VITE_PAYMENT_SPLITTER_ADDRESS;
+async function connectWallet() {
+  try {
+    if (!window.ethereum) throw new Error("MetaMask is not installed");
 
-// TODO: Définir le réseau Polygon Mumbai
-// const MUMBAI_CHAIN_ID = 80001; // Chain ID de Polygon Mumbai
+    await switchToMumbaiNetwork();
 
-// TODO: Définir le rôle RESTAURANT_ROLE (bytes32)
-// const RESTAURANT_ROLE = ethers.keccak256(ethers.toUtf8Bytes("RESTAURANT_ROLE"));
+    const prov = getProvider();
+    await prov.send("eth_requestAccounts", []);
+
+    signer = await prov.getSigner();
+    const address = await signer.getAddress();
+
+    // init contracts with signer
+    orderManagerContract = new ethers.Contract(
+      ORDER_MANAGER_ADDRESS,
+      DoneOrderManagerABI.abi,
+      signer
+    );
+
+    paymentSplitterContract = new ethers.Contract(
+      PAYMENT_SPLITTER_ADDRESS,
+      DonePaymentSplitterABI.abi,
+      signer
+    );
+
+    return { address, signer };
+  } catch (error) {
+    throw new Error(`Failed to connect wallet: ${error.message}`);
+  }
+}
 
 /**
- * Variables globales pour provider et signer
+ * (Bonus) Solde natif MATIC
  */
-// let provider = null;
-// let signer = null;
-// let orderManagerContract = null;
-// let paymentSplitterContract = null;
+async function getBalance(address) {
+  try {
+    if (!address) throw new Error("Address is required");
+    const prov = getProvider();
+    const b = await prov.getBalance(address);
+    return ethers.formatEther(b);
+  } catch (error) {
+    throw new Error(`Failed to get balance: ${error.message}`);
+  }
+}
 
 /**
- * Initialiser le provider Web3 depuis MetaMask
- * @returns {ethers.BrowserProvider} Instance du provider
+ * 2. Vérifier rôle RESTAURANT_ROLE
  */
-// TODO: Implémenter getProvider()
-// function getProvider() {
-//   SI !window.ethereum:
-//     throw new Error('MetaMask is not installed. Please install MetaMask extension.');
-//   
-//   SI provider est null:
-//     provider = new ethers.BrowserProvider(window.ethereum);
-//   
-//   RETOURNER provider;
-// }
+async function hasRole(role = RESTAURANT_ROLE, address) {
+  try {
+    if (!address) throw new Error("Address is required");
+    ensureContractsReadOnly();
+    return await orderManagerContract.hasRole(role, address);
+  } catch (error) {
+    throw new Error(`Failed to check role: ${error.message}`);
+  }
+}
 
 /**
- * Vérifier et switcher vers le réseau Polygon Mumbai si nécessaire
- * @returns {Promise<void>}
+ * 3. Confirmer préparation on-chain
+ * @param {number} orderId
+ * @returns {Promise<{txHash: string, receipt: any}>}
  */
-// TODO: Implémenter switchToMumbaiNetwork()
-// async function switchToMumbaiNetwork() {
-//   ESSAYER:
-//     const provider = getProvider();
-//     const network = await provider.getNetwork();
-//     
-//     SI network.chainId !== BigInt(MUMBAI_CHAIN_ID):
-//       await window.ethereum.request({
-//         method: 'wallet_switchEthereumChain',
-//         params: [{ chainId: `0x${MUMBAI_CHAIN_ID.toString(16)}` }],
-//       });
-//   CATCH error:
-//     SI error.code === 4902: // Chain not added
-//       await window.ethereum.request({
-//         method: 'wallet_addEthereumChain',
-//         params: [{
-//           chainId: `0x${MUMBAI_CHAIN_ID.toString(16)}`,
-//           chainName: 'Polygon Mumbai',
-//           nativeCurrency: {
-//             name: 'MATIC',
-//             symbol: 'MATIC',
-//             decimals: 18
-//           },
-//           rpcUrls: ['https://rpc-mumbai.maticvigil.com'],
-//           blockExplorerUrls: ['https://mumbai.polygonscan.com']
-//         }]
-//       });
-//     SINON:
-//       throw error;
-// }
+async function confirmPreparationOnChain(orderId) {
+  try {
+    if (!orderId && orderId !== 0) throw new Error("Order ID is required");
+
+    ensureContractsWithSigner();
+
+    const tx = await orderManagerContract.confirmPreparation(orderId);
+    const receipt = await tx.wait();
+
+    return { txHash: receipt.hash, receipt };
+  } catch (error) {
+    throw new Error(`Failed to confirm preparation: ${error.message}`);
+  }
+}
 
 /**
- * 1. Connecter le wallet MetaMask
- * @returns {Promise<Object>} { address, signer }
- * 
- * @example
- * const { address, signer } = await connectWallet();
+ * 4. Récupérer orderIds d’un restaurant on-chain
  */
-// TODO: Implémenter connectWallet()
-// async function connectWallet() {
-//   ESSAYER:
-//     SI !window.ethereum:
-//       throw new Error('MetaMask is not installed');
-//     
-//     // Switcher vers Mumbai si nécessaire
-//     await switchToMumbaiNetwork();
-//     
-//     // Demander connexion
-//     const provider = getProvider();
-//     await provider.send("eth_requestAccounts", []);
-//     
-//     // Récupérer signer
-//     signer = await provider.getSigner();
-//     const address = await signer.getAddress();
-//     
-//     // Initialiser contrats avec signer
-//     orderManagerContract = new ethers.Contract(ORDER_MANAGER_ADDRESS, DoneOrderManagerABI.abi, signer);
-//     paymentSplitterContract = new ethers.Contract(PAYMENT_SPLITTER_ADDRESS, DonePaymentSplitterABI.abi, signer);
-//     
-//     RETOURNER { address, signer };
-//   CATCH error:
-//     throw new Error(`Failed to connect wallet: ${error.message}`);
-// }
+async function getRestaurantOrders(restaurantAddress) {
+  try {
+    if (!restaurantAddress)
+      throw new Error("Restaurant address is required");
+
+    ensureContractsReadOnly();
+
+    const orderIds =
+      await orderManagerContract.getRestaurantOrders(restaurantAddress);
+
+    return orderIds.map((id) => Number(id));
+  } catch (error) {
+    throw new Error(`Failed to get restaurant orders: ${error.message}`);
+  }
+}
 
 /**
- * 2. Vérifier si une adresse a le rôle RESTAURANT_ROLE
- * @param {string} role - Rôle à vérifier (RESTAURANT_ROLE)
- * @param {string} address - Adresse à vérifier
- * @returns {Promise<boolean>} true si l'adresse a le rôle
- * 
- * @example
- * const hasRole = await hasRole(RESTAURANT_ROLE, '0x...');
+ * 6. Events PaymentSplit
+ * @returns {Promise<Array>}
  */
-// TODO: Implémenter hasRole(role, address)
-// async function hasRole(role, address) {
-//   ESSAYER:
-//     SI !address:
-//       throw new Error('Address is required');
-//     
-//     const provider = getProvider();
-//     SI !orderManagerContract:
-//       orderManagerContract = new ethers.Contract(ORDER_MANAGER_ADDRESS, DoneOrderManagerABI.abi, provider);
-//     
-//     const hasRoleResult = await orderManagerContract.hasRole(role, address);
-//     RETOURNER hasRoleResult;
-//   CATCH error:
-//     throw new Error(`Failed to check role: ${error.message}`);
-// }
+async function getPaymentSplitEvents(restaurantAddress) {
+  try {
+    if (!restaurantAddress)
+      throw new Error("Restaurant address is required");
+
+    ensureContractsReadOnly();
+
+    // filtre PaymentSplit(orderId, restaurant, deliverer, platform, ...)
+    // null sur orderId => tous, restaurant => adresse ciblée
+    const filter =
+      paymentSplitterContract.filters.PaymentSplit(null, restaurantAddress);
+
+    const events = await paymentSplitterContract.queryFilter(filter);
+
+    return events.map((event) => ({
+      orderId: Number(event.args.orderId),
+      restaurant: event.args.restaurant,
+      deliverer: event.args.deliverer,
+      platform: event.args.platform,
+      restaurantAmount: event.args.restaurantAmount,
+      delivererAmount: event.args.delivererAmount,
+      platformAmount: event.args.platformAmount,
+      txHash: event.transactionHash,
+      blockNumber: event.blockNumber,
+      timestamp: event.args.timestamp
+        ? Number(event.args.timestamp)
+        : null,
+    }));
+  } catch (error) {
+    throw new Error(`Failed to get payment split events: ${error.message}`);
+  }
+}
 
 /**
- * 3. Confirmer la préparation d'une commande on-chain
- * @param {number} orderId - ID de la commande
- * @returns {Promise<Object>} { txHash, receipt }
- * 
- * @example
- * const { txHash } = await confirmPreparationOnChain(123);
+ * 5. Total earnings on-chain (somme des PaymentSplit.restaurantAmount)
  */
-// TODO: Implémenter confirmPreparationOnChain(orderId)
-// async function confirmPreparationOnChain(orderId) {
-//   ESSAYER:
-//     SI !signer:
-//       throw new Error('Wallet not connected. Please connect your wallet first.');
-//     
-//     SI !orderManagerContract:
-//       orderManagerContract = new ethers.Contract(ORDER_MANAGER_ADDRESS, DoneOrderManagerABI.abi, signer);
-//     
-//     // Appeler confirmPreparation sur le contrat
-//     const tx = await orderManagerContract.confirmPreparation(orderId);
-//     
-//     // Attendre confirmation
-//     const receipt = await tx.wait();
-//     
-//     RETOURNER { txHash: receipt.hash, receipt };
-//   CATCH error:
-//     throw new Error(`Failed to confirm preparation: ${error.message}`);
-// }
+async function getEarningsOnChain(restaurantAddress) {
+  try {
+    const events = await getPaymentSplitEvents(restaurantAddress);
+
+    const total = events.reduce((sum, e) => {
+      return sum + Number(ethers.formatEther(e.restaurantAmount));
+    }, 0);
+
+    return total;
+  } catch (error) {
+    throw new Error(`Failed to get earnings: ${error.message}`);
+  }
+}
 
 /**
- * 4. Récupérer les commandes d'un restaurant depuis la blockchain
- * @param {string} restaurantAddress - Adresse wallet du restaurant
- * @returns {Promise<Array>} Array d'orderIds
- * 
- * @example
- * const orderIds = await getRestaurantOrders('0x...');
+ * 7. Pending balance dans PaymentSplitter
+ * PUSH pattern => balances() souvent absent => retourne 0
  */
-// TODO: Implémenter getRestaurantOrders(restaurantAddress)
-// async function getRestaurantOrders(restaurantAddress) {
-//   ESSAYER:
-//     SI !restaurantAddress:
-//       throw new Error('Restaurant address is required');
-//     
-//     const provider = getProvider();
-//     SI !orderManagerContract:
-//       orderManagerContract = new ethers.Contract(ORDER_MANAGER_ADDRESS, DoneOrderManagerABI.abi, provider);
-//     
-//     // Appeler getRestaurantOrders sur le contrat
-//     const orderIds = await orderManagerContract.getRestaurantOrders(restaurantAddress);
-//     
-//     RETOURNER orderIds.map(id => Number(id));
-//   CATCH error:
-//     throw new Error(`Failed to get restaurant orders: ${error.message}`);
-// }
+async function getPendingBalance(restaurantAddress) {
+  try {
+    if (!restaurantAddress)
+      throw new Error("Restaurant address is required");
+
+    ensureContractsReadOnly();
+
+    try {
+      // si PAYMENTSPLITTER pull-based (balances mapping)
+      const bal = await paymentSplitterContract.balances(
+        restaurantAddress
+      );
+      return Number(ethers.formatEther(bal));
+    } catch (e) {
+      console.warn(
+        "PaymentSplitter uses PUSH pattern. Funds transferred immediately."
+      );
+      return 0;
+    }
+  } catch (error) {
+    throw new Error(`Failed to get pending balance: ${error.message}`);
+  }
+}
 
 /**
- * 5. Récupérer les revenus on-chain d'un restaurant (somme des PaymentSplit events)
- * @param {string} restaurantAddress - Adresse wallet du restaurant
- * @returns {Promise<number>} Total earnings en MATIC
- * 
- * @example
- * const totalEarnings = await getEarningsOnChain('0x...');
+ * 8. Withdraw (si pull-based)
  */
-// TODO: Implémenter getEarningsOnChain(restaurantAddress)
-// async function getEarningsOnChain(restaurantAddress) {
-//   ESSAYER:
-//     SI !restaurantAddress:
-//       throw new Error('Restaurant address is required');
-//     
-//     // Récupérer tous les events PaymentSplit pour ce restaurant
-//     const events = await getPaymentSplitEvents(restaurantAddress);
-//     
-//     // Somme des restaurantAmount (70% de chaque commande)
-//     const totalEarnings = events.reduce((sum, event) => {
-//       return sum + parseFloat(ethers.formatEther(event.args.restaurantAmount));
-//     }, 0);
-//     
-//     RETOURNER totalEarnings;
-//   CATCH error:
-//     throw new Error(`Failed to get earnings: ${error.message}`);
-// }
+async function withdraw() {
+  try {
+    ensureContractsWithSigner();
+
+    const addr = await signer.getAddress();
+
+    try {
+      const bal = await paymentSplitterContract.balances(addr);
+      const amount = Number(ethers.formatEther(bal));
+      if (amount <= 0) throw new Error("No funds available to withdraw");
+
+      const tx = await paymentSplitterContract.withdraw();
+      const receipt = await tx.wait();
+
+      return { txHash: receipt.hash, amount, receipt };
+    } catch (e) {
+      throw new Error(
+        "PaymentSplitter uses PUSH pattern. No withdraw() available."
+      );
+    }
+  } catch (error) {
+    throw new Error(`Failed to withdraw: ${error.message}`);
+  }
+}
 
 /**
- * 6. Récupérer tous les events PaymentSplit pour un restaurant
- * @param {string} restaurantAddress - Adresse wallet du restaurant
- * @returns {Promise<Array>} Array d'events avec { orderId, restaurantAmount, delivererAmount, platformAmount, txHash, blockNumber, timestamp }
- * 
- * @example
- * const events = await getPaymentSplitEvents('0x...');
+ * 9. Lire une commande on-chain
  */
-// TODO: Implémenter getPaymentSplitEvents(restaurantAddress)
-// async function getPaymentSplitEvents(restaurantAddress) {
-//   ESSAYER:
-//     SI !restaurantAddress:
-//       throw new Error('Restaurant address is required');
-//     
-//     const provider = getProvider();
-//     SI !paymentSplitterContract:
-//       paymentSplitterContract = new ethers.Contract(PAYMENT_SPLITTER_ADDRESS, DonePaymentSplitterABI.abi, provider);
-//     
-//     // Filtrer events PaymentSplit où restaurant = restaurantAddress
-//     const filter = paymentSplitterContract.filters.PaymentSplit(null, restaurantAddress);
-//     const events = await paymentSplitterContract.queryFilter(filter);
-//     
-//     // Parser les events
-//     const parsedEvents = events.map(event => ({
-//       orderId: Number(event.args.orderId),
-//       restaurant: event.args.restaurant,
-//       deliverer: event.args.deliverer,
-//       platform: event.args.platform,
-//       restaurantAmount: event.args.restaurantAmount, // 70%
-//       delivererAmount: event.args.delivererAmount,   // 20%
-//       platformAmount: event.args.platformAmount,     // 10%
-//       txHash: event.transactionHash,
-//       blockNumber: event.blockNumber,
-//       timestamp: event.args.timestamp ? Number(event.args.timestamp) : null
-//     }));
-//     
-//     RETOURNER parsedEvents;
-//   CATCH error:
-//     throw new Error(`Failed to get payment split events: ${error.message}`);
-// }
+async function getOrderOnChain(orderId) {
+  try {
+    if (!orderId && orderId !== 0) throw new Error("Order ID is required");
 
-/**
- * 7. Récupérer le solde en attente (pending balance) dans le PaymentSplitter
- * @param {string} restaurantAddress - Adresse wallet du restaurant
- * @returns {Promise<number>} Pending balance en MATIC
- * 
- * @example
- * const pending = await getPendingBalance('0x...');
- * 
- * @notice IMPORTANT: Le contrat PaymentSplitter actuel utilise un pattern PUSH (transfert immédiat).
- * Si le contrat n'a pas de fonction balances() ou withdraw(), cette fonction retournera 0.
- * Voir contracts/PAYMENT_SPLITTER_NOTES.md pour plus de détails.
- */
-// TODO: Implémenter getPendingBalance(restaurantAddress)
-// async function getPendingBalance(restaurantAddress) {
-//   ESSAYER:
-//     SI !restaurantAddress:
-//       throw new Error('Restaurant address is required');
-//     
-//     const provider = getProvider();
-//     SI !paymentSplitterContract:
-//       paymentSplitterContract = new ethers.Contract(PAYMENT_SPLITTER_ADDRESS, DonePaymentSplitterABI.abi, provider);
-//     
-//     // Vérifier si le contrat a une fonction balances()
-//     // Si le contrat utilise pattern PUSH, cette fonction n'existe pas
-//     ESSAYER:
-//       const balance = await paymentSplitterContract.balances(restaurantAddress);
-//       RETOURNER parseFloat(ethers.formatEther(balance));
-//     CATCH error:
-//       // Si balances() n'existe pas, le contrat utilise pattern PUSH
-//       // Les fonds sont déjà transférés, donc balance = 0
-//       console.warn('PaymentSplitter uses PUSH pattern. Funds are transferred immediately.');
-//       RETOURNER 0;
-//   CATCH error:
-//     throw new Error(`Failed to get pending balance: ${error.message}`);
-// }
+    ensureContractsReadOnly();
 
-/**
- * 8. Retirer les fonds du PaymentSplitter vers le wallet restaurant
- * @returns {Promise<Object>} { txHash, amount, receipt }
- * 
- * @example
- * const { txHash, amount } = await withdraw();
- * 
- * @notice IMPORTANT: Le contrat PaymentSplitter actuel utilise un pattern PUSH (transfert immédiat).
- * Si le contrat n'a pas de fonction withdraw(), cette fonction lancera une erreur.
- * Voir contracts/PAYMENT_SPLITTER_NOTES.md pour plus de détails.
- */
-// TODO: Implémenter withdraw()
-// async function withdraw() {
-//   ESSAYER:
-//     SI !signer:
-//       throw new Error('Wallet not connected. Please connect your wallet first.');
-//     
-//     SI !paymentSplitterContract:
-//       paymentSplitterContract = new ethers.Contract(PAYMENT_SPLITTER_ADDRESS, DonePaymentSplitterABI.abi, signer);
-//     
-//     const address = await signer.getAddress();
-//     
-//     // Vérifier si le contrat a une fonction withdraw()
-//     // Si le contrat utilise pattern PUSH, cette fonction n'existe pas
-//     ESSAYER:
-//       // Vérifier balance avant retrait
-//       const balance = await paymentSplitterContract.balances(address);
-//       const amount = parseFloat(ethers.formatEther(balance));
-//       
-//       SI amount <= 0:
-//         throw new Error('No funds available to withdraw');
-//       
-//       // Appeler withdraw() sur le contrat
-//       const tx = await paymentSplitterContract.withdraw();
-//       
-//       // Attendre confirmation
-//       const receipt = await tx.wait();
-//       
-//       RETOURNER { txHash: receipt.hash, amount, receipt };
-//     CATCH error:
-//       // Si withdraw() n'existe pas, le contrat utilise pattern PUSH
-//       throw new Error('PaymentSplitter uses PUSH pattern. Funds are already transferred. No withdraw() function available.');
-//   CATCH error:
-//     throw new Error(`Failed to withdraw: ${error.message}`);
-// }
+    const o = await orderManagerContract.orders(orderId);
 
-/**
- * 9. Récupérer les détails d'une commande depuis la blockchain
- * @param {number} orderId - ID de la commande
- * @returns {Promise<Object>} Order struct avec tous les détails
- * 
- * @example
- * const order = await getOrderOnChain(123);
- */
-// TODO: Implémenter getOrderOnChain(orderId)
-// async function getOrderOnChain(orderId) {
-//   ESSAYER:
-//     SI !orderId:
-//       throw new Error('Order ID is required');
-//     
-//     const provider = getProvider();
-//     SI !orderManagerContract:
-//       orderManagerContract = new ethers.Contract(ORDER_MANAGER_ADDRESS, DoneOrderManagerABI.abi, provider);
-//     
-//     // Appeler orders(orderId) sur le contrat
-//     const order = await orderManagerContract.orders(orderId);
-//     
-//     // Parser la struct Order
-//     RETOURNER {
-//       id: Number(order.id),
-//       client: order.client,
-//       restaurant: order.restaurant,
-//       deliverer: order.deliverer,
-//       foodPrice: parseFloat(ethers.formatEther(order.foodPrice)),
-//       deliveryFee: parseFloat(ethers.formatEther(order.deliveryFee)),
-//       platformFee: parseFloat(ethers.formatEther(order.platformFee)),
-//       totalAmount: parseFloat(ethers.formatEther(order.totalAmount)),
-//       status: order.status, // 0=CREATED, 1=PREPARING, 2=IN_DELIVERY, 3=DELIVERED, 4=DISPUTED
-//       ipfsHash: order.ipfsHash,
-//       createdAt: Number(order.createdAt),
-//       disputed: order.disputed,
-//       delivered: order.delivered
-//     };
-//   CATCH error:
-//     throw new Error(`Failed to get order: ${error.message}`);
-// }
+    return {
+      id: Number(o.id),
+      client: o.client,
+      restaurant: o.restaurant,
+      deliverer: o.deliverer,
+      foodPrice: Number(ethers.formatEther(o.foodPrice)),
+      deliveryFee: Number(ethers.formatEther(o.deliveryFee)),
+      platformFee: Number(ethers.formatEther(o.platformFee)),
+      totalAmount: Number(ethers.formatEther(o.totalAmount)),
+      status: o.status, // enum uint8 dans le contrat
+      ipfsHash: o.ipfsHash,
+      createdAt: Number(o.createdAt),
+      disputed: o.disputed,
+      delivered: o.delivered,
+    };
+  } catch (error) {
+    throw new Error(`Failed to get order: ${error.message}`);
+  }
+}
 
-/**
- * Export des fonctions
- */
-// TODO: Exporter toutes les fonctions
-// export {
-//   connectWallet,
-//   hasRole,
-//   confirmPreparationOnChain,
-//   getRestaurantOrders,
-//   getEarningsOnChain,
-//   getPaymentSplitEvents,
-//   getPendingBalance,
-//   withdraw,
-//   getOrderOnChain
-// };
+/* ---------------- Exports ---------------- */
 
+export {
+  RESTAURANT_ROLE,
+  connectWallet,
+  getBalance,
+  hasRole,
+  confirmPreparationOnChain,
+  getRestaurantOrders,
+  getEarningsOnChain,
+  getPaymentSplitEvents,
+  getPendingBalance,
+  withdraw,
+  getOrderOnChain,
+};
