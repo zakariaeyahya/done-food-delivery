@@ -24,6 +24,8 @@ build/
 out/
 .cache/
 .parcel-cache/
+.next/
+.vercel/
 
 # Hardhat
 cache/

@@ -183,7 +183,7 @@ export function ConnectWalletModal({
                       <p className="text-amber-400 font-medium">Staking requis</p>
                     </div>
                     <p className="text-sm text-amber-300 mb-3">
-                      Vous devez staker minimum 0.1 MATIC pour accepter des commandes.
+                      Vous devez staker minimum 0.1 POL pour accepter des commandes.
                     </p>
                     <Button
                       variant="secondary"
@@ -205,7 +205,7 @@ export function ConnectWalletModal({
                       <p className="text-emerald-400 font-medium">Prêt à livrer</p>
                     </div>
                     <p className="text-sm text-emerald-300">
-                      Staké : {stakedAmount.toFixed(2)} MATIC
+                      Staké : {stakedAmount.toFixed(2)} POL
                     </p>
                   </div>
                 )}

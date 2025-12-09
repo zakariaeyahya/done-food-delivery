@@ -154,7 +154,7 @@ export function ActiveDeliveryCard({ order }: ActiveDeliveryCardProps) {
 
       stopGPSTracking();
 
-      alert(`Livraison confirmée ! Vous gagnez ${earnings} MATIC`);
+      alert(`Livraison confirmée ! Vous gagnez ${earnings} POL`);
       router.push("/");
     } catch (error: any) {
       alert(`Erreur : ${error.message}`);
@@ -180,7 +180,7 @@ export function ActiveDeliveryCard({ order }: ActiveDeliveryCardProps) {
         <div className="text-right">
           <p className="text-sm text-slate-400">Gains estimés</p>
           <p className="text-2xl font-bold text-emerald-400">
-            {(order.totalAmount * 0.2).toFixed(3)} MATIC
+            {(order.totalAmount * 0.2).toFixed(3)} POL
           </p>
         </div>
       </div>

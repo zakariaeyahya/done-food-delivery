@@ -5,10 +5,75 @@
 
 import { ethers } from "ethers";
 
-// ENV
-const ORDER_MANAGER_ADDRESS = import.meta.env.VITE_ORDER_MANAGER_ADDRESS;
-const STAKING_ADDRESS = import.meta.env.VITE_STAKING_ADDRESS;
-const PAYMENT_SPLITTER_ADDRESS = import.meta.env.VITE_PAYMENT_SPLITTER_ADDRESS;
+// ENV - Default contract addresses (Polygon Amoy testnet)
+// These are fallbacks if env vars are not loaded
+const DEFAULT_ADDRESSES = {
+  ORDER_MANAGER_ADDRESS: '0x257D63E05bcf8840896b1ECb5c6d98eb5Ba06182',
+  STAKING_ADDRESS: '0xFf9CD2596e73BB0bCB28d9E24d945B0ed34f874b',
+  PAYMENT_SPLITTER_ADDRESS: '0xE99F26DA1B38a79d08ed8d853E45397C99818C2f',
+};
+
+// ENV - Helper function to get env vars dynamically (works better with Next.js)
+function getEnvVar(name) {
+  // In Next.js, NEXT_PUBLIC_* vars are available in both server and client
+  // But they need to be set at build time, so we check multiple sources
+  
+  // 1. Try NEXT_PUBLIC_* first (Next.js standard - available at build time)
+  let value = process.env[`NEXT_PUBLIC_${name}`];
+  
+  // 2. Fallback to VITE_* for compatibility
+  if (!value) {
+    value = process.env[`VITE_${name}`];
+  }
+  
+  // 3. If still not found and we're in browser, try to get from window (for runtime injection)
+  if (!value && typeof window !== "undefined") {
+    // Next.js injects env vars, but sometimes they're not immediately available
+    // Try accessing via window.__NEXT_DATA__ or other methods
+    if (window.__NEXT_DATA__?.env?.[`NEXT_PUBLIC_${name}`]) {
+      value = window.__NEXT_DATA__.env[`NEXT_PUBLIC_${name}`];
+    }
+  }
+  
+  // 4. Fallback to default addresses for development (Polygon Amoy)
+  if (!value && DEFAULT_ADDRESSES[name]) {
+    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+      console.warn(`⚠️ ${name} not found in env vars, using default address for Polygon Amoy`);
+    }
+    value = DEFAULT_ADDRESSES[name];
+  }
+  
+  // Debug logging (only in browser, development mode)
+  if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+    if (name === 'STAKING_ADDRESS' && !value) {
+      console.warn("⚠️ NEXT_PUBLIC_STAKING_ADDRESS not found in process.env");
+      console.log("🔍 Available NEXT_PUBLIC_* vars:", Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC_')));
+      console.log("🔍 process.env.NEXT_PUBLIC_STAKING_ADDRESS:", process.env.NEXT_PUBLIC_STAKING_ADDRESS);
+      console.log("🔍 typeof process.env:", typeof process.env);
+    }
+  }
+  
+  return value;
+}
+
+// ENV - Get addresses dynamically
+const getOrderManagerAddress = () => getEnvVar('ORDER_MANAGER_ADDRESS');
+const getStakingAddress = () => getEnvVar('STAKING_ADDRESS');
+const getPaymentSplitterAddress = () => getEnvVar('PAYMENT_SPLITTER_ADDRESS');
+
+// Legacy constants for backward compatibility (will be undefined if not set)
+const ORDER_MANAGER_ADDRESS = getOrderManagerAddress();
+const STAKING_ADDRESS = getStakingAddress();
+const PAYMENT_SPLITTER_ADDRESS = getPaymentSplitterAddress();
+
+// Debug: Log environment variables (only in development)
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+  console.log("🔍 Blockchain ENV vars:", {
+    ORDER_MANAGER: getOrderManagerAddress() ? `${getOrderManagerAddress().slice(0, 10)}...` : "NOT SET",
+    STAKING: getStakingAddress() ? `${getStakingAddress().slice(0, 10)}...` : "NOT SET",
+    PAYMENT_SPLITTER: getPaymentSplitterAddress() ? `${getPaymentSplitterAddress().slice(0, 10)}...` : "NOT SET",
+  });
+}
 
 // Rôle livreur
 export const DELIVERER_ROLE = ethers.keccak256(
@@ -33,7 +98,7 @@ let paymentSplitterContract = null;
 /* -------------------------------------------------------------------------- */
 
 function getProvider() {
-  if (!window.ethereum) {
+  if (typeof window === "undefined" || !window.ethereum) {
     throw new Error("MetaMask non détecté.");
   }
   if (!provider) {
@@ -55,7 +120,7 @@ export async function getSigner() {
 /* -------------------------------------------------------------------------- */
 export async function connectWallet() {
   try {
-    if (!window.ethereum)
+    if (typeof window === "undefined" || !window.ethereum)
       throw new Error("MetaMask non installé.");
 
     await window.ethereum.request({ method: "eth_requestAccounts" });
@@ -100,13 +165,32 @@ export async function hasRole(role, address) {
 /* -------------------------------------------------------------------------- */
 export async function isStaked(address) {
   try {
-    if (!STAKING_ADDRESS || STAKING_ADDRESS === '') {
-      throw new Error("Staking contract not configured. Please set VITE_STAKING_ADDRESS in your .env file.");
+    // Dev mode: Si wallet a 0 POL, considérer comme 0.1 POL staké (pour tests)
+    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+      try {
+        const provider = getProvider();
+        const balance = await provider.getBalance(address);
+        const balancePOL = parseFloat(ethers.formatEther(balance));
+        
+        // Si solde = 0 POL, considérer comme staké (dev mode)
+        if (balancePOL === 0) {
+          console.log("🔧 Dev mode: Wallet a 0 POL, considéré comme 0.1 POL staké");
+          return true;
+        }
+      } catch (err) {
+        // Si erreur, continuer avec la vérification normale
+        console.warn("Erreur vérification solde POL:", err);
+      }
+    }
+
+    const stakingAddress = getStakingAddress();
+    if (!stakingAddress || stakingAddress === '') {
+      throw new Error("Staking contract not configured. Please set NEXT_PUBLIC_STAKING_ADDRESS in your .env.local file.");
     }
 
     if (!stakingContract) {
       stakingContract = new ethers.Contract(
-        STAKING_ADDRESS,
+        stakingAddress,
         DoneStakingABI.abi,
         getProvider()
       );
@@ -127,7 +211,26 @@ let stakingWarningShown = false;
 
 export async function getStakeInfo(address) {
   try {
-    if (!STAKING_ADDRESS || STAKING_ADDRESS === '') {
+    // Dev mode: Si wallet a 0 POL, considérer comme 0.1 POL staké (pour tests)
+    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+      try {
+        const provider = getProvider();
+        const balance = await provider.getBalance(address);
+        const balancePOL = parseFloat(ethers.formatEther(balance));
+        
+        // Si solde = 0 POL, considérer comme 0.1 POL staké (dev mode)
+        if (balancePOL === 0) {
+          console.log("🔧 Dev mode: Wallet a 0 POL, considéré comme 0.1 POL staké");
+          return { amount: 0.1, isStaked: true };
+        }
+      } catch (err) {
+        // Si erreur, continuer avec la vérification normale
+        console.warn("Erreur vérification solde POL:", err);
+      }
+    }
+
+    const stakingAddress = getStakingAddress();
+    if (!stakingAddress || stakingAddress === '') {
       if (!stakingWarningShown) {
         console.info("ℹ️ Staking contract not configured - using default values");
         stakingWarningShown = true;
@@ -137,7 +240,7 @@ export async function getStakeInfo(address) {
 
     if (!stakingContract) {
       stakingContract = new ethers.Contract(
-        STAKING_ADDRESS,
+        stakingAddress,
         DoneStakingABI.abi,
         getProvider()
       );
@@ -170,25 +273,36 @@ export async function getStakeInfo(address) {
 /* -------------------------------------------------------------------------- */
 export async function stake(amount) {
   try {
-    if (!STAKING_ADDRESS || STAKING_ADDRESS === '') {
-      throw new Error("Staking contract not configured. Please set VITE_STAKING_ADDRESS in your .env file.");
+    const stakingAddress = getStakingAddress();
+    
+    // Enhanced debugging
+    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+      console.log("🔍 Debug stake() - stakingAddress:", stakingAddress);
+      console.log("🔍 Debug stake() - process.env.NEXT_PUBLIC_STAKING_ADDRESS:", process.env.NEXT_PUBLIC_STAKING_ADDRESS);
+      console.log("🔍 Debug stake() - process.env keys:", Object.keys(process.env).filter(k => k.includes('STAKING')));
+    }
+    
+    if (!stakingAddress || stakingAddress === '') {
+      const errorMsg = `Staking contract not configured. Please set NEXT_PUBLIC_STAKING_ADDRESS in your .env.local file. Current value: ${stakingAddress || 'undefined'}`;
+      console.error("❌ Staking error:", errorMsg);
+      throw new Error(errorMsg);
     }
 
     const signer = await getSigner();
 
-    if (!stakingContract) {
-      stakingContract = new ethers.Contract(
-        STAKING_ADDRESS,
-        DoneStakingABI.abi,
-        signer
-      );
-    }
+    // Always create contract with signer for transactions (not provider)
+    // Don't reuse stakingContract as it may have been created with provider (read-only)
+    const stakingContractWithSigner = new ethers.Contract(
+      stakingAddress,
+      DoneStakingABI.abi,
+      signer
+    );
 
     const amountWei = ethers.parseEther(amount.toString());
     const min = ethers.parseEther("0.1");
-    if (amountWei < min) throw new Error("Minimum stake: 0.1 MATIC");
+    if (amountWei < min) throw new Error("Minimum stake: 0.1 POL");
 
-    const tx = await stakingContract.stakeAsDeliverer({
+    const tx = await stakingContractWithSigner.stakeAsDeliverer({
       value: amountWei,
     });
 
@@ -205,8 +319,9 @@ export async function stake(amount) {
 /* -------------------------------------------------------------------------- */
 export async function unstake() {
   try {
-    if (!STAKING_ADDRESS || STAKING_ADDRESS === '') {
-      throw new Error("Staking contract not configured. Please set VITE_STAKING_ADDRESS in your .env file.");
+    const stakingAddress = getStakingAddress();
+    if (!stakingAddress || stakingAddress === '') {
+      throw new Error("Staking contract not configured. Please set NEXT_PUBLIC_STAKING_ADDRESS in your .env.local file.");
     }
 
     const signer = await getSigner();
@@ -214,15 +329,14 @@ export async function unstake() {
 
     const stakeInfo = await getStakeInfo(address);
 
-    if (!stakingContract) {
-      stakingContract = new ethers.Contract(
-        STAKING_ADDRESS,
-        DoneStakingABI.abi,
-        signer
-      );
-    }
+    // Always create contract with signer for transactions (not provider)
+    const stakingContractWithSigner = new ethers.Contract(
+      stakingAddress,
+      DoneStakingABI.abi,
+      signer
+    );
 
-    const tx = await stakingContract.unstake();
+    const tx = await stakingContractWithSigner.unstake();
     const receipt = await tx.wait();
 
     return { txHash: receipt.hash, amount: stakeInfo.amount };
@@ -320,7 +434,8 @@ let slashingWarningShown = false;
 export async function getSlashingEvents(address) {
   try {
     // Vérifier si l'adresse du contrat est définie
-    if (!STAKING_ADDRESS || STAKING_ADDRESS === '') {
+    const stakingAddress = getStakingAddress();
+    if (!stakingAddress || stakingAddress === '') {
       if (!slashingWarningShown) {
         console.info("ℹ️ Staking contract not configured - returning empty slashing events");
         slashingWarningShown = true;
@@ -332,7 +447,7 @@ export async function getSlashingEvents(address) {
 
     if (!stakingContract) {
       stakingContract = new ethers.Contract(
-        STAKING_ADDRESS,
+        stakingAddress,
         DoneStakingABI.abi,
         provider
       );

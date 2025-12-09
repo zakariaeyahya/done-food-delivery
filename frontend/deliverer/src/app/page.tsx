@@ -238,7 +238,7 @@ export default function HomePage() {
                   <DollarSign className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
                   <h3 className="text-sm text-slate-400 mb-1">Gains</h3>
                   <p className="text-3xl font-bold text-white">
-                    {stats.todayEarnings.toFixed(2)} MATIC
+                    {stats.todayEarnings.toFixed(2)} POL
                   </p>
                 </Card>
               </motion.div>
@@ -266,7 +266,7 @@ export default function HomePage() {
                   <Lock className="w-8 h-8 text-purple-400 mx-auto mb-2" />
                   <h3 className="text-sm text-slate-400 mb-1">Staké</h3>
                   <p className="text-3xl font-bold text-white">
-                    {stats.stakedAmount.toFixed(2)} MATIC
+                    {stats.stakedAmount.toFixed(2)} POL
                   </p>
                 </Card>
               </motion.div>

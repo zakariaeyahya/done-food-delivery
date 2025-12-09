@@ -40,7 +40,7 @@ export function EarningsChart({ data }: EarningsChartProps) {
     labels: data.labels,
     datasets: [
       {
-        label: "Gains (MATIC)",
+        label: "Gains (POL)",
         data: data.values,
         borderColor: "rgb(99, 102, 241)",
         backgroundColor: "rgba(99, 102, 241, 0.1)",

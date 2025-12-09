@@ -6,7 +6,7 @@
 import axios from 'axios';
 
 // Configuration de base
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 // Create axios instance
 const apiClient = axios.create({
@@ -18,6 +18,11 @@ const apiClient = axios.create({
 
 // Interceptor to add dev auth headers
 apiClient.interceptors.request.use((config) => {
+  // Only run on client side
+  if (typeof window === 'undefined') {
+    return config;
+  }
+
   // Get current wallet address from localStorage or window
   const address = window.ethereum?.selectedAddress || localStorage.getItem('walletAddress');
 

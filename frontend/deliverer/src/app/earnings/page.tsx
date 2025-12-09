@@ -85,7 +85,7 @@ export default function EarningsPage() {
   function exportCSV() {
     if (transactions.length === 0) return;
     const rows = [
-      ["Date", "Order ID", "Montant (MATIC)", "Transaction Hash", "Status"].join(","),
+      ["Date", "Order ID", "Montant (POL)", "Transaction Hash", "Status"].join(","),
       ...transactions.map((tx) =>
         [
           new Date(tx.timestamp * 1000).toLocaleDateString(),
@@ -146,7 +146,7 @@ export default function EarningsPage() {
 
           <div className="text-center mb-6">
             <p className="text-5xl font-bold text-white mb-2">
-              {earnings[period].toFixed(3)} <span className="text-2xl text-slate-400">MATIC</span>
+              {earnings[period].toFixed(3)} <span className="text-2xl text-slate-400">POL</span>
             </p>
             <div className="flex items-center justify-center gap-4 text-slate-400">
               <div className="flex items-center gap-2">
@@ -213,7 +213,7 @@ export default function EarningsPage() {
                           {tx.orderId}
                         </td>
                         <td className="py-3 px-4 text-sm text-emerald-400 font-medium">
-                          {tx.delivererAmount} MATIC
+                          {tx.delivererAmount} POL
                         </td>
                         <td className="py-3 px-4">
                           <a

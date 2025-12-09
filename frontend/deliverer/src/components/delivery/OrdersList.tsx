@@ -124,7 +124,7 @@ export function OrdersList({ limit }: OrdersListProps) {
 
       const isStaked = await blockchain.isStaked(address);
       if (!isStaked) {
-        alert("Vous devez staker minimum 0.1 MATIC pour accepter une commande.");
+        alert("Vous devez staker minimum 0.1 POL pour accepter une commande.");
         return;
       }
 

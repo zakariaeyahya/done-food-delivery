@@ -24,7 +24,7 @@ function ConnectWallet() {
 
   async function checkWalletConnection() {
     try {
-      if (!window.ethereum) return;
+      if (typeof window === "undefined" || !window.ethereum) return;
 
       const accounts = await window.ethereum.request({
         method: "eth_accounts",
@@ -126,7 +126,7 @@ function ConnectWallet() {
           {/* Vérification staking */}
           {hasRole && !isStaked && (
             <div className="warning">
-              ⚠️ Vous devez staker minimum 0.1 MATIC pour accepter des commandes.<br />
+              ⚠️ Vous devez staker minimum 0.1 POL pour accepter des commandes.<br />
               <Link to="/profile">→ Aller au StakingPanel</Link>
             </div>
           )}
@@ -134,7 +134,7 @@ function ConnectWallet() {
           {/* Staking OK */}
           {hasRole && isStaked && (
             <div className="success">
-              ✅ Staké : {stakedAmount} MATIC
+              ✅ Staké : {stakedAmount} POL
             </div>
           )}
 

@@ -64,14 +64,14 @@ export function OrderCard({ order, currentLocation, onAccept, accepting }: Order
         </div>
         <div className="flex items-center gap-2 text-emerald-400">
           <Wallet className="w-4 h-4" />
-          <span className="text-sm font-medium">{earnings.toFixed(3)} MATIC</span>
+          <span className="text-sm font-medium">{earnings.toFixed(3)} POL</span>
         </div>
       </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-white/5">
         <div>
           <p className="text-xs text-slate-500">Total commande</p>
-          <p className="text-white font-semibold">{order.totalAmount} MATIC</p>
+          <p className="text-white font-semibold">{order.totalAmount} POL</p>
         </div>
         <Button
           onClick={() => onAccept(order.orderId)}

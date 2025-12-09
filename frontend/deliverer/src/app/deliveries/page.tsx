@@ -165,7 +165,7 @@ export default function DeliveriesPage() {
                       </td>
                       <td className="py-3 px-4">{getStatusBadge(d.status)}</td>
                       <td className="py-3 px-4 text-sm text-emerald-400 font-medium">
-                        {d.earnings || 0} MATIC
+                        {d.earnings || 0} POL
                       </td>
                       <td className="py-3 px-4 text-sm text-slate-400">
                         {d.createdAt

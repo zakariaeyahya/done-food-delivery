@@ -16,7 +16,7 @@ function AvailableOrders({ limit = null }) {
   const socketRef = useRef(null);
 
   const SOCKET_URL =
-    import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
+    process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
 
   /** Au montage : charger GPS + commandes + socket listeners */
   useEffect(() => {
@@ -151,7 +151,7 @@ function AvailableOrders({ limit = null }) {
 
       const isStaked = await blockchain.isStaked(address);
       if (!isStaked) {
-        alert("Vous devez staker minimum 0.1 MATIC pour accepter une commande.");
+        alert("Vous devez staker minimum 0.1 POL pour accepter une commande.");
         return;
       }
 
@@ -211,9 +211,9 @@ function AvailableOrders({ limit = null }) {
                 </div>
 
                 <div className="order-details">
-                  <p>Total: {order.totalAmount} MATIC</p>
+                  <p>Total: {order.totalAmount} POL</p>
                   <p className="earnings">
-                    Gains estimés: {earnings.toFixed(3)} MATIC
+                    Gains estimés: {earnings.toFixed(3)} POL
                   </p>
                 </div>
 

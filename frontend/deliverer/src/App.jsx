@@ -20,7 +20,7 @@ function App() {
 
   // Init Socket.io
   useEffect(() => {
-    const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
+    const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
     let newSocket = null;
     let connectionWarningShown = false;
     let isConnected = false;
@@ -100,7 +100,7 @@ function App() {
 
   // Auto-connect wallet
   useEffect(() => {
-    if (window.ethereum) {
+    if (typeof window !== "undefined" && window.ethereum) {
       window.ethereum
         .request({ method: "eth_accounts" })
         .then((accounts) => {
@@ -109,12 +109,17 @@ function App() {
             localStorage.setItem('walletAddress', accounts[0]);
           }
         })
-        .catch(console.error);
+        .catch((error) => {
+          // Ignore errors from extension communication
+          if (error.code !== -32002) {
+            console.error("Wallet connection error:", error);
+          }
+        });
     }
   }, []);
 
   const connectWallet = async () => {
-    if (!window.ethereum) {
+    if (typeof window === "undefined" || !window.ethereum) {
       alert("MetaMask non installé");
       return;
     }
@@ -124,7 +129,10 @@ function App() {
       setAddress(walletAddress);
       localStorage.setItem('walletAddress', walletAddress);
     } catch (error) {
-      alert("Erreur connexion wallet");
+      // Ignore user rejection errors
+      if (error.code !== 4001) {
+        alert("Erreur connexion wallet");
+      }
     }
   };
 

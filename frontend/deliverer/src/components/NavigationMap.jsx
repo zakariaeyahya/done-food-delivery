@@ -27,7 +27,7 @@ function NavigationMap({ origin, destination, step, onArrival }) {
   const [map, setMap] = useState(null);
 
   const watchIdRef = useRef(null);
-  const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   /** Calcul de la route au montage ou si origin/destination change */
   useEffect(() => {

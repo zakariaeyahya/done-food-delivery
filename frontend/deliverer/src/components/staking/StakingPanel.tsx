@@ -67,7 +67,7 @@ export function StakingPanel({ address }: StakingPanelProps) {
     const amount = parseFloat(stakeInput);
 
     if (amount < 0.1) {
-      setError("Montant minimum : 0.1 MATIC");
+      setError("Montant minimum : 0.1 POL");
       return;
     }
 
@@ -109,7 +109,7 @@ export function StakingPanel({ address }: StakingPanelProps) {
       await new Promise((resolve) => setTimeout(resolve, 3000));
 
       await fetchStakingInfo();
-      alert(`Unstaking réussi ! ${amount} MATIC retirés.`);
+      alert(`Unstaking réussi ! ${amount} POL retirés.`);
     } catch (err: any) {
       setError(`Erreur unstaking : ${err.message}`);
     } finally {
@@ -127,7 +127,7 @@ export function StakingPanel({ address }: StakingPanelProps) {
         {isStaked ? (
           <Badge variant="success" className="text-base px-4 py-2">
             <Lock className="w-4 h-4 mr-2" />
-            Staké : {stakedAmount.toFixed(2)} MATIC
+            Staké : {stakedAmount.toFixed(2)} POL
           </Badge>
         ) : (
           <Badge variant="danger" className="text-base px-4 py-2">
@@ -141,7 +141,7 @@ export function StakingPanel({ address }: StakingPanelProps) {
         <div className="space-y-4 mb-6">
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-2">
-              Montant à staker (minimum 0.1 MATIC)
+              Montant à staker (minimum 0.1 POL)
             </label>
             <input
               type="number"
@@ -158,7 +158,7 @@ export function StakingPanel({ address }: StakingPanelProps) {
             className="w-full"
             size="lg"
           >
-            {loading ? "En cours..." : "Stake 0.1 MATIC"}
+            {loading ? "En cours..." : "Stake 0.1 POL"}
           </Button>
         </div>
       )}
@@ -192,7 +192,7 @@ export function StakingPanel({ address }: StakingPanelProps) {
           </div>
 
           <p className="text-sm text-slate-400 mb-4">
-            Total slashé : <span className="text-red-400 font-medium">{totalSlashed.toFixed(3)} MATIC</span>
+            Total slashé : <span className="text-red-400 font-medium">{totalSlashed.toFixed(3)} POL</span>
           </p>
 
           <div className="space-y-2">
@@ -212,7 +212,7 @@ export function StakingPanel({ address }: StakingPanelProps) {
                     </p>
                   </div>
                   <p className="text-sm text-red-400 font-medium">
-                    -{event.amount} MATIC
+                    -{event.amount} POL
                   </p>
                 </div>
               </motion.div>
