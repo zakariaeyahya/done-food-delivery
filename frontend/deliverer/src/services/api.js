@@ -172,12 +172,18 @@ async function getEarnings(address, period = "week") {
 /* -------------------------------------------------------------------------- */
 /* 7. Récupérer la note + avis                                                */
 /* -------------------------------------------------------------------------- */
+// Track if warning has been shown
+let ratingWarningShown = false;
+
 async function getRating(address) {
   try {
     if (!address) throw new Error("Address is required");
 
     // TODO: Backend route doesn't exist yet - return mock data
-    console.warn("Rating endpoint not implemented - using mock data");
+    if (!ratingWarningShown) {
+      console.info("ℹ️ Using mock rating data (backend endpoint not implemented)");
+      ratingWarningShown = true;
+    }
     return {
       rating: 4.5,
       totalDeliveries: 0,

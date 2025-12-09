@@ -21,9 +21,61 @@ function App() {
   // Init Socket.io
   useEffect(() => {
     const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
-    const newSocket = io(SOCKET_URL);
-    setSocket(newSocket);
-    return () => newSocket.close();
+    let newSocket = null;
+    let connectionWarningShown = false;
+    let isConnected = false;
+    let isCleaningUp = false;
+
+    try {
+      newSocket = io(SOCKET_URL, {
+        transports: ["websocket"],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 3,
+        timeout: 5000,
+        autoConnect: false  // Manual connection control
+      });
+
+      newSocket.on("connect", () => {
+        console.log("✅ WebSocket connected to backend");
+        connectionWarningShown = false;
+        isConnected = true;
+      });
+
+      newSocket.on("connect_error", (error) => {
+        if (!connectionWarningShown && !isCleaningUp) {
+          console.warn("⚠️ Backend server not available. Real-time features disabled. Start backend at:", SOCKET_URL);
+          connectionWarningShown = true;
+        }
+      });
+
+      newSocket.on("disconnect", () => {
+        if (isConnected && !isCleaningUp) {
+          console.log("WebSocket disconnected");
+        }
+        isConnected = false;
+      });
+
+      // Start connection attempt
+      newSocket.connect();
+      setSocket(newSocket);
+    } catch (err) {
+      console.warn("Failed to initialize WebSocket");
+    }
+
+    return () => {
+      isCleaningUp = true;
+      if (newSocket) {
+        try {
+          newSocket.removeAllListeners();
+          if (isConnected) {
+            newSocket.disconnect();
+          }
+        } catch (err) {
+          // Ignore cleanup errors
+        }
+      }
+    };
   }, []);
 
   // Join deliverer room
@@ -73,7 +125,12 @@ function App() {
 
   return (
     <AppContext.Provider value={{ address, setAddress, socket, currentLocation, setCurrentLocation, activeDelivery, setActiveDelivery, connectWallet }}>
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true
+        }}
+      >
         <div className="app">
           <header className="header">
             <h1>🚀 DONE Livreur</h1>

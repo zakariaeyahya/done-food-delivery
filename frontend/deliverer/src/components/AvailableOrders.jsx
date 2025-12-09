@@ -2,7 +2,7 @@
  * Composant AvailableOrders - Liste des commandes disponibles
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "../services/api";
 import geolocation from "../services/geolocation";
 import blockchain from "../services/blockchain";
@@ -13,12 +13,10 @@ function AvailableOrders({ limit = null }) {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [accepting, setAccepting] = useState(null); // orderId en cours
+  const socketRef = useRef(null);
 
   const SOCKET_URL =
     import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
-
-  // Initialiser socket
-  const socket = io(SOCKET_URL, { transports: ["websocket"] });
 
   /** Au montage : charger GPS + commandes + socket listeners */
   useEffect(() => {
@@ -27,20 +25,62 @@ function AvailableOrders({ limit = null }) {
 
     const interval = setInterval(fetchAvailableOrders, 10000);
 
-    socket.on("orderReady", (order) => {
-      setOrders((prev) => [order, ...prev]);
-      playNotificationSound();
-    });
+    // Initialiser socket uniquement si pas déjà connecté
+    let orderSocketWarning = false;
+    let isOrderSocketCleaningUp = false;
 
-    socket.on("orderAccepted", ({ orderId }) => {
-      setOrders((prev) => prev.filter((o) => o.orderId !== orderId));
-    });
+    if (!socketRef.current) {
+      try {
+        socketRef.current = io(SOCKET_URL, {
+          transports: ["websocket"],
+          reconnection: true,
+          reconnectionDelay: 1000,
+          reconnectionAttempts: 3,
+          timeout: 5000,
+          autoConnect: false  // Manual connection control
+        });
+
+        socketRef.current.on("connect", () => {
+          console.log("✅ Order notifications enabled");
+        });
+
+        socketRef.current.on("orderReady", (order) => {
+          setOrders((prev) => [order, ...prev]);
+          playNotificationSound();
+        });
+
+        socketRef.current.on("orderAccepted", ({ orderId }) => {
+          setOrders((prev) => prev.filter((o) => o.orderId !== orderId));
+        });
+
+        socketRef.current.on("connect_error", (error) => {
+          if (!orderSocketWarning && !isOrderSocketCleaningUp) {
+            console.warn("⚠️ Real-time order notifications unavailable. Orders will refresh every 10s.");
+            orderSocketWarning = true;
+          }
+        });
+
+        // Start connection
+        socketRef.current.connect();
+      } catch (err) {
+        console.warn("Failed to initialize order socket");
+      }
+    }
 
     return () => {
+      isOrderSocketCleaningUp = true;
       clearInterval(interval);
-      socket.off("orderReady");
-      socket.off("orderAccepted");
-      socket.disconnect();
+      if (socketRef.current) {
+        try {
+          socketRef.current.removeAllListeners();
+          if (socketRef.current.connected) {
+            socketRef.current.disconnect();
+          }
+        } catch (err) {
+          // Silently ignore cleanup errors
+        }
+        socketRef.current = null;
+      }
     };
   }, []);
 
