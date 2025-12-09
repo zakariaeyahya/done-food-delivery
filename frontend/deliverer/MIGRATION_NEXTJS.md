@@ -81,11 +81,11 @@ src/
 - [x] Refonte ActiveDelivery (ActiveDeliveryCard)
 - [x] Page /deliveries
 
-### Phase 4: Features secondaires
-- [ ] Page /earnings
-- [ ] Page /profile
-- [ ] RatingDisplay
-- [ ] ConnectWallet modal
+### ✅ Phase 4: Features secondaires - TERMINÉE
+- [x] Page /earnings (avec EarningsChart)
+- [x] Page /profile (avec StakingPanel et RatingDisplay)
+- [x] RatingDisplay refactorisé (avec RatingChart)
+- [x] ConnectWallet modal moderne
 
 ### Phase 5: Polish
 - [ ] Toasts (Sonner)

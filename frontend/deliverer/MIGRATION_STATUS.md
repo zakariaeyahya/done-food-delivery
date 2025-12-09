@@ -69,14 +69,32 @@
 4. **Composants Maps**
    - ✅ `src/components/maps/NavigationMap.tsx` - Carte Google Maps adaptée Next.js
 
+## ✅ Phase 4: Features secondaires - TERMINÉE
+
+### Fichiers créés :
+
+1. **Page Earnings**
+   - ✅ `src/app/earnings/page.tsx` - Page avec tabs période, graphique, historique transactions
+   - ✅ `src/components/charts/EarningsChart.tsx` - Graphique Chart.js stylisé
+
+2. **Page Profile**
+   - ✅ `src/app/profile/page.tsx` - Page avec formulaire profil, StakingPanel, RatingDisplay
+   - ✅ `src/components/staking/StakingPanel.tsx` - Panel staking refactorisé avec animations
+   - ✅ `src/components/rating/RatingDisplay.tsx` - Display rating avec achievements animés
+   - ✅ `src/components/rating/StarRating.tsx` - Composant étoiles réutilisable
+   - ✅ `src/components/charts/RatingChart.tsx` - Graphique évolution rating
+
+3. **Composants Wallet**
+   - ✅ `src/components/wallet/ConnectWalletModal.tsx` - Modal moderne avec vérifications rôle/staking
+
 ## 📋 Prochaines étapes
 
-### Phase 4: Features secondaires
+### Phase 5: Polish
 
-1. **Earnings** (`src/app/earnings/page.tsx`)
-2. **Profile** (`src/app/profile/page.tsx`)
-3. **RatingDisplay** (refactorisé)
-4. **ConnectWallet** modal moderne
+1. **Toasts** (Sonner)
+2. **Micro-interactions** supplémentaires
+3. **PWA manifest**
+4. **Performance audit**
 
 ## ⚠️ Important
 
