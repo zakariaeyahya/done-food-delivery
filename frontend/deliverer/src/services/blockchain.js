@@ -100,6 +100,10 @@ export async function hasRole(role, address) {
 /* -------------------------------------------------------------------------- */
 export async function isStaked(address) {
   try {
+    if (!STAKING_ADDRESS || STAKING_ADDRESS === '') {
+      throw new Error("Staking contract not configured. Please set VITE_STAKING_ADDRESS in your .env file.");
+    }
+
     if (!stakingContract) {
       stakingContract = new ethers.Contract(
         STAKING_ADDRESS,
@@ -166,6 +170,10 @@ export async function getStakeInfo(address) {
 /* -------------------------------------------------------------------------- */
 export async function stake(amount) {
   try {
+    if (!STAKING_ADDRESS || STAKING_ADDRESS === '') {
+      throw new Error("Staking contract not configured. Please set VITE_STAKING_ADDRESS in your .env file.");
+    }
+
     const signer = await getSigner();
 
     if (!stakingContract) {
@@ -197,6 +205,10 @@ export async function stake(amount) {
 /* -------------------------------------------------------------------------- */
 export async function unstake() {
   try {
+    if (!STAKING_ADDRESS || STAKING_ADDRESS === '') {
+      throw new Error("Staking contract not configured. Please set VITE_STAKING_ADDRESS in your .env file.");
+    }
+
     const signer = await getSigner();
     const address = await signer.getAddress();
 
@@ -301,8 +313,21 @@ export async function confirmDeliveryOnChain(orderId) {
 /* -------------------------------------------------------------------------- */
 /* 10. Slashing events                                                        */
 /* -------------------------------------------------------------------------- */
+
+// Track if slashing warning has been shown
+let slashingWarningShown = false;
+
 export async function getSlashingEvents(address) {
   try {
+    // Vérifier si l'adresse du contrat est définie
+    if (!STAKING_ADDRESS || STAKING_ADDRESS === '') {
+      if (!slashingWarningShown) {
+        console.info("ℹ️ Staking contract not configured - returning empty slashing events");
+        slashingWarningShown = true;
+      }
+      return [];
+    }
+
     const provider = getProvider();
 
     if (!stakingContract) {
@@ -329,16 +354,38 @@ export async function getSlashingEvents(address) {
       })
     );
   } catch (err) {
-    console.error("Slashing error:", err);
-    throw new Error(err.message);
+    // BAD_DATA = contract doesn't exist or doesn't have the functions
+    if (!slashingWarningShown) {
+      if (err.code === 'BAD_DATA' || err.message?.includes('could not decode')) {
+        console.info("ℹ️ Staking contract not deployed - returning empty slashing events");
+      } else {
+        console.info("ℹ️ Staking unavailable for slashing events:", err.message);
+      }
+      slashingWarningShown = true;
+    }
+    // Return empty array instead of throwing
+    return [];
   }
 }
 
 /* -------------------------------------------------------------------------- */
 /* 11. Earnings events                                                        */
 /* -------------------------------------------------------------------------- */
+
+// Track if payment splitter warning has been shown
+let paymentSplitterWarningShown = false;
+
 export async function getEarningsEvents(address, orderId = null) {
   try {
+    // Vérifier si l'adresse du contrat est définie
+    if (!PAYMENT_SPLITTER_ADDRESS || PAYMENT_SPLITTER_ADDRESS === '') {
+      if (!paymentSplitterWarningShown) {
+        console.info("ℹ️ PaymentSplitter contract not configured - returning empty earnings");
+        paymentSplitterWarningShown = true;
+      }
+      return { events: [], totalEarnings: 0 };
+    }
+
     const provider = getProvider();
 
     if (!paymentSplitterContract) {
@@ -361,13 +408,19 @@ export async function getEarningsEvents(address, orderId = null) {
       ? events.filter((e) => Number(e.args.orderId) === orderId)
       : events;
 
-    const parsed = filtered.map((e) => ({
-      orderId: Number(e.args.orderId),
-      delivererAmount: Number(ethers.formatEther(e.args.delivererAmount)),
-      restaurantAmount: Number(ethers.formatEther(e.args.restaurantAmount)),
-      platformAmount: Number(ethers.formatEther(e.args.platformAmount)),
-      txHash: e.transactionHash,
-    }));
+    const parsed = await Promise.all(
+      filtered.map(async (e) => {
+        const block = await provider.getBlock(e.blockNumber);
+        return {
+          orderId: Number(e.args.orderId),
+          delivererAmount: Number(ethers.formatEther(e.args.delivererAmount)),
+          restaurantAmount: Number(ethers.formatEther(e.args.restaurantAmount)),
+          platformAmount: Number(ethers.formatEther(e.args.platformAmount)),
+          txHash: e.transactionHash,
+          timestamp: block.timestamp,
+        };
+      })
+    );
 
     const totalEarnings = parsed.reduce(
       (sum, e) => sum + e.delivererAmount,
@@ -376,8 +429,17 @@ export async function getEarningsEvents(address, orderId = null) {
 
     return { events: parsed, totalEarnings };
   } catch (err) {
-    console.error("Earnings events error:", err);
-    throw new Error(err.message);
+    // BAD_DATA = contract doesn't exist or doesn't have the functions
+    if (!paymentSplitterWarningShown) {
+      if (err.code === 'BAD_DATA' || err.message?.includes('could not decode')) {
+        console.info("ℹ️ PaymentSplitter contract not deployed - returning empty earnings");
+      } else {
+        console.info("ℹ️ PaymentSplitter unavailable:", err.message);
+      }
+      paymentSplitterWarningShown = true;
+    }
+    // Return default values instead of throwing
+    return { events: [], totalEarnings: 0 };
   }
 }
 
