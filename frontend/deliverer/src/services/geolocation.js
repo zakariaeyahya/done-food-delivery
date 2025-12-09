@@ -13,6 +13,7 @@ export async function getCurrentPosition() {
       return;
     }
 
+    // Essayer d'abord avec haute précision
     navigator.geolocation.getCurrentPosition(
       (position) => {
         resolve({
@@ -22,14 +23,45 @@ export async function getCurrentPosition() {
         });
       },
       (error) => {
-        if (error.code === 1) {
+        // Si la haute précision échoue, essayer avec une précision moindre
+        if (error.code === 2) {
+          // Position indisponible - réessayer avec moins de précision
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              resolve({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+              });
+            },
+            (retryError) => {
+              // Si ça échoue encore, retourner l'erreur originale
+              if (retryError.code === 1) {
+                reject(
+                  new Error(
+                    "Permission de géolocalisation refusée. Activez la localisation."
+                  )
+                );
+              } else if (retryError.code === 2) {
+                reject(new Error("Position indisponible. Vérifiez votre GPS."));
+              } else if (retryError.code === 3) {
+                reject(new Error("Timeout de géolocalisation. Réessayez."));
+              } else {
+                reject(new Error(`Geolocation error: ${retryError.message}`));
+              }
+            },
+            {
+              enableHighAccuracy: false,
+              timeout: 15000,
+              maximumAge: 60000, // Accepter une position jusqu'à 1 minute
+            }
+          );
+        } else if (error.code === 1) {
           reject(
             new Error(
               "Permission de géolocalisation refusée. Activez la localisation."
             )
           );
-        } else if (error.code === 2) {
-          reject(new Error("Position indisponible. Vérifiez votre GPS."));
         } else if (error.code === 3) {
           reject(new Error("Timeout de géolocalisation. Réessayez."));
         } else {

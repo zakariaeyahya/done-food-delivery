@@ -90,7 +90,12 @@ function App() {
     geolocation
       .getCurrentPosition()
       .then(setCurrentLocation)
-      .catch(console.error);
+      .catch((error) => {
+        // Gérer l'erreur de géolocalisation de manière gracieuse
+        console.warn("⚠️ Géolocalisation indisponible:", error.message);
+        // L'application continue de fonctionner sans position GPS
+        // L'utilisateur pourra activer la géolocalisation plus tard si nécessaire
+      });
   }, []);
 
   // Auto-connect wallet
