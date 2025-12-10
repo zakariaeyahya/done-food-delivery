@@ -1,259 +1,89 @@
-/**
- * Composant Cart
- * @notice Affiche le panier d'achat avec calcul des totaux
- * @dev Liste items, modification quantités, calcul foodPrice + deliveryFee + platformFee
- */
+import React, { useMemo } from 'react';
+import { formatPriceInEUR, formatPriceInMATIC } from '../utils/formatters';
 
-// TODO: Importer React et hooks nécessaires
-// import { useState, useEffect, useMemo } from 'react';
-// import { useNavigate } from 'react-router-dom';
-
-// TODO: Importer les utilitaires
-// import { formatPrice } from '../utils/formatters';
-// import { getImage } from '../services/ipfs';
+const DELIVERY_FEE_EUR = 5.00;
+const PLATFORM_COMMISSION_RATE = 0.10; // 10%
 
 /**
- * Composant Cart
- * @param {Object} props - Props du composant
- * @param {Array} props.cart - Array d'items dans le panier (depuis Context ou props)
- * @param {Function} props.onUpdateCart - Callback pour mettre à jour le panier
- * @param {Function} props.onRemoveItem - Callback pour supprimer un item
- * @param {Function} props.onClearCart - Callback pour vider le panier
- * @returns {JSX.Element} Panier d'achat
+ * A component to display the user's shopping cart.
+ * @param {object} props - The props object.
+ * @param {Array<object>} props.cartItems - The items in the cart. e.g., [{ id, name, priceEUR, priceMATIC, quantity }]
+ * @param {Function} props.onUpdateQuantity - Function to update an item's quantity.
+ * @param {Function} props.onRemoveItem - Function to remove an item from the cart.
+ * @param {Function} props.onCheckout - Function to proceed to checkout.
  */
-// TODO: Créer le composant Cart
-// function Cart({ cart = [], onUpdateCart, onRemoveItem, onClearCart }) {
-//   // Hook pour navigation
-//   const navigate = useNavigate();
-//   
-//   // State pour le frais de livraison (fixe par défaut)
-//   const [deliveryFee, setDeliveryFee] = useState(3); // 3 MATIC
-//   
-//   // State pour confirmation de suppression
-//   const [itemToRemove, setItemToRemove] = useState(null);
-//   
-//   // TODO: Calculer foodPrice (somme de tous les items)
-//   // const foodPrice = useMemo(() => {
-//   //   RETOURNER cart.reduce((total, item) => {
-//   //     const itemPrice = parseFloat(item.price) || 0;
-//   //     const itemQuantity = item.quantity || 1;
-//   //     RETOURNER total + (itemPrice * itemQuantity);
-//   //   }, 0);
-//   // }, [cart]);
-//   
-//   // TODO: Calculer platformFee (10% de foodPrice)
-//   // const platformFee = useMemo(() => {
-//   //   RETOURNER foodPrice * 0.1;
-//   // }, [foodPrice]);
-//   
-//   // TODO: Calculer totalAmount
-//   // const totalAmount = useMemo(() => {
-//   //   RETOURNER foodPrice + deliveryFee + platformFee;
-//   // }, [foodPrice, deliveryFee, platformFee]);
-//   
-//   // TODO: Fonction pour augmenter la quantité d'un item
-//   // function handleIncreaseQuantity(itemId) {
-//   //   SI onUpdateCart:
-//   //     const updatedCart = cart.map(item => {
-//   //       SI item.id === itemId:
-//   //         RETOURNER { ...item, quantity: Math.min(10, (item.quantity || 1) + 1) };
-//   //       RETOURNER item;
-//   //     });
-//   //     onUpdateCart(updatedCart);
-//   //   }
-//   // }
-//   
-//   // TODO: Fonction pour diminuer la quantité d'un item
-//   // function handleDecreaseQuantity(itemId) {
-//   //   SI onUpdateCart:
-//   //     const updatedCart = cart.map(item => {
-//   //       SI item.id === itemId:
-//   //         const newQuantity = Math.max(1, (item.quantity || 1) - 1);
-//   //         RETOURNER { ...item, quantity: newQuantity };
-//   //       RETOURNER item;
-//   //     });
-//   //     onUpdateCart(updatedCart);
-//   //   }
-//   // }
-//   
-//   // TODO: Fonction pour modifier directement la quantité
-//   // function handleQuantityChange(itemId, newQuantity) {
-//   //   const quantity = parseInt(newQuantity) || 1;
-//   //   SI quantity < 1:
-//   //     RETOURNER;
-//   //   SI quantity > 10:
-//   //     RETOURNER;
-//   //   
-//   //   SI onUpdateCart:
-//   //     const updatedCart = cart.map(item => {
-//   //       SI item.id === itemId:
-//   //         RETOURNER { ...item, quantity: quantity };
-//   //       RETOURNER item;
-//   //     });
-//   //     onUpdateCart(updatedCart);
-//   //   }
-//   // }
-//   
-//   // TODO: Fonction pour demander confirmation avant suppression
-//   // function handleRemoveClick(itemId) {
-//   //   setItemToRemove(itemId);
-//   // }
-//   
-//   // TODO: Fonction pour confirmer la suppression
-//   // function handleConfirmRemove() {
-//   //   SI itemToRemove && onRemoveItem:
-//   //     onRemoveItem(itemToRemove);
-//   //     setItemToRemove(null);
-//   //   }
-//   // }
-//   
-//   // TODO: Fonction pour annuler la suppression
-//   // function handleCancelRemove() {
-//   //   setItemToRemove(null);
-//   // }
-//   
-//   // TODO: Fonction pour naviguer vers checkout
-//   // function handleCheckout() {
-//   //   SI cart.length === 0:
-//   //     // Afficher message panier vide
-//   //     RETOURNER;
-//   //   
-//   //   navigate('/checkout');
-//   // }
-//   
-//   // TODO: Rendu du composant
-//   // RETOURNER (
-//   //   <div className="cart">
-//   //     <div className="cart-header">
-//   //       <h2>Panier ({cart.length} {cart.length > 1 ? 'articles' : 'article'})</h2>
-//   //       SI cart.length > 0:
-//   //         <button onClick={onClearCart} className="btn btn-ghost">
-//   //           Vider le panier
-//   //         </button>
-//   //     </div>
-//   //     
-//   //     SI cart.length === 0:
-//   //       <div className="empty-cart">
-//   //         <p>Votre panier est vide</p>
-//   //         <button onClick={() => navigate('/')} className="btn btn-primary">
-//   //           Voir les restaurants
-//   //         </button>
-//   //       </div>
-//   //     
-//   //     SINON:
-//   //       <>
-//   //         {/* Liste des items */}
-//   //         <div className="cart-items">
-//   //           {cart.map(item => (
-//   //             <div key={item.id} className="cart-item">
-//   //               {/* Image */}
-//   //               <div className="item-image">
-//   //                 SI item.image:
-//   //                   <img src={getImage(item.image)} alt={item.name} />
-//   //                 SINON:
-//   //                   <div className="placeholder-image">Pas d'image</div>
-//   //               </div>
-//   //               
-//   //               {/* Détails */}
-//   //               <div className="item-details">
-//   //                 <h4 className="item-name">{item.name}</h4>
-//   //                 <p className="item-price-unit">{formatPrice(item.price, 'MATIC')} / unité</p>
-//   //                 
-//   //                 {/* Contrôles quantité */}
-//   //                 <div className="quantity-controls">
-//   //                   <button 
-//   //                     onClick={() => handleDecreaseQuantity(item.id)}
-//   //                     disabled={item.quantity <= 1}
-//   //                     className="btn-quantity"
-//   //                   >
-//   //                     -
-//   //                   </button>
-//   //                   <input
-//   //                     type="number"
-//   //                     min="1"
-//   //                     max="10"
-//   //                     value={item.quantity}
-//   //                     onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-//   //                     className="quantity-input"
-//   //                   />
-//   //                   <button 
-//   //                     onClick={() => handleIncreaseQuantity(item.id)}
-//   //                     disabled={item.quantity >= 10}
-//   //                     className="btn-quantity"
-//   //                   >
-//   //                     +
-//   //                   </button>
-//   //                 </div>
-//   //               </div>
-//   //               
-//   //               {/* Prix total de l'item */}
-//   //               <div className="item-total">
-//   //                 <span className="total-price">
-//   //                   {formatPrice((parseFloat(item.price) || 0) * (item.quantity || 1), 'MATIC')}
-//   //                 </span>
-//   //               </div>
-//   //               
-//   //               {/* Bouton supprimer */}
-//   //               <button 
-//   //                 onClick={() => handleRemoveClick(item.id)}
-//   //                 className="btn-remove"
-//   //                 title="Supprimer"
-//   //               >
-//   //                 ✕
-//   //               </button>
-//   //             </div>
-//   //           ))}
-//   //         </div>
-//   //         
-//   //         {/* Totaux */}
-//   //         <div className="cart-totals">
-//   //           <div className="total-line">
-//   //             <span>Nourriture:</span>
-//   //             <span>{formatPrice(foodPrice, 'MATIC')}</span>
-//   //           </div>
-//   //           <div className="total-line">
-//   //             <span>Livraison:</span>
-//   //             <span>{formatPrice(deliveryFee, 'MATIC')}</span>
-//   //           </div>
-//   //           <div className="total-line">
-//   //             <span>Frais plateforme (10%):</span>
-//   //             <span>{formatPrice(platformFee, 'MATIC')}</span>
-//   //           </div>
-//   //           <div className="total-line total-amount">
-//   //             <span>Total:</span>
-//   //             <span>{formatPrice(totalAmount, 'MATIC')}</span>
-//   //           </div>
-//   //         </div>
-//   //         
-//   //         {/* Bouton passer commande */}
-//   //         <button 
-//   //           onClick={handleCheckout}
-//   //           className="btn btn-primary btn-lg checkout-button"
-//   //         >
-//   //           Passer commande
-//   //         </button>
-//   //       </>
-//   //     
-//   //     {/* Modal de confirmation de suppression */}
-//   //     SI itemToRemove:
-//   //       <div className="modal-overlay" onClick={handleCancelRemove}>
-//   //         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-//   //           <h3>Supprimer l'article ?</h3>
-//   //           <p>Êtes-vous sûr de vouloir supprimer cet article du panier ?</p>
-//   //           <div className="modal-actions">
-//   //             <button onClick={handleCancelRemove} className="btn btn-secondary">
-//   //               Annuler
-//   //             </button>
-//   //             <button onClick={handleConfirmRemove} className="btn btn-danger">
-//   //               Supprimer
-//   //             </button>
-//   //           </div>
-//   //         </div>
-//   //       </div>
-//   //   </div>
-//   // );
-// }
+const Cart = ({ cartItems = [], onUpdateQuantity, onRemoveItem, onCheckout }) => {
 
-// TODO: Exporter le composant
-// export default Cart;
+  const foodTotal = useMemo(() => {
+    return cartItems.reduce((total, item) => total + item.priceEUR * item.quantity, 0);
+  }, [cartItems]);
 
+  const platformCommission = useMemo(() => {
+    return foodTotal * PLATFORM_COMMISSION_RATE;
+  }, [foodTotal]);
+
+  const finalTotal = useMemo(() => {
+    return foodTotal + DELIVERY_FEE_EUR + platformCommission;
+  }, [foodTotal, platformCommission]);
+
+  return (
+    <div className="p-6 bg-white border border-gray-200 rounded-lg shadow-lg">
+      <h2 className="mb-4 text-2xl font-bold border-b pb-2">Your Cart</h2>
+      {cartItems.length === 0 ? (
+        <p>Your cart is empty.</p>
+      ) : (
+        <>
+          <div className="space-y-4">
+            {cartItems.map(item => (
+              <div key={item.id} className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold">{item.name}</p>
+                  <p className="text-sm text-gray-500">{formatPriceInEUR(item.priceEUR)}</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} className="px-2 py-0.5 border rounded">-</button>
+                  <span>{item.quantity}</span>
+                  <button onClick={() => onUpdateQuantity(item.id, item.quantity + 1)} className="px-2 py-0.5 border rounded">+</button>
+                  <button onClick={() => onRemoveItem(item.id)} className="text-red-500 hover:text-red-700">Remove</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-4 mt-6 border-t">
+            <div className="flex justify-between text-sm">
+              <p>Food Total:</p>
+              <p>{formatPriceInEUR(foodTotal)}</p>
+            </div>
+            <div className="flex justify-between text-sm">
+              <p>Delivery Fee:</p>
+              <p>{formatPriceInEUR(DELIVERY_FEE_EUR)}</p>
+            </div>
+            <div className="flex justify-between text-sm">
+              <p>Platform Commission (10%):</p>
+              <p>{formatPriceInEUR(platformCommission)}</p>
+            </div>
+            <div className="flex justify-between mt-2 text-lg font-bold">
+              <p>Final Total:</p>
+              <p>{formatPriceInEUR(finalTotal)}</p>
+            </div>
+             <div className="flex justify-between text-sm font-semibold text-gray-500">
+                <p>Total in MATIC (approx.):</p>
+                {/* This would require a real-time price feed in a real app */}
+                <p>{formatPriceInMATIC(finalTotal * 1e18 / 0.85)}</p> {/* Placeholder conversion */}
+            </div>
+          </div>
+          
+          <button 
+            onClick={onCheckout}
+            className="w-full px-4 py-2 mt-6 font-bold text-white bg-green-500 rounded-lg hover:bg-green-600"
+          >
+            Proceed to Checkout
+          </button>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default Cart;

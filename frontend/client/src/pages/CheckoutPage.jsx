@@ -1,89 +1,80 @@
-/**
- * Page CheckoutPage
- * @notice Page de checkout complète
- * @dev Intègre le composant Checkout et gère le flux de paiement
- */
+import React, { useState, useMemo } from 'react';
+import Cart from '../components/Cart';
+import Checkout from '../components/Checkout';
 
-// TODO: Importer React et hooks nécessaires
-// import { useContext } from 'react';
-// import { useNavigate } from 'react-router-dom';
+// Placeholder data - in a real app, this would come from a global state (like Context or Redux)
+const INITIAL_CART_ITEMS = [
+  { id: 'menu1', name: 'Margherita Pizza', priceEUR: 12.50, priceMATIC: 14.7, quantity: 2 },
+  { id: 'menu2', name: 'Spaghetti Carbonara', priceEUR: 15.00, priceMATIC: 17.6, quantity: 1 },
+  { id: 'menu3', name: 'Tiramisu', priceEUR: 7.50, priceMATIC: 8.8, quantity: 1 },
+];
 
-// TODO: Importer les composants
-// import Checkout from '../components/Checkout';
+const DELIVERY_FEE_EUR = 5.00;
+const PLATFORM_COMMISSION_RATE = 0.10;
 
-// TODO: Importer les Contexts (si disponibles)
-// import { CartContext } from '../contexts/CartContext';
-// import { WalletContext } from '../contexts/WalletContext';
+const CheckoutPage = () => {
+  const [cartItems, setCartItems] = useState(INITIAL_CART_ITEMS);
 
-/**
- * Page CheckoutPage
- * @returns {JSX.Element} Page de checkout
- */
-// TODO: Créer le composant CheckoutPage
-// function CheckoutPage() {
-//   const navigate = useNavigate();
-//   
-//   // TODO: Récupérer le panier depuis Context
-//   // const { cart, clearCart } = useContext(CartContext);
-//   // const { address: clientAddress } = useContext(WalletContext);
-//   
-//   // TODO: State local si pas de Context
-//   // const [cart, setCart] = useState([]);
-//   // const [clientAddress, setClientAddress] = useState(null);
-//   
-//   // TODO: Récupérer restaurantId depuis le panier (tous les items doivent être du même restaurant)
-//   // const restaurantId = cart.length > 0 ? cart[0].restaurantId : null;
-//   
-//   // TODO: Fonction pour vider le panier après commande réussie
-//   // function handleClearCart() {
-//   //   SI clearCart:
-//   //     clearCart();
-//   // }
-//   
-//   // TODO: Vérifier que le panier n'est pas vide
-//   // SI !cart || cart.length === 0:
-//   //   RETOURNER (
-//   //     <div className="checkout-page">
-//   //       <div className="empty-cart-message">
-//   //         <h2>Votre panier est vide</h2>
-//   //         <p>Ajoutez des articles avant de passer commande</p>
-//   //         <button onClick={() => navigate('/')} className="btn btn-primary">
-//   //           Voir les restaurants
-//   //         </button>
-//   //       </div>
-//   //     </div>
-//   //   );
-//   
-//   // TODO: Vérifier que le wallet est connecté
-//   // SI !clientAddress:
-//   //   RETOURNER (
-//   //     <div className="checkout-page">
-//   //       <div className="wallet-required-message">
-//   //         <h2>Wallet non connecté</h2>
-//   //         <p>Veuillez connecter votre wallet pour passer commande</p>
-//   //         <button onClick={() => navigate('/')} className="btn btn-primary">
-//   //           Retour à l'accueil
-//   //         </button>
-//   //       </div>
-//   //     </div>
-//   //   );
-//   
-//   // TODO: Rendu du composant
-//   // RETOURNER (
-//   //   <div className="checkout-page">
-//   //     <div className="container-custom">
-//   //       {/* Intègre le composant Checkout */}
-//   //       <Checkout
-//   //         cart={cart}
-//   //         restaurantId={restaurantId}
-//   //         clientAddress={clientAddress}
-//   //         onClearCart={handleClearCart}
-//   //       />
-//   //     </div>
-//   //   </div>
-//   // );
-// }
+  const handleUpdateQuantity = (itemId, newQuantity) => {
+    if (newQuantity <= 0) {
+      // If quantity drops to 0 or less, remove the item
+      handleRemoveItem(itemId);
+    } else {
+      setCartItems(prevItems =>
+        prevItems.map(item =>
+          item.id === itemId ? { ...item, quantity: newQuantity } : item
+        )
+      );
+    }
+  };
 
-// TODO: Exporter le composant
-// export default CheckoutPage;
+  const handleRemoveItem = (itemId) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));
+  };
+  
+  const handleCheckout = () => {
+    alert('Proceeding to payment!');
+    // This function would typically navigate the user or trigger the next step in the flow
+  };
 
+  // Calculations to pass to both Cart and Checkout
+  const foodTotal = useMemo(() => cartItems.reduce((total, item) => total + item.priceEUR * item.quantity, 0), [cartItems]);
+  const platformCommission = useMemo(() => foodTotal * PLATFORM_COMMISSION_RATE, [foodTotal]);
+  const finalTotalEUR = useMemo(() => foodTotal + DELIVERY_FEE_EUR + platformCommission, [foodTotal, platformCommission]);
+  
+  // This is a placeholder. In a real app, you would get this from an oracle or API.
+  const EUR_TO_MATIC_RATE = 1.18; 
+  const finalTotalMATIC = useMemo(() => finalTotalEUR / EUR_TO_MATIC_RATE, [finalTotalEUR]);
+
+
+  return (
+    <div className="container mx-auto p-4 sm:p-8">
+      <h1 className="text-3xl font-bold text-center mb-8">Review Your Order</h1>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left Column: Cart Details */}
+        <div>
+          <Cart
+            cartItems={cartItems}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemoveItem={handleRemoveItem}
+            onCheckout={handleCheckout}
+          />
+        </div>
+
+        {/* Right Column: Checkout and Payment */}
+        <div>
+          <Checkout
+            cartItems={cartItems}
+            foodTotal={foodTotal}
+            deliveryFee={DELIVERY_FEE_EUR}
+            commission={platformCommission}
+            finalTotal={finalTotalEUR}
+            finalTotalMATIC={finalTotalMATIC}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CheckoutPage;

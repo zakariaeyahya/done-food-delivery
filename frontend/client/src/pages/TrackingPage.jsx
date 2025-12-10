@@ -1,44 +1,45 @@
-/**
- * Page TrackingPage
- * @notice Page dédiée au suivi de commande en temps réel
- * @dev Vue full-screen avec map, intègre OrderTracking component
- */
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import OrderTracking from '../components/OrderTracking';
+import { getOrderById } from '../services/api';
+import { SocketProvider } from '../contexts/SocketContext'; // Import SocketProvider
 
-// TODO: Importer React et hooks nécessaires
-// import { useParams } from 'react-router-dom';
+const TrackingPage = () => {
+  const { orderId } = useParams();
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-// TODO: Importer les composants
-// import OrderTracking from '../components/OrderTracking';
+  useEffect(() => {
+    const fetchOrderDetails = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const response = await getOrderById(orderId);
+        // Assuming the backend returns the full order object including restaurant, client, and driver info
+        setOrder(response.data);
+      } catch (err) {
+        console.error(`Failed to fetch order ${orderId} details:`, err);
+        setError('Failed to load order tracking details.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-/**
- * Page TrackingPage
- * @returns {JSX.Element} Page de suivi de commande
- */
-// TODO: Créer le composant TrackingPage
-// function TrackingPage() {
-//   // Récupérer orderId depuis l'URL
-//   const { orderId } = useParams();
-//   
-//   // TODO: Valider que orderId existe
-//   // SI !orderId:
-//   //   RETOURNER (
-//   //     <div className="tracking-page">
-//   //       <div className="error-message">
-//   //         <h2>Order ID manquant</h2>
-//   //         <p>Impossible de suivre la commande sans Order ID</p>
-//   //       </div>
-//   //     </div>
-//   //   );
-//   
-//   // TODO: Rendu du composant
-//   // RETOURNER (
-//   //   <div className="tracking-page full-screen">
-//   //     {/* Intègre le composant OrderTracking */}
-//   //     <OrderTracking orderId={orderId} />
-//   //   </div>
-//   // );
-// }
+    fetchOrderDetails();
+  }, [orderId]);
 
-// TODO: Exporter le composant
-// export default TrackingPage;
+  if (loading) return <div className="flex justify-center items-center h-screen">Loading order details...</div>;
+  if (error) return <div className="flex justify-center items-center h-screen text-red-500">{error}</div>;
+  if (!order) return <div className="flex justify-center items-center h-screen">Order not found.</div>;
 
+  return (
+    <div className="w-screen h-screen overflow-hidden bg-gray-50">
+      <SocketProvider> {/* Wrap OrderTracking with SocketProvider */}
+        <OrderTracking order={order} />
+      </SocketProvider>
+    </div>
+  );
+};
+
+export default TrackingPage;

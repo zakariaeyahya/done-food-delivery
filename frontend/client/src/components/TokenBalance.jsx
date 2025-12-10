@@ -1,219 +1,104 @@
+import React, { useState, useEffect } from 'react';
+import { getDoneTokenBalance } from '../services/blockchain';
+import { formatDateTime, formatPriceInEUR } from '../utils/formatters';
+
+// Placeholder: In a real app, this would come from an API
+const DONE_TO_EUR_RATE = 0.50; 
+
+// Placeholder for API call
+const getTokenTransactionHistory = async (address) => {
+  console.log(`Fetching token history for ${address}...`);
+  // This is where you would make an API call to your backend
+  // e.g., return apiClient.get(`/tokens/history/${address}`);
+  return [
+    { id: 1, type: 'earned', amount: 50, reason: 'First Order Bonus', date: '2023-10-26T10:00:00Z' },
+    { id: 2, type: 'spent', amount: -20, reason: 'Discount on Order #123', date: '2023-10-27T14:30:00Z' },
+    { id: 3, type: 'earned', amount: 15, reason: 'Restaurant Review', date: '2023-10-28T18:00:00Z' },
+  ];
+};
+
+
 /**
- * Composant TokenBalance
- * @notice Affichage et gestion des tokens DONE de fidélité
- * @dev Balance, historique transactions, utilisation pour discount, progress bar
+ * A component to display DONE token balance and transaction history.
+ * @param {object} props - The props object.
+ * @param {string} props.clientAddress - The blockchain address of the client.
  */
+const TokenBalance = ({ clientAddress }) => {
+  const [balance, setBalance] = useState('0');
+  const [balanceInEUR, setBalanceInEUR] = useState(0);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-// TODO: Importer React et hooks nécessaires
-// import { useState, useEffect, useMemo } from 'react';
+  useEffect(() => {
+    if (!clientAddress) return;
 
-// TODO: Importer les services
-// import * as blockchain from '../services/blockchain';
-// import { formatPrice, formatDate } from '../utils/formatters';
-// import { formatUnits } from '../utils/web3';
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError('');
 
-/**
- * Composant TokenBalance
- * @param {Object} props - Props du composant
- * @param {string} props.clientAddress - Adresse wallet du client
- * @param {Function} props.onApplyDiscount - Callback pour appliquer discount (optionnel)
- * @returns {JSX.Element} Affichage tokens DONE
- */
-// TODO: Créer le composant TokenBalance
-// function TokenBalance({ clientAddress, onApplyDiscount }) {
-//   // State pour le solde de tokens
-//   const [balance, setBalance] = useState('0');
-//   
-//   // State pour l'historique des transactions
-//   const [transactions, setTransactions] = useState([]);
-//   
-//   // State pour le nombre de tokens à utiliser
-//   const [tokensToUse, setTokensToUse] = useState(0);
-//   
-//   // State pour le chargement
-//   const [loading, setLoading] = useState(false);
-//   
-//   // State pour les stats de fidélité
-//   const [lifetimeTokens, setLifetimeTokens] = useState(0);
-//   const [progressToNextToken, setProgressToNextToken] = useState(0);
-//   
-//   // TODO: Fonction pour récupérer le solde
-//   // useEffect(() => {
-//   //   async function fetchBalance() {
-//   //     ESSAYER:
-//   //       setLoading(true);
-//   //       const tokenBalance = await blockchain.getTokenBalance(clientAddress);
-//   //       setBalance(tokenBalance);
-//   //     CATCH error:
-//   //       console.error('Error fetching token balance:', error);
-//   //     FINALLY:
-//   //       setLoading(false);
-//   //   }
-//   //   
-//   //   SI clientAddress:
-//   //     fetchBalance();
-//   //     
-//   //     // Refresh toutes les 30 secondes
-//   //     const interval = setInterval(fetchBalance, 30000);
-//   //     RETOURNER () => clearInterval(interval);
-//   // }, [clientAddress]);
-//   
-//   // TODO: Fonction pour récupérer l'historique des transactions
-//   // useEffect(() => {
-//   //   async function fetchTransactions() {
-//   //     ESSAYER:
-//   //       // TODO: Récupérer events Transfer depuis blockchain
-//   //       // const events = await blockchain.getTokenTransferEvents(clientAddress);
-//   //       // setTransactions(events);
-//   //       
-//   //       // Calculer lifetime tokens (somme de tous les tokens gagnés)
-//   //       const earned = events
-//   //         .filter(e => e.to.toLowerCase() === clientAddress.toLowerCase())
-//   //         .reduce((sum, e) => sum + parseFloat(formatUnits(e.value)), 0);
-//   //       setLifetimeTokens(earned);
-//   //       
-//   //     CATCH error:
-//   //       console.error('Error fetching transactions:', error);
-//   //   }
-//   //   
-//   //   SI clientAddress:
-//   //     fetchTransactions();
-//   // }, [clientAddress]);
-//   
-//   // TODO: Calculer conversion en EUR (1 DONE = 1€)
-//   // const balanceEUR = useMemo(() => {
-//   //   RETOURNER parseFloat(balance) * 1; // 1 DONE = 1€
-//   // }, [balance]);
-//   
-//   // TODO: Fonction pour appliquer discount
-//   // function handleApplyDiscount() {
-//   //   SI tokensToUse <= 0:
-//   //     alert('Veuillez saisir un nombre de tokens valide');
-//   //     RETOURNER;
-//   //   
-//   //   SI parseFloat(tokensToUse) > parseFloat(balance):
-//   //     alert('Solde insuffisant');
-//   //     RETOURNER;
-//   //   
-//   //   SI onApplyDiscount:
-//   //     onApplyDiscount(parseFloat(tokensToUse));
-//   //   }
-//   // }
-//   
-//   // TODO: Fonction pour obtenir le type de transaction
-//   // function getTransactionType(transaction) {
-//   //   SI transaction.to.toLowerCase() === clientAddress.toLowerCase():
-//   //     RETOURNER 'Earned';
-//   //   SINON:
-//   //     RETOURNER 'Used';
-//   // }
-//   
-//   // TODO: Rendu du composant
-//   // RETOURNER (
-//   //   <div className="token-balance">
-//   //     <h2>Tokens DONE</h2>
-//   //     
-//   //     SI loading:
-//   //       <div className="loading">Chargement...</div>
-//   //     
-//   //     SINON:
-//   //       <>
-//   //         {/* Affichage solde principal */}
-//   //         <div className="balance-display">
-//   //           <div className="balance-main">
-//   //             <span className="balance-value">{parseFloat(balance).toFixed(2)}</span>
-//   //             <span className="balance-label">DONE tokens</span>
-//   //           </div>
-//   //           <div className="balance-eur">
-//   //             Équivalent: {formatPrice(balanceEUR, 'EUR')}
-//   //           </div>
-//   //         </div>
-//   //         
-//   //         {/* Info taux de récompense */}
-//   //         <div className="reward-info">
-//   //           <p>💡 Gagnez 1 DONE token pour 10€ dépensés</p>
-//   //           <p>Total gagné: {lifetimeTokens.toFixed(2)} DONE</p>
-//   //           
-//   //           {/* Progress bar vers prochain token */}
-//   //           <div className="progress-bar">
-//   //             <div 
-//   //               className="progress-fill" 
-//   //               style={{ width: `${progressToNextToken}%` }}
-//   //             />
-//   //             <span>{progressToNextToken.toFixed(0)}% vers le prochain token</span>
-//   //           </div>
-//   //         </div>
-//   //         
-//   //         {/* Utiliser tokens pour discount */}
-//   //         SI onApplyDiscount:
-//   //           <div className="use-tokens">
-//   //             <h3>Utiliser des tokens</h3>
-//   //             <div className="token-input-group">
-//   //               <input
-//   //                 type="number"
-//   //                 min="0"
-//   //                 max={balance}
-//   //                 value={tokensToUse}
-//   //                 onChange={(e) => setTokensToUse(e.target.value)}
-//   //                 placeholder="Nombre de tokens"
-//   //               />
-//   //               <button onClick={handleApplyDiscount} className="btn btn-primary">
-//   //                 Appliquer discount
-//   //               </button>
-//   //             </div>
-//   //             <p className="info-text">
-//   //               Maximum: 50% du total de la commande
-//   //             </p>
-//   //           </div>
-//   //         
-//   //         {/* Historique des transactions */}
-//   //         <div className="transaction-history">
-//   //           <h3>Historique des transactions</h3>
-//   //           
-//   //           SI transactions.length === 0:
-//   //             <p>Aucune transaction</p>
-//   //           
-//   //           SINON:
-//   //             <table className="transactions-table">
-//   //               <thead>
-//   //                 <tr>
-//   //                   <th>Date</th>
-//   //                   <th>Type</th>
-//   //                   <th>Montant</th>
-//   //                   <th>Order ID</th>
-//   //                   <th>Transaction</th>
-//   //                 </tr>
-//   //               </thead>
-//   //               <tbody>
-//   //                 {transactions.map((tx, i) => (
-//   //                   <tr key={i}>
-//   //                     <td>{formatDate(tx.timestamp)}</td>
-//   //                     <td>
-//   //                       <span className={`tx-type ${getTransactionType(tx)}`}>
-//   //                         {getTransactionType(tx)}
-//   //                       </span>
-//   //                     </td>
-//   //                     <td>{formatUnits(tx.value)} DONE</td>
-//   //                     <td>{tx.orderId || '-'}</td>
-//   //                     <td>
-//   //                       <a 
-//   //                         href={`https://mumbai.polygonscan.com/tx/${tx.txHash}`}
-//   //                         target="_blank"
-//   //                         rel="noopener noreferrer"
-//   //                       >
-//   //                         Voir
-//   //                       </a>
-//   //                     </td>
-//   //                   </tr>
-//   //                 ))}
-//   //               </tbody>
-//   //             </table>
-//   //         </div>
-//   //       </>
-//   //   </div>
-//   // );
-// }
+        // Fetch balance and history in parallel
+        const [tokenBalance, txHistory] = await Promise.all([
+          getDoneTokenBalance(clientAddress),
+          getTokenTransactionHistory(clientAddress)
+        ]);
+        
+        const balanceNum = parseFloat(tokenBalance);
+        setBalance(tokenBalance);
+        setBalanceInEUR(balanceNum * DONE_TO_EUR_RATE);
+        setHistory(txHistory);
 
-// TODO: Exporter le composant
-// export default TokenBalance;
+      } catch (err) {
+        console.error('Failed to fetch token data:', err);
+        setError('Failed to load token balance and history.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchData();
+  }, [clientAddress]);
+
+  if (loading) return <p>Loading token balance...</p>;
+  if (error) return <p className="text-red-500">{error}</p>;
+
+  return (
+    <div className="p-6 bg-white border rounded-lg shadow-xl">
+      <h2 className="mb-4 text-2xl font-bold">Your DONE Tokens</h2>
+      
+      {/* Balance Display */}
+      <div className="p-4 mb-6 text-center bg-blue-50 rounded-lg">
+        <p className="text-lg text-gray-600">Total Balance</p>
+        <p className="text-4xl font-bold text-blue-600">{parseFloat(balance).toFixed(2)} DONE</p>
+        <p className="font-semibold text-gray-500">~ {formatPriceInEUR(balanceInEUR)}</p>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-center gap-4 mb-6">
+        <button className="px-4 py-2 font-semibold text-white bg-green-500 rounded-lg hover:bg-green-600">Apply Discount</button>
+        <button className="px-4 py-2 font-semibold text-white bg-purple-500 rounded-lg hover:bg-purple-600">View Rewards</button>
+      </div>
+
+      {/* Transaction History */}
+      <div>
+        <h3 className="mb-2 text-lg font-semibold">Transaction History</h3>
+        <div className="space-y-3">
+          {history.map(tx => (
+            <div key={tx.id} className="flex justify-between p-3 border rounded-md bg-gray-50">
+              <div>
+                <p className="font-medium">{tx.reason}</p>
+                <p className="text-sm text-gray-500">{formatDateTime(tx.date, 'dd MMM yyyy')}</p>
+              </div>
+              <p className={`font-semibold ${tx.type === 'earned' ? 'text-green-500' : 'text-red-500'}`}>
+                {tx.type === 'earned' ? '+' : ''}{tx.amount} DONE
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TokenBalance;
