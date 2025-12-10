@@ -67,8 +67,8 @@ export default function DeliverersTable() {
         sortOrder,
       });
 
-      setDeliverers(res.deliverers || []);
-      setTotal(res.total || 0);
+      setDeliverers(res?.data || []);
+      setTotal(res?.total || 0);
     } catch (err) {
       console.error("Erreur livreurs:", err);
     } finally {

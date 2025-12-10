@@ -45,24 +45,31 @@ export default function OrdersAnalyticsChart() {
     try {
       setLoading(true);
 
-      const data = await getAnalytics("orders", { timeframe });
+      const response = await getAnalytics("orders", { timeframe });
+      console.log("📊 Orders Analytics API response:", response);
 
       // Vérifier si les données sont valides
-      if (!data || !data.dates || !data.orders) {
+      // Le backend retourne: { success, data: [{date, orders, revenue}], summary }
+      if (!response || !response.data || response.data.length === 0) {
+        console.log("❌ Pas de données orders");
         setChartData(null);
         setSummary(null);
         return;
       }
 
-      // Labels → dates formatées
-      const labels = data.dates.map((d) => formatDateShort(d));
+      // Extraire les labels (dates) et les valeurs (orders) du tableau
+      const labels = response.data.map((item) => formatDateShort(item.date));
+      const ordersData = response.data.map((item) => item.orders);
+
+      console.log("📈 Labels:", labels);
+      console.log("📈 Orders:", ordersData);
 
       const formatted = {
         labels,
         datasets: [
           {
             label: "Commandes",
-            data: data.orders,
+            data: ordersData,
             borderColor: "#3B82F6",
             backgroundColor: "rgba(59,130,246,0.25)",
             fill: true,
@@ -72,28 +79,15 @@ export default function OrdersAnalyticsChart() {
         ],
       };
 
-      // Comparaison période précédente
-      if (data.comparison?.previousPeriod) {
-        formatted.datasets.push({
-          label: "Période précédente",
-          data: data.comparison.previousPeriod,
-          borderColor: "#9CA3AF",
-          backgroundColor: "rgba(156,163,175,0.15)",
-          fill: false,
-          borderDash: [5, 5],
-          tension: 0.3,
-          pointRadius: 0,
-        });
-      }
-
+      console.log("✅ Chart data formatted:", formatted);
       setChartData(formatted);
 
       // Résumé KPI
       setSummary({
-        growth: data.comparison?.change ?? 0,
-        avgBasket: data.avgBasket ?? 0,
-        disputesRate: data.disputesRate ?? 0,
-        totalOrders: data.orders.reduce((a, b) => a + b, 0),
+        growth: 0,
+        avgBasket: response.summary?.totalRevenue / response.summary?.totalOrders || 0,
+        disputesRate: 0,
+        totalOrders: response.summary?.totalOrders || ordersData.reduce((a, b) => a + b, 0),
       });
     } catch (err) {
       console.error("Orders analytics error:", err);
@@ -131,77 +125,45 @@ export default function OrdersAnalyticsChart() {
   /* ============================================================
      RENDER
      ============================================================ */
+  if (!chartData) {
+    return (
+      <div className="bg-white border rounded-xl shadow p-6">
+        <h3 className="text-lg font-semibold mb-4">Commandes - Analytics</h3>
+        <div className="h-64 flex items-center justify-center text-gray-500">
+          {loading ? "Chargement..." : "Aucune donnée"}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white border rounded-xl shadow p-6">
+      <h3 className="text-lg font-semibold mb-4">Commandes - Analytics</h3>
 
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Commandes - Analytics</h3>
-
-        <div className="flex gap-2">
-          {["day", "week", "month", "year"].map((p) => (
-            <button
-              key={p}
-              onClick={() => setTimeframe(p)}
-              className={`px-3 py-1 rounded-lg border transition ${
-                timeframe === p
-                  ? "bg-indigo-600 text-white border-indigo-600"
-                  : "bg-white border-gray-300 hover:bg-gray-100"
-              }`}
-            >
-              {p === "day"
-                ? "Jour"
-                : p === "week"
-                ? "Semaine"
-                : p === "month"
-                ? "Mois"
-                : "Année"}
-            </button>
-          ))}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="p-3 bg-blue-50 rounded">
+          <div className="text-sm text-gray-600">Total commandes</div>
+          <div className="text-xl font-bold">{summary?.totalOrders || 0}</div>
+        </div>
+        <div className="p-3 bg-green-50 rounded">
+          <div className="text-sm text-gray-600">Jours</div>
+          <div className="text-xl font-bold">{chartData.labels?.length || 0}</div>
+        </div>
+        <div className="p-3 bg-yellow-50 rounded">
+          <div className="text-sm text-gray-600">Panier moyen</div>
+          <div className="text-xl font-bold">{(summary?.avgBasket || 0).toFixed(0)}€</div>
+        </div>
+        <div className="p-3 bg-purple-50 rounded">
+          <div className="text-sm text-gray-600">Période</div>
+          <div className="text-xl font-bold">{timeframe}</div>
         </div>
       </div>
 
-      {/* Loading */}
-      {loading ? (
-        <div className="h-64 flex items-center justify-center text-gray-500">
-          Chargement…
-        </div>
-      ) : !chartData ? (
-        <div className="h-64 flex items-center justify-center text-gray-400">
-          Aucune donnée
-        </div>
-      ) : (
-        <>
-          {/* KPI SUMMARY */}
-          {summary && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <KpiCard label="Total commandes" value={formatNumber(summary.totalOrders)} />
-
-              <KpiCard
-                label="Croissance"
-                value={formatPercentage(summary.growth)}
-                positive={summary.growth >= 0}
-              />
-
-              <KpiCard
-                label="Panier moyen"
-                value={formatCurrency(summary.avgBasket, "EUR")}
-              />
-
-              <KpiCard
-                label="Taux de litiges"
-                value={formatPercentage(summary.disputesRate)}
-                positive={summary.disputesRate <= 5}
-              />
-            </div>
-          )}
-
-          {/* Chart */}
-          <div className="h-72">
-            <Line data={chartData} options={options} />
-          </div>
-        </>
-      )}
+      {/* Chart */}
+      <div style={{ height: "250px" }}>
+        <Line data={chartData} options={options} />
+      </div>
     </div>
   );
 }

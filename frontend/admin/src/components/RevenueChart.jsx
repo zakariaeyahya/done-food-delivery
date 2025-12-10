@@ -46,35 +46,30 @@ export default function RevenueChart() {
     try {
       setLoading(true);
 
-      // On-chain revenue
-      const chain = await blockchain.getPlatformRevenue(timeframe);
-
-      // Off-chain analytics
-      const analytics = await api.getAnalytics("revenue", { timeframe });
+      // Off-chain analytics depuis l'API
+      const response = await api.getAnalytics("revenue", { timeframe });
+      console.log("💰 Revenue API response:", response);
 
       // Vérifier si les données sont valides
-      const transactions = chain?.transactions || [];
-
-      if (transactions.length === 0) {
+      // Backend retourne: { success, data: [{date, platform, restaurant, deliverer, total}], totals }
+      if (!response || !response.data || response.data.length === 0) {
+        console.log("❌ Pas de données revenue");
         setChartData(null);
         setBreakdown(null);
         setComparison(null);
         return;
       }
 
-      // Final labels
-      const labels = transactions.map((tx) =>
-        formatDateShort(tx.timestamp * 1000)
-      );
+      // Extraire les données
+      const labels = response.data.map((item) => formatDateShort(item.date));
+      const datasetPlatform = response.data.map((item) => item.platform);
+      const datasetRestaurants = response.data.map((item) => item.restaurant);
+      const datasetDeliverers = response.data.map((item) => item.deliverer);
 
-      const datasetPlatform = transactions.map((tx) =>
-        Number(tx.platformAmount)
-      );
+      console.log("📈 Revenue Labels:", labels);
+      console.log("📈 Platform:", datasetPlatform);
 
-      const datasetRestaurants = analytics?.restaurantRevenue || [];
-      const datasetDeliverers = analytics?.delivererRevenue || [];
-
-      setChartData({
+      const formatted = {
         labels,
         datasets: [
           {
@@ -102,11 +97,19 @@ export default function RevenueChart() {
             fill: true,
           },
         ],
+      };
+
+      console.log("✅ Revenue chart data formatted:", formatted);
+      setChartData(formatted);
+
+      // Totaux pour la répartition
+      setBreakdown({
+        platform: 10,
+        restaurant: 70,
+        deliverer: 20,
       });
 
-      setBreakdown(analytics?.breakdown || null);
-
-      setComparison(analytics?.comparison || null);
+      setComparison(null);
     } catch (err) {
       console.error("Erreur revenue chart:", err);
       setChartData(null);
@@ -147,6 +150,8 @@ export default function RevenueChart() {
   /* ============================================================
      RENDER
      ============================================================ */
+  console.log("🔄 RevenueChart render - loading:", loading, "chartData:", !!chartData);
+
   return (
     <div className="bg-white border shadow rounded-xl p-6">
 
@@ -180,7 +185,7 @@ export default function RevenueChart() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Chart */}
-          <div className="lg:col-span-2 h-72">
+          <div className="lg:col-span-2" style={{ height: "300px", width: "100%" }}>
             <Line data={chartData} options={options} />
           </div>
 

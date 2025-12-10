@@ -60,8 +60,8 @@ export default function OrdersTable({ filters, onViewDetails }) {
         deliverer: filters?.deliverer,
       });
 
-      setOrders(res.orders || []);
-      setTotal(res.total || 0);
+      setOrders(res?.data || []);
+      setTotal(res?.total || 0);
     } catch (err) {
       console.error("Erreur fetch commandes:", err);
     } finally {

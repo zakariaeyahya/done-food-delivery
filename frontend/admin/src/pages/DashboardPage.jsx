@@ -37,19 +37,29 @@ export default function DashboardPage() {
     async function loadStats() {
       try {
         setLoading(true);
-        const data = await getDashboardStats();
+        const response = await getDashboardStats();
+        console.log("📊 Dashboard Stats API response:", response);
+
+        // Le backend retourne: { success, data: { totalOrders, gmv, activeUsers, platformRevenue, avgDeliveryTime, satisfaction } }
+        const data = response?.data || response;
 
         if (data) {
+          const totalActiveUsers =
+            (data.activeUsers?.clients || 0) +
+            (data.activeUsers?.restaurants || 0) +
+            (data.activeUsers?.deliverers || 0);
+
           setStats({
             totalOrders: data.totalOrders || 0,
             totalGMV: data.gmv || data.totalGMV || 0,
             platformRevenue: data.platformRevenue || 0,
             avgDeliveryTime: data.avgDeliveryTime || 0,
-            activeUsers: data.activeUsers?.total || data.activeUsers || 0,
+            activeUsers: totalActiveUsers || data.activeUsers || 0,
           });
+          console.log("✅ Stats loaded:", data);
         }
       } catch (err) {
-        console.error("Erreur chargement stats dashboard:", err);
+        console.error("❌ Erreur chargement stats dashboard:", err);
       } finally {
         setLoading(false);
       }
@@ -84,19 +94,8 @@ export default function DashboardPage() {
 
       {/* ===================== ROW : ORDERS + REVENUE ===================== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Graphique Commandes */}
-        <div className="bg-white border rounded-xl shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Commandes récentes</h2>
-          <OrdersAnalyticsChart />
-        </div>
-
-        {/* Graphique Revenus */}
-        <div className="bg-white border rounded-xl shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Revenus</h2>
-          <RevenueChart />
-        </div>
-
+        <OrdersAnalyticsChart />
+        <RevenueChart />
       </div>
 
       {/* ===================== LAST ORDERS ===================== */}

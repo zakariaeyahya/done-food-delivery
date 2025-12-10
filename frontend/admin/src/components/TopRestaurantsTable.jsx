@@ -14,8 +14,8 @@ export default function TopRestaurantsTable() {
   async function loadData() {
     try {
       setLoading(true);
-      const data = await getTopRestaurants(); // API backend nécessaire
-      setRestaurants(data || []);
+      const res = await getTopRestaurants();
+      setRestaurants(res?.data || []);
     } catch (err) {
       console.error("Erreur chargement top restaurants:", err);
     } finally {

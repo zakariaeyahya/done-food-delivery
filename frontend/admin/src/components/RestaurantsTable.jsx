@@ -76,8 +76,8 @@ export default function RestaurantsTable() {
         sortOrder,
       });
 
-      setRestaurants(res.restaurants || []);
-      setTotal(res.total || 0);
+      setRestaurants(res?.data || []);
+      setTotal(res?.total || 0);
     } catch (err) {
       console.error("Erreur restaurants:", err.message);
     } finally {

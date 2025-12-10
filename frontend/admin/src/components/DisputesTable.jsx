@@ -34,9 +34,11 @@ export default function DisputesTable({ onSelect }) {
         search: debouncedSearch || undefined,
         status: filterStatus !== "all" ? filterStatus : undefined,
       });
-      setDisputes(res || []);
+      // API retourne { success, data: [...] }
+      setDisputes(res?.data || []);
     } catch (err) {
       console.error("Erreur chargement litiges:", err);
+      setDisputes([]);
     }
     setLoading(false);
   }

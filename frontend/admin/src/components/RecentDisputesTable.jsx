@@ -16,10 +16,12 @@ export default function RecentDisputesTable() {
         sortField: "date",
         sortOrder: "desc",
       });
+      console.log("⚠️ Disputes API response:", res);
 
-      setDisputes(res.disputes || []);
+      // Le backend retourne: { success, data: [...] }
+      setDisputes(res?.data || res?.disputes || []);
     } catch (err) {
-      console.error("Erreur litiges:", err);
+      console.error("❌ Erreur litiges:", err);
     } finally {
       setLoading(false);
     }
@@ -54,12 +56,22 @@ export default function RecentDisputesTable() {
             <tbody>
               {disputes.map((d, i) => (
                 <tr key={i} className="border-b hover:bg-gray-50">
-                  <td className="p-2">#{d.disputeId}</td>
-                  <td className="p-2">{d.customerName}</td>
-                  <td className="p-2">{d.delivererName}</td>
-                  <td className="p-2">{d.severity}</td>
-                  <td className="p-2">{d.status}</td>
-                  <td className="p-2">{formatDate(d.date)}</td>
+                  <td className="p-2">#{d.orderId || d.disputeId}</td>
+                  <td className="p-2">{d.client?.name || d.customerName || "—"}</td>
+                  <td className="p-2">{d.deliverer?.name || d.delivererName || "—"}</td>
+                  <td className="p-2">
+                    <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-800">
+                      {d.severity || "Normal"}
+                    </span>
+                  </td>
+                  <td className="p-2">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      d.status === "RESOLVED" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                    }`}>
+                      {d.status}
+                    </span>
+                  </td>
+                  <td className="p-2">{formatDate(d.createdAt || d.date)}</td>
                 </tr>
               ))}
             </tbody>
