@@ -30,15 +30,25 @@ export default function DisputesHistogram() {
     try {
       setLoading(true);
 
-      // Requiert API GET /analytics/disputes
-      const data = await getAnalyticsDisputes();
+      const res = await getAnalyticsDisputes();
+      console.log("📊 Disputes Analytics response:", res);
+
+      // Backend retourne: { success, data: [{ date, count }], summary, timeframe }
+      if (!res || !res.data) {
+        setChartData(null);
+        return;
+      }
+
+      // Extraire labels et counts depuis data
+      const labels = res.data.map(d => d.date);
+      const counts = res.data.map(d => d.count);
 
       const formatted = {
-        labels: data.labels, // ["Jan", "Fév", ...]
+        labels: labels.length > 0 ? labels : ["Aucun litige"],
         datasets: [
           {
             label: "Litiges",
-            data: data.counts,
+            data: counts.length > 0 ? counts : [0],
             backgroundColor: "rgba(239, 68, 68, 0.6)",
             borderColor: "rgb(239, 68, 68)",
             borderWidth: 1,
@@ -49,6 +59,7 @@ export default function DisputesHistogram() {
       setChartData(formatted);
     } catch (err) {
       console.error("Erreur histogramme litiges:", err);
+      setChartData(null);
     } finally {
       setLoading(false);
     }

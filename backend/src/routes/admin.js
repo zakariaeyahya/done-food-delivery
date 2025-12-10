@@ -4,6 +4,7 @@ const router = express.Router();
 
 // Importer les controllers
 const adminController = require("../controllers/adminController");
+const analyticsController = require("../controllers/analyticsController");
 
 // Importer les middlewares
 // const verifyAdminRole = require("../middleware/verifyAdminRole");
@@ -67,6 +68,18 @@ router.get("/analytics/orders", adminController.getAnalyticsOrders);
 
 // Route GET /api/admin/analytics/revenue - Analytics revenus
 router.get("/analytics/revenue", adminController.getAnalyticsRevenue);
+
+// Route GET /api/admin/analytics/users - Analytics utilisateurs
+router.get("/analytics/users", analyticsController.getUsersAnalytics);
+
+// Route GET /api/admin/analytics/top-deliverers - Top livreurs
+router.get("/analytics/top-deliverers", adminController.getTopDeliverers);
+
+// Route GET /api/admin/analytics/top-restaurants - Top restaurants
+router.get("/analytics/top-restaurants", adminController.getTopRestaurants);
+
+// Route GET /api/admin/analytics/disputes - Histogramme litiges
+router.get("/analytics/disputes", adminController.getAnalyticsDisputes);
 
 // Route GET /api/admin/ping - Vérifier connexion
 router.get("/ping", adminController.ping);

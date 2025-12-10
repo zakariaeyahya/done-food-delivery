@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ConnectWallet from "./ConnectWallet";
+import { useWallet } from "../context/WalletContext";
 import {
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   CheckCircleIcon,
   XCircleIcon,
+  WalletIcon,
 } from "@heroicons/react/24/outline";
 
 export default function Topbar({ title }) {
   const navigate = useNavigate();
+  const { address } = useWallet();
   const [lastSync, setLastSync] = useState(null);
   const [backendStatus, setBackendStatus] = useState("checking"); // 'up' | 'down' | 'checking'
+
+  // Formater l'adresse wallet
+  const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "";
 
   /* ============================================================
      CHECK STATUS BACKEND
@@ -110,6 +115,14 @@ export default function Topbar({ title }) {
           <span className="hidden md:inline">Paramètres</span>
         </button>
 
+        {/* WALLET ADDRESS */}
+        {address && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 text-indigo-700">
+            <WalletIcon className="h-5 w-5" />
+            <span className="font-mono text-sm">{shortAddress}</span>
+          </div>
+        )}
+
         {/* BOUTON DÉCONNEXION */}
         <button
           onClick={handleLogout}
@@ -118,9 +131,6 @@ export default function Topbar({ title }) {
           <ArrowRightOnRectangleIcon className="h-5 w-5" />
           <span className="hidden md:inline">Déconnexion</span>
         </button>
-
-        {/* WALLET CONNECT */}
-        <ConnectWallet />
       </div>
     </div>
   );
