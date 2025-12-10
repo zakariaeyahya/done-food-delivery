@@ -75,6 +75,7 @@ async function getRestaurantByAddress(address) {
 /**
  * 1. Récupérer les détails complets d'un restaurant avec son menu
  * Route: GET /api/restaurants/:id
+ * @returns {Object} Restaurant avec menu
  */
 async function getRestaurant(restaurantId) {
   try {
@@ -83,7 +84,8 @@ async function getRestaurant(restaurantId) {
     const response = await axios.get(
       `${API_BASE_URL}/restaurants/${restaurantId}`
     );
-    return response.data;
+    // L'API retourne { success, restaurant } - extraire restaurant
+    return response.data?.restaurant || response.data;
   } catch (error) {
     handleApiError(error);
     throw error;

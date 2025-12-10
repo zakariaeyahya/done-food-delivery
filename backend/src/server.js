@@ -26,6 +26,7 @@ const analyticsRoutes = require("./routes/analytics");
 const oracleRoutes = require("./routes/oracles");
 const disputeRoutes = require("./routes/disputes");
 const tokenRoutes = require("./routes/tokens");
+const uploadRoutes = require("./routes/upload");
 
 /**
  * Serveur principal de l'application backend
@@ -240,6 +241,7 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/oracles", oracleRoutes);
 app.use("/api/disputes", disputeRoutes);
 app.use("/api/tokens", tokenRoutes);
+app.use("/api/upload", uploadRoutes);
 
 // === GESTION DES ERREURS ===
 
