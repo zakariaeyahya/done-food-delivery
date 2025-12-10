@@ -54,6 +54,12 @@ router.get(
   restaurantController.getAllRestaurants
 );
 
+// Route GET /api/restaurants/by-address/:address - Récupérer un restaurant par adresse wallet
+router.get(
+  "/by-address/:address",
+  restaurantController.getRestaurantByAddress
+);
+
 // Route GET /api/restaurants/:id - Récupérer les détails d'un restaurant
 router.get(
   "/:id",

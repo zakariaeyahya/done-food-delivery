@@ -4,21 +4,65 @@
  * @dev Gère état global, navigation sidebar, Socket.io, authentification restaurant
  */
 
+<<<<<<< HEAD
+import { useState, useEffect, createContext } from 'react';
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+
+// Import Socket.io
+import io from 'socket.io-client';
+=======
 import { useContext } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+>>>>>>> main
 
 // Import des pages
 import DashboardPage from './pages/DashboardPage';
 import OrdersPage from './pages/OrdersPage';
 import MenuPage from './pages/MenuPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import RegisterPage from './pages/RegisterPage';
 
 // Import des composants
 import ConnectWallet from './components/ConnectWallet';
 
 // Import des contexts
+<<<<<<< HEAD
+import { WalletProvider, useWallet } from './contexts/WalletContext';
+
+/**
+ * Context pour Socket.io
+ * @notice Fournit socket connection à toute l'application
+ */
+const SocketContext = createContext(null);
+
+/**
+ * Provider pour SocketContext
+ * @notice Gère la connexion Socket.io
+ */
+function SocketProvider({ children }) {
+  const [socket, setSocket] = useState(null);
+
+  // useEffect pour initialiser Socket.io
+  useEffect(() => {
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+    const newSocket = io(socketUrl);
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.close();
+    };
+  }, []);
+
+  return (
+    <SocketContext.Provider value={socket}>
+      {children}
+    </SocketContext.Provider>
+  );
+}
+=======
 import { WalletContext, WalletProvider } from './contexts/WalletContext';
 import { SocketContext, SocketProvider } from './contexts/SocketContext';
+>>>>>>> main
 
 /**
  * Composant Sidebar
@@ -56,7 +100,7 @@ function Sidebar() {
  * @notice Header avec ConnectWallet et notifications
  */
 function Header() {
-  const { restaurant, address } = useContext(WalletContext);
+  const { restaurant, address } = useWallet();
 
   return (
     <div className="dashboard-header">
@@ -95,22 +139,27 @@ function App() {
     <WalletProvider>
       <SocketProvider>
         <BrowserRouter>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/menu" element={<MenuPage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-            </Routes>
-          </Layout>
+          <Routes>
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/*" element={
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<DashboardPage />} />
+                  <Route path="/orders" element={<OrdersPage />} />
+                  <Route path="/menu" element={<MenuPage />} />
+                  <Route path="/analytics" element={<AnalyticsPage />} />
+                </Routes>
+              </Layout>
+            } />
+          </Routes>
         </BrowserRouter>
       </SocketProvider>
     </WalletProvider>
   );
 }
 
-// Exporter les Contexts pour utilisation dans autres composants
-export { WalletContext, SocketContext };
+// Exporter SocketContext pour utilisation dans autres composants
+export { SocketContext };
 
 // Exporter le composant App
 export default App;

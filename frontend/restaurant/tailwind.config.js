@@ -116,6 +116,8 @@ export default {
           900: "#18181b",
           DEFAULT: "#71717a",
         },
+
+        border: "#e4e4e7",
       },
 
       fontFamily: {

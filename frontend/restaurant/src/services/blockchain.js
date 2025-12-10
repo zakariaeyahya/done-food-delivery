@@ -6,6 +6,11 @@
 
 import { ethers } from 'ethers';
 
+<<<<<<< HEAD
+// ABIs (adapte les chemins si besoin)
+import DoneOrderManagerABI from "../../../../contracts/artifacts/DoneOrderManager.json";
+import DonePaymentSplitterABI from "../../../../contracts/artifacts/DonePaymentSplitter.json";
+=======
 // ABIs minimaux basés sur les interfaces des contrats
 const DoneOrderManagerABI = [
   "function confirmPreparation(uint256 orderId) external",
@@ -14,6 +19,7 @@ const DoneOrderManagerABI = [
   "function orders(uint256) external view returns (uint256, address, address, address, uint256, uint256, uint8, string memory, uint256)",
   "event OrderCreated(uint256 indexed orderId, address indexed client, address indexed restaurant, uint256 foodPrice, uint256 deliveryFee)"
 ];
+>>>>>>> main
 
 const DonePaymentSplitterABI = [
   "function balances(address) external view returns (uint256)",
@@ -28,8 +34,12 @@ const DonePaymentSplitterABI = [
 const ORDER_MANAGER_ADDRESS = import.meta.env.VITE_ORDER_MANAGER_ADDRESS;
 const PAYMENT_SPLITTER_ADDRESS = import.meta.env.VITE_PAYMENT_SPLITTER_ADDRESS;
 
+<<<<<<< HEAD
+const AMOY_CHAIN_ID = 80002; // Polygon Amoy Testnet
+=======
 // Réseau Polygon Amoy (testnet)
 const CHAIN_ID = 80002; // Chain ID de Polygon Amoy
+>>>>>>> main
 
 // RPC URLs fiables pour Polygon Amoy (fallback si MetaMask RPC échoue)
 const AMOY_RPC_URLS = [
@@ -74,6 +84,44 @@ function getProvider() {
   return provider;
 }
 
+<<<<<<< HEAD
+async function switchToAmoyNetwork() {
+  try {
+    const prov = getProvider();
+    const network = await prov.getNetwork();
+
+    if (network.chainId !== BigInt(AMOY_CHAIN_ID)) {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: `0x${AMOY_CHAIN_ID.toString(16)}` }],
+      });
+    }
+  } catch (error) {
+    // 4902 => chain not added
+    if (error?.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: `0x${AMOY_CHAIN_ID.toString(16)}`,
+            chainName: "Polygon Amoy Testnet",
+            nativeCurrency: {
+              name: "MATIC",
+              symbol: "MATIC",
+              decimals: 18,
+            },
+            rpcUrls: [
+              "https://rpc.ankr.com/polygon_amoy",
+              "https://polygon-amoy.drpc.org",
+              "https://polygon-amoy-bor-rpc.publicnode.com"
+            ],
+            blockExplorerUrls: ["https://amoy.polygonscan.com"],
+          },
+        ],
+      });
+    } else {
+      throw error;
+=======
 /**
  * Obtenir un provider JSON-RPC fallback (quand MetaMask RPC échoue)
  * @returns {ethers.JsonRpcProvider} Provider JSON-RPC
@@ -94,6 +142,7 @@ async function getFallbackProvider() {
       return fallbackProvider;
     } catch (e) {
       console.warn("❌ RPC failed:", rpcUrl, e.message);
+>>>>>>> main
     }
   }
   throw new Error("All fallback RPC endpoints failed");
@@ -108,8 +157,12 @@ export async function switchToAmoyNetwork() {
     // Format correct du chainId pour Polygon Amoy (80002 = 0x13882)
     const chainIdHex = `0x${CHAIN_ID.toString(16)}`;
 
+<<<<<<< HEAD
+    await switchToAmoyNetwork();
+=======
     // Vérifier le réseau actuel via MetaMask directement
     const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+>>>>>>> main
 
     if (currentChainId !== chainIdHex) {
       // Reset les instances car on va changer de réseau
@@ -541,6 +594,24 @@ export async function getOrderOnChain(orderId) {
 }
 
 /**
+<<<<<<< HEAD
+ * 10. Get network information
+ */
+async function getNetwork() {
+  try {
+    const prov = getProvider();
+    const network = await prov.getNetwork();
+    return {
+      chainId: Number(network.chainId),
+      name: network.name,
+    };
+  } catch (error) {
+    throw new Error(`Failed to get network: ${error.message}`);
+  }
+}
+
+/* ---------------- Exports ---------------- */
+=======
  * 10. Récupérer le solde MATIC d'une adresse
  * @param {string} address - Adresse wallet
  * @returns {Promise<string>} Balance en MATIC (formaté)
@@ -550,6 +621,7 @@ export async function getBalance(address) {
     if (!address) {
       throw new Error('Address is required');
     }
+>>>>>>> main
 
     // Essayer d'abord avec MetaMask provider
     try {
@@ -573,5 +645,20 @@ export async function getBalance(address) {
  * Export des constantes
  */
 export {
+<<<<<<< HEAD
+  RESTAURANT_ROLE,
+  connectWallet,
+  getBalance,
+  getNetwork,
+  hasRole,
+  confirmPreparationOnChain,
+  getRestaurantOrders,
+  getEarningsOnChain,
+  getPaymentSplitEvents,
+  getPendingBalance,
+  withdraw,
+  getOrderOnChain,
+=======
   RESTAURANT_ROLE
+>>>>>>> main
 };

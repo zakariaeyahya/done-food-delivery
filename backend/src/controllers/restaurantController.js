@@ -1049,9 +1049,48 @@ async function withdrawEarnings(req, res) {
   }
 }
 
+/**
+ * Get restaurant by wallet address
+ * @route GET /api/restaurants/by-address/:address
+ */
+async function getRestaurantByAddress(req, res) {
+  try {
+    const { address } = req.params;
+
+    // Validate Ethereum address
+    if (!address || !ethers.isAddress(address)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid Ethereum address"
+      });
+    }
+
+    // Find restaurant by address
+    const restaurant = await Restaurant.findByAddress(address.toLowerCase());
+
+    if (!restaurant) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Restaurant not found with this address"
+      });
+    }
+
+    return res.status(200).json(restaurant);
+  } catch (error) {
+    console.error("Error getting restaurant by address:", error);
+
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to get restaurant",
+      details: error.message
+    });
+  }
+}
+
 module.exports = {
   registerRestaurant,
   getRestaurant,
+  getRestaurantByAddress,
   getAllRestaurants,
   updateRestaurant,
   getRestaurantOrders,

@@ -4,11 +4,17 @@
  * @dev Détecte MetaMask, connecte le wallet, vérifie le rôle RESTAURANT_ROLE, fetch restaurant profile
  */
 
+<<<<<<< HEAD
+import { useEffect, useMemo, useState } from "react";
+import { ethers } from "ethers";
+import { useNavigate } from "react-router-dom";
+=======
 import { useState, useEffect } from 'react';
 import * as blockchain from '../services/blockchain';
 import * as api from '../services/api';
 import { formatAddress } from '../utils/web3';
 import { ethers } from 'ethers';
+>>>>>>> main
 
 // Définir le rôle RESTAURANT_ROLE (bytes32)
 const RESTAURANT_ROLE = ethers.keccak256(ethers.toUtf8Bytes("RESTAURANT_ROLE"));
@@ -19,6 +25,7 @@ const RESTAURANT_ROLE = ethers.keccak256(ethers.toUtf8Bytes("RESTAURANT_ROLE"));
  * @returns {JSX.Element} Composant de connexion wallet restaurant
  */
 function ConnectWallet({ onConnect }) {
+  const navigate = useNavigate();
   const [address, setAddress] = useState(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [hasRole, setHasRole] = useState(false);
@@ -27,8 +34,19 @@ function ConnectWallet({ onConnect }) {
   const [network, setNetwork] = useState(null);
   const [error, setError] = useState(null);
   const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(false);
+<<<<<<< HEAD
+  const [needsRegistration, setNeedsRegistration] = useState(false);
+
+  const RESTAURANT_ROLE = useMemo(
+    () => ethers.keccak256(ethers.toUtf8Bytes("RESTAURANT_ROLE")),
+    []
+  );
+
+  // Vérifier MetaMask au montage + auto-reconnect si address sauvée
+=======
   
   // useEffect pour vérifier MetaMask au montage
+>>>>>>> main
   useEffect(() => {
     if (window.ethereum) {
       setIsMetaMaskInstalled(true);
@@ -87,7 +105,14 @@ function ConnectWallet({ onConnect }) {
   // Fonction pour récupérer le profil restaurant depuis l'API
   async function fetchRestaurantProfile(address) {
     try {
+<<<<<<< HEAD
+      setError(null);
+      setNeedsRegistration(false);
+      const r = await api.getRestaurantByAddress(addr);
+      setRestaurant(r);
+=======
       if (!address) return null;
+>>>>>>> main
 
       // L'API backend supporte la récupération par adresse via getRestaurantByAddress
       const response = await api.getRestaurantByAddress(address);
@@ -109,6 +134,19 @@ function ConnectWallet({ onConnect }) {
       if (onConnect) {
         onConnect({ address, restaurant: restaurantData });
       }
+<<<<<<< HEAD
+    } catch (e) {
+      console.error("Error fetching restaurant profile:", e);
+      setRestaurant(null);
+
+      // Si erreur 404, c'est qu'il faut s'inscrire
+      if (e.message.includes('404') || e.message.includes('not found')) {
+        setNeedsRegistration(true);
+        setError(null); // Pas d'erreur, juste besoin d'inscription
+      } else {
+        setError(`Erreur lors de la récupération du profil: ${e.message}`);
+      }
+=======
 
       return restaurantData;
     } catch (error) {
@@ -125,6 +163,7 @@ function ConnectWallet({ onConnect }) {
       console.error('Error fetching restaurant profile:', error);
       setError(`Erreur lors de la récupération du profil: ${error.message}`);
       return null;
+>>>>>>> main
     }
   }
   
@@ -164,6 +203,16 @@ function ConnectWallet({ onConnect }) {
       console.error('Error checking network:', error);
     }
   }
+<<<<<<< HEAD
+
+  // ----- Role + fetch all -----
+  async function checkRoleAndFetchRestaurant(addr) {
+    // Role check disabled - allow all wallets to access
+    setHasRole(true);
+    await fetchNetwork();
+    await fetchBalance(addr);
+    await fetchRestaurantProfile(addr);
+=======
   
   // Fonction pour vérifier rôle et fetch restaurant
   async function checkRoleAndFetchRestaurant(address) {
@@ -173,6 +222,7 @@ function ConnectWallet({ onConnect }) {
       await fetchBalance(address);
       await checkNetwork();
     }
+>>>>>>> main
   }
   
   // Fonction pour connecter le wallet
@@ -246,6 +296,57 @@ function ConnectWallet({ onConnect }) {
         >
           {isConnecting ? 'Connexion...' : 'Connecter le wallet'}
         </button>
+<<<<<<< HEAD
+      )}
+
+      {/* Connected section */}
+      {isMetaMaskInstalled && address && (
+        <div className="mt-4 space-y-3">
+          <InfoRow label="Adresse" value={formatAddress(address)} />
+          <InfoRow label="Solde" value={`${balance} MATIC`} />
+          {network && (
+            <InfoRow
+              label="Réseau"
+              value={`${network.name ?? "Unknown"} (chainId: ${
+                network.chainId ?? "?"
+              })`}
+            />
+          )}
+
+          {/* Message si besoin d'inscription */}
+          {needsRegistration && (
+            <div className="rounded-xl border border-primary-200 bg-primary-50 p-4 dark:border-primary-800 dark:bg-primary-900/20">
+              <p className="mb-2 font-medium text-primary-900 dark:text-primary-100">
+                🎉 Bienvenue sur DONE !
+              </p>
+              <p className="mb-3 text-sm text-primary-800 dark:text-primary-200">
+                Votre wallet n'est pas encore enregistré. Créez votre profil restaurant pour commencer.
+              </p>
+              <button
+                onClick={() => navigate('/register')}
+                className="w-full rounded-xl bg-primary-500 px-4 py-2 font-semibold text-white shadow-soft transition hover:bg-primary-600"
+              >
+                Créer mon restaurant
+              </button>
+            </div>
+          )}
+
+          {restaurant && (
+            <div className="rounded-xl bg-neutral-50 p-3 dark:bg-neutral-900/40">
+              <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                Restaurant
+              </p>
+              <p className="mt-1 font-medium text-neutral-900 dark:text-neutral-50">
+                {restaurant.name}
+              </p>
+              {restaurant.location?.address && (
+                <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                  {restaurant.location.address}
+                </p>
+              )}
+            </div>
+          )}
+=======
       ) : (
         <div className="wallet-connected flex items-center gap-3">
           <div className="wallet-info flex flex-col items-end">
@@ -261,6 +362,7 @@ function ConnectWallet({ onConnect }) {
           <button onClick={handleDisconnect} className="btn btn-secondary btn-sm">
             Déconnecter
           </button>
+>>>>>>> main
         </div>
       )}
       
