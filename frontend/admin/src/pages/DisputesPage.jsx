@@ -1,72 +1,95 @@
 /**
- * Page DisputesPage - Gestion Litiges
- * @notice Gestion complète des litiges avec filtres et résolution
- * @dev Intègre DisputesManager component
+ * DisputesPage.jsx
+ * - Liste des litiges actifs et résolus
+ * - Tri : date, gravité, participants
+ * - Module DisputeViewer pour résolution
  */
 
-// TODO: Importer React et hooks
-// import React, { useState } from 'react';
+import React, { useState } from "react";
+import DisputesTable from "../components/DisputesTable";
+import DisputeViewer from "../components/DisputeViewer";
+import { getDisputes, getDisputeDetails } from "../services/api";
 
-// TODO: Importer les composants
-// import DisputesManager from '../components/DisputesManager';
+export default function DisputesPage() {
+  const [filter, setFilter] = useState("active"); // active | resolved | all
+  const [sort, setSort] = useState("date-desc"); // tri
 
-/**
- * Page DisputesPage
- */
-// TODO: Implémenter le composant DisputesPage
-// function DisputesPage() {
-//   // ÉTAT: filter = "active"
-//   
-//   // TODO: Utiliser useState pour gérer l'état
-//   // const [filter, setFilter] = useState('active'); // active, resolved, all
-//   
-//   // TODO: Rendu principal
-//   // RETOURNER (
-//   //   <div className="disputes-page">
-//   //     <div className="mb-6">
-//   //       <h1 className="text-3xl font-bold">Gestion Litiges</h1>
-//   //       <p className="text-gray-600 mt-2">Gérer tous les litiges de la plateforme</p>
-//   //     </div>
-//   //     
-//   //     {/* Filtres */}
-//   //     <div className="card mb-6">
-//   //       <div className="flex gap-2">
-//   //         <button
-//   //           onClick={() => setFilter('active')}
-//   //           className={`btn ${filter === 'active' ? 'btn-primary' : 'btn-outline'}`}
-//   //         >
-//   //           Actifs
-//   //         </button>
-//   //         <button
-//   //           onClick={() => setFilter('resolved')}
-//   //           className={`btn ${filter === 'resolved' ? 'btn-primary' : 'btn-outline'}`}
-//   //         >
-//   //           Résolus
-//   //         </button>
-//   //         <button
-//   //           onClick={() => setFilter('all')}
-//   //           className={`btn ${filter === 'all' ? 'btn-primary' : 'btn-outline'}`}
-//   //         >
-//   //           Tous
-//   //         </button>
-//   //       </div>
-//   //     </div>
-//   //     
-//   //     {/* Intègre DisputesManager */}
-//   //     {/* Note: DisputesManager doit accepter un prop filter */}
-//   //     <DisputesManager filter={filter} />
-//   //     
-//   //     {/* Section Historique Résolutions (optionnel) */}
-//   //     <div className="card mt-6">
-//   //       <h2 className="text-xl font-semibold mb-4">Historique Résolutions</h2>
-//   //       <div className="text-center text-gray-500 py-4">
-//   //         Historique complet des résolutions à implémenter
-//   //       </div>
-//   //     </div>
-//   //   </div>
-//   // );
-// }
+  const [selectedDispute, setSelectedDispute] = useState(null);
+  const [details, setDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
-// TODO: Exporter le composant
-// export default DisputesPage;
+  /* ============================================================
+     LOAD DISPUTE DETAILS
+     ============================================================ */
+  async function openDispute(dispute) {
+    setSelectedDispute(dispute);
+    setLoadingDetails(true);
 
+    try {
+      const res = await getDisputeDetails(dispute.disputeId);
+      setDetails(res);
+    } catch (err) {
+      console.error("Erreur chargement litige:", err);
+    } finally {
+      setLoadingDetails(false);
+    }
+  }
+
+  function closeModal() {
+    setSelectedDispute(null);
+    setDetails(null);
+  }
+
+  /* ============================================================
+     RENDER PAGE
+     ============================================================ */
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold">Litiges</h1>
+        <p className="text-gray-600 mt-1">Gestion des litiges plateforme</p>
+      </div>
+
+      {/* Filtres */}
+      <div className="flex gap-3 items-center">
+
+        {/* Status */}
+        <select
+          className="px-4 py-2 border rounded-lg bg-gray-50"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        >
+          <option value="active">Actifs</option>
+          <option value="resolved">Résolus</option>
+          <option value="all">Tous</option>
+        </select>
+
+        {/* Tri */}
+        <select
+          className="px-4 py-2 border rounded-lg bg-gray-50"
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+        >
+          <option value="date-desc">Date ↓</option>
+          <option value="date-asc">Date ↑</option>
+          <option value="severity-desc">Gravité ↓</option>
+          <option value="severity-asc">Gravité ↑</option>
+          <option value="party">Participants</option>
+        </select>
+      </div>
+
+      <DisputesTable filter={filter} sort={sort} onSelect={openDispute} />
+
+      {/* Modal viewer */}
+      {selectedDispute && (
+        <DisputeViewer
+          dispute={selectedDispute}
+          details={details}
+          loading={loadingDetails}
+          onClose={closeModal}
+        />
+      )}
+    </div>
+  );
+}
