@@ -19,30 +19,27 @@ const ProfilePage = () => {
       setLoading(false);
       return;
     }
-
+  
     const fetchUserData = async () => {
       try {
         setLoading(true);
-
-        // 1. Essayer de récupérer le profil
+  
         const profileResponse = await getUserProfile(address);
         setUser(profileResponse.data.user);
       } catch (error) {
-        // Si backend renvoie 404 => user inexistant => on tente un register
         if (error.response?.status === 404) {
           try {
             await registerUser({
               address,
-              name: '',
-              email: '',
-              phone: '',
+              name: 'User',
+              email: `${address.slice(0, 8)}@temp.com`,
+              phone: ''
             });
-
+  
             const retry = await getUserProfile(address);
             setUser(retry.data.user);
           } catch (regError) {
-            console.error('Failed to register user or refetch profile:', regError);
-            // on ne rethrow pas, pour éviter l’Uncaught (in promise)
+            console.error('Registration failed:', regError);
           }
         } else {
           console.error('Failed to fetch user:', error);
@@ -51,10 +48,9 @@ const ProfilePage = () => {
         setLoading(false);
       }
     };
-
+  
     fetchUserData();
   }, [address]);
-
   if (!isConnected) {
     return (
       <div className="container mx-auto p-8 text-center">

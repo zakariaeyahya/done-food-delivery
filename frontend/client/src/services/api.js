@@ -30,14 +30,9 @@ export const updateUserProfile = (address, userData) => {
 };
 
 // frontend/api.js
-export async function registerUser(address, name, email, phone) {
-  return axios.post('/api/users/register', {
-    address,
-    name,          // ⚠️ jammais vide
-    email,
-    phone
-  });
-}
+export const registerUser = (userData) => {
+  return apiClient.post('/users/register', userData);
+};
 
 
 export const getUserTokens = (address) => {

@@ -6,28 +6,30 @@ import { formatAddress } from '../utils/web3';
 const ConnectWallet = () => {
   const { address, balance, isConnected, isConnecting, connect, disconnect } = useWallet();
 
-  const handleConnect = async () => {
-    try {
-      await connect();
-      
-      // Auto-registration
-      const walletAddress = window.ethereum?.selectedAddress;
-      if (walletAddress) {
-        try {
-          await getUserProfile(walletAddress);
-        } catch (err) {
-          if (err.response?.status === 404) {
-            await registerUser({ 
-              address: walletAddress,
-              name: '',
-              email: ''
-            });
-          }
+  // frontend/client/src/components/ConnectWallet.jsx
+
+const handleConnect = async () => {
+  try {
+    await connect();
+    
+    const walletAddress = window.ethereum?.selectedAddress;
+    if (walletAddress) {
+      try {
+        await getUserProfile(walletAddress);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          await registerUser({ 
+            address: walletAddress,
+            name: 'User',
+            email: `${walletAddress.slice(0, 8)}@temp.com`
+          });
         }
       }
-    } catch (err) {
-      console.error('Failed to connect wallet:', err);
     }
+  } catch (err) {
+    console.error('Failed to connect wallet:', err);
+  }
+
   };
 
   return (
