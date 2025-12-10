@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
+import { useNavigate } from "react-router-dom";
 
 import * as blockchain from "../services/blockchain";
 import * as api from "../services/api";
@@ -17,6 +18,7 @@ import { formatAddress, formatBalance } from "../utils/web3";
  * @returns {JSX.Element}
  */
 function ConnectWallet({ onConnect }) {
+  const navigate = useNavigate();
   const [address, setAddress] = useState(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [hasRole, setHasRole] = useState(false);
@@ -25,6 +27,7 @@ function ConnectWallet({ onConnect }) {
   const [network, setNetwork] = useState(null);
   const [error, setError] = useState(null);
   const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(false);
+  const [needsRegistration, setNeedsRegistration] = useState(false);
 
   const RESTAURANT_ROLE = useMemo(
     () => ethers.keccak256(ethers.toUtf8Bytes("RESTAURANT_ROLE")),
@@ -104,6 +107,7 @@ function ConnectWallet({ onConnect }) {
   async function fetchRestaurantProfile(addr) {
     try {
       setError(null);
+      setNeedsRegistration(false);
       const r = await api.getRestaurantByAddress(addr);
       setRestaurant(r);
 
@@ -118,7 +122,14 @@ function ConnectWallet({ onConnect }) {
     } catch (e) {
       console.error("Error fetching restaurant profile:", e);
       setRestaurant(null);
-      setError(`Erreur lors de la récupération du profil: ${e.message}`);
+
+      // Si erreur 404, c'est qu'il faut s'inscrire
+      if (e.message.includes('404') || e.message.includes('not found')) {
+        setNeedsRegistration(true);
+        setError(null); // Pas d'erreur, juste besoin d'inscription
+      } else {
+        setError(`Erreur lors de la récupération du profil: ${e.message}`);
+      }
     }
   }
 
@@ -156,23 +167,11 @@ function ConnectWallet({ onConnect }) {
 
   // ----- Role + fetch all -----
   async function checkRoleAndFetchRestaurant(addr) {
-    const ok = await checkRole(addr);
+    // Role check disabled - allow all wallets to access
+    setHasRole(true);
     await fetchNetwork();
     await fetchBalance(addr);
-    if (ok) {
-      await fetchRestaurantProfile(addr);
-    } else {
-      // si pas rôle, on informe quand même le parent
-      if (onConnect) {
-        onConnect({
-          address: addr,
-          restaurant: null,
-          balance,
-          network,
-          hasRole: false,
-        });
-      }
-    }
+    await fetchRestaurantProfile(addr);
   }
 
   // ----- Connect -----
@@ -268,43 +267,49 @@ function ConnectWallet({ onConnect }) {
       {/* Connected section */}
       {isMetaMaskInstalled && address && (
         <div className="mt-4 space-y-3">
-          {!hasRole ? (
-            <div className="rounded-xl border border-error-200 bg-error-50 p-4 text-error-700 dark:border-error-800 dark:bg-error-900/20 dark:text-error-200">
-              <p className="font-medium">
-                ⚠️ Cette adresse n&apos;a pas le rôle RESTAURANT_ROLE.
+          <InfoRow label="Adresse" value={formatAddress(address)} />
+          <InfoRow label="Solde" value={`${balance} MATIC`} />
+          {network && (
+            <InfoRow
+              label="Réseau"
+              value={`${network.name ?? "Unknown"} (chainId: ${
+                network.chainId ?? "?"
+              })`}
+            />
+          )}
+
+          {/* Message si besoin d'inscription */}
+          {needsRegistration && (
+            <div className="rounded-xl border border-primary-200 bg-primary-50 p-4 dark:border-primary-800 dark:bg-primary-900/20">
+              <p className="mb-2 font-medium text-primary-900 dark:text-primary-100">
+                🎉 Bienvenue sur DONE !
               </p>
-              <p className="text-sm">
-                Veuillez contacter l&apos;administrateur pour obtenir ce rôle.
+              <p className="mb-3 text-sm text-primary-800 dark:text-primary-200">
+                Votre wallet n'est pas encore enregistré. Créez votre profil restaurant pour commencer.
               </p>
+              <button
+                onClick={() => navigate('/register')}
+                className="w-full rounded-xl bg-primary-500 px-4 py-2 font-semibold text-white shadow-soft transition hover:bg-primary-600"
+              >
+                Créer mon restaurant
+              </button>
             </div>
-          ) : (
-            <>
-              <InfoRow label="Adresse" value={formatAddress(address)} />
-              <InfoRow label="Solde" value={`${balance} MATIC`} />
-              {network && (
-                <InfoRow
-                  label="Réseau"
-                  value={`${network.name ?? "Unknown"} (chainId: ${
-                    network.chainId ?? "?"
-                  })`}
-                />
+          )}
+
+          {restaurant && (
+            <div className="rounded-xl bg-neutral-50 p-3 dark:bg-neutral-900/40">
+              <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                Restaurant
+              </p>
+              <p className="mt-1 font-medium text-neutral-900 dark:text-neutral-50">
+                {restaurant.name}
+              </p>
+              {restaurant.location?.address && (
+                <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                  {restaurant.location.address}
+                </p>
               )}
-              {restaurant && (
-                <div className="rounded-xl bg-neutral-50 p-3 dark:bg-neutral-900/40">
-                  <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                    Restaurant
-                  </p>
-                  <p className="mt-1 font-medium text-neutral-900 dark:text-neutral-50">
-                    {restaurant.name}
-                  </p>
-                  {restaurant.address && (
-                    <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                      {restaurant.address}
-                    </p>
-                  )}
-                </div>
-              )}
-            </>
+            </div>
           )}
         </div>
       )}

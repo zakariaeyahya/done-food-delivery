@@ -67,28 +67,32 @@ const restaurantSchema = new mongoose.Schema({
     validate: {
       validator: function(v) {
         if (!v) return true; // Optionnel
-        return /^\+?[1-9]\d{1,14}$/.test(v);
+        // Accepte formats: +212612345678, 0612345678, +1234567890, etc.
+        return /^(\+?\d{1,4}[\s-]?)?[\d\s-]{6,15}$/.test(v.replace(/\s/g, ''));
       },
       message: 'Invalid phone number format'
     }
   },
 
-  // location - Localisation géographique du restaurant
+  // location - Localisation géographique du restaurant (optionnel)
   location: {
     address: {
       type: String,
-      required: true,
+      required: false,
+      default: '',
       trim: true
     },
     lat: {
       type: Number,
-      required: true,
+      required: false,
+      default: 0,
       min: -90,
       max: 90
     },
     lng: {
       type: Number,
-      required: true,
+      required: false,
+      default: 0,
       min: -180,
       max: 180
     }

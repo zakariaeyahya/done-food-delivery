@@ -11,7 +11,7 @@ import axios from "axios";
  * @dev Récupère l'URL de l'API depuis les variables d'environnement
  */
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 /**
  * Fonction helper pour créer les headers d'authentification

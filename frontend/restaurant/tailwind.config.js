@@ -116,6 +116,8 @@ export default {
           900: "#18181b",
           DEFAULT: "#71717a",
         },
+
+        border: "#e4e4e7",
       },
 
       fontFamily: {
@@ -166,10 +168,6 @@ export default {
   },
 
   // Plugins utiles pour dashboard (inputs, texte, ratios...)
-  plugins: [
-    // npm i -D @tailwindcss/forms @tailwindcss/typography @tailwindcss/aspect-ratio
-    require("@tailwindcss/forms"),
-    require("@tailwindcss/typography"),
-    require("@tailwindcss/aspect-ratio"),
-  ],
+  // TODO: Install these plugins if needed: npm i -D @tailwindcss/forms @tailwindcss/typography @tailwindcss/aspect-ratio
+  plugins: [],
 };

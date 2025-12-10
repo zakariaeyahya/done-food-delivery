@@ -7,15 +7,15 @@
 import { ethers } from "ethers";
 
 // ABIs (adapte les chemins si besoin)
-import DoneOrderManagerABI from "../../../contracts/artifacts/DoneOrderManager.json";
-import DonePaymentSplitterABI from "../../../contracts/artifacts/DonePaymentSplitter.json";
+import DoneOrderManagerABI from "../../../../contracts/artifacts/DoneOrderManager.json";
+import DonePaymentSplitterABI from "../../../../contracts/artifacts/DonePaymentSplitter.json";
 
 /* ---------------- Config ---------------- */
 
 const ORDER_MANAGER_ADDRESS = import.meta.env.VITE_ORDER_MANAGER_ADDRESS;
 const PAYMENT_SPLITTER_ADDRESS = import.meta.env.VITE_PAYMENT_SPLITTER_ADDRESS;
 
-const MUMBAI_CHAIN_ID = 80001;
+const AMOY_CHAIN_ID = 80002; // Polygon Amoy Testnet
 
 // bytes32 role
 const RESTAURANT_ROLE = ethers.keccak256(
@@ -54,15 +54,15 @@ function getProvider() {
   return provider;
 }
 
-async function switchToMumbaiNetwork() {
+async function switchToAmoyNetwork() {
   try {
     const prov = getProvider();
     const network = await prov.getNetwork();
 
-    if (network.chainId !== BigInt(MUMBAI_CHAIN_ID)) {
+    if (network.chainId !== BigInt(AMOY_CHAIN_ID)) {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
-        params: [{ chainId: `0x${MUMBAI_CHAIN_ID.toString(16)}` }],
+        params: [{ chainId: `0x${AMOY_CHAIN_ID.toString(16)}` }],
       });
     }
   } catch (error) {
@@ -72,15 +72,19 @@ async function switchToMumbaiNetwork() {
         method: "wallet_addEthereumChain",
         params: [
           {
-            chainId: `0x${MUMBAI_CHAIN_ID.toString(16)}`,
-            chainName: "Polygon Mumbai",
+            chainId: `0x${AMOY_CHAIN_ID.toString(16)}`,
+            chainName: "Polygon Amoy Testnet",
             nativeCurrency: {
               name: "MATIC",
               symbol: "MATIC",
               decimals: 18,
             },
-            rpcUrls: ["https://rpc-mumbai.maticvigil.com"],
-            blockExplorerUrls: ["https://mumbai.polygonscan.com"],
+            rpcUrls: [
+              "https://rpc.ankr.com/polygon_amoy",
+              "https://polygon-amoy.drpc.org",
+              "https://polygon-amoy-bor-rpc.publicnode.com"
+            ],
+            blockExplorerUrls: ["https://amoy.polygonscan.com"],
           },
         ],
       });
@@ -143,7 +147,7 @@ async function connectWallet() {
   try {
     if (!window.ethereum) throw new Error("MetaMask is not installed");
 
-    await switchToMumbaiNetwork();
+    await switchToAmoyNetwork();
 
     const prov = getProvider();
     await prov.send("eth_requestAccounts", []);
@@ -377,12 +381,29 @@ async function getOrderOnChain(orderId) {
   }
 }
 
+/**
+ * 10. Get network information
+ */
+async function getNetwork() {
+  try {
+    const prov = getProvider();
+    const network = await prov.getNetwork();
+    return {
+      chainId: Number(network.chainId),
+      name: network.name,
+    };
+  } catch (error) {
+    throw new Error(`Failed to get network: ${error.message}`);
+  }
+}
+
 /* ---------------- Exports ---------------- */
 
 export {
   RESTAURANT_ROLE,
   connectWallet,
   getBalance,
+  getNetwork,
   hasRole,
   confirmPreparationOnChain,
   getRestaurantOrders,
