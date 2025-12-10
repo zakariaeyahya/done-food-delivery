@@ -1,3 +1,4 @@
+// src/pages/ProfilePage.jsx
 import React, { useState, useEffect } from 'react';
 import OrderHistory from '../components/OrderHistory';
 import TokenBalance from '../components/TokenBalance';
@@ -12,7 +13,6 @@ const ProfilePage = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Toujours appelé, mais on check à l'intérieur
   useEffect(() => {
     if (!address) {
       setUser(null);
@@ -24,21 +24,26 @@ const ProfilePage = () => {
       try {
         setLoading(true);
 
-        // 1. Récupérer profil
+        // 1. Essayer de récupérer le profil
         const profileResponse = await getUserProfile(address);
         setUser(profileResponse.data.user);
       } catch (error) {
+        // Si backend renvoie 404 => user inexistant => on tente un register
         if (error.response?.status === 404) {
-          // Utilisateur n'existe pas, créer profil
-          await registerUser({
-            address,
-            name: '',
-            email: '',
-          });
+          try {
+            await registerUser({
+              address,
+              name: '',
+              email: '',
+              phone: '',
+            });
 
-          // Réessayer
-          const retry = await getUserProfile(address);
-          setUser(retry.data.user);
+            const retry = await getUserProfile(address);
+            setUser(retry.data.user);
+          } catch (regError) {
+            console.error('Failed to register user or refetch profile:', regError);
+            // on ne rethrow pas, pour éviter l’Uncaught (in promise)
+          }
         } else {
           console.error('Failed to fetch user:', error);
         }
@@ -49,8 +54,6 @@ const ProfilePage = () => {
 
     fetchUserData();
   }, [address]);
-
-  // ⬇️ Les returns viennent APRÈS tous les hooks
 
   if (!isConnected) {
     return (
