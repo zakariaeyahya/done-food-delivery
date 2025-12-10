@@ -17,8 +17,8 @@ export default function TopDeliverersTable() {
   async function loadData() {
     try {
       setLoading(true);
-      const data = await getTopDeliverers(); // API backend obligatoire
-      setDeliverers(data || []);
+      const res = await getTopDeliverers();
+      setDeliverers(res?.data || []);
     } catch (err) {
       console.error("Erreur chargement top livreurs:", err);
     } finally {
@@ -55,7 +55,7 @@ export default function TopDeliverersTable() {
                 <tr key={i} className="border-b hover:bg-gray-50">
                   <td className="p-3 font-medium">{d.name || d.address}</td>
                   <td className="p-3">{formatNumber(d.totalDeliveries)}</td>
-                  <td className="p-3">{formatCrypto(d.totalEarnings, "MATIC")}</td>
+                  <td className="p-3">{formatCrypto(d.earnings, "MATIC")}</td>
                   <td className="p-3">{d.rating?.toFixed(2)} ★</td>
                 </tr>
               ))}

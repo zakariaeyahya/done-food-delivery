@@ -16,10 +16,12 @@ export default function RecentOrdersTable() {
         sortField: "date",
         sortOrder: "desc",
       });
+      console.log("📋 Orders API response:", res);
 
-      setOrders(res.orders || []);
+      // Le backend retourne: { success, data: [...], pagination }
+      setOrders(res?.data || res?.orders || []);
     } catch (err) {
-      console.error("Erreur chargement commandes récentes:", err);
+      console.error("❌ Erreur chargement commandes récentes:", err);
     } finally {
       setLoading(false);
     }
@@ -55,11 +57,20 @@ export default function RecentOrdersTable() {
               {orders.map((o, i) => (
                 <tr key={i} className="border-b hover:bg-gray-50">
                   <td className="p-3 font-medium">#{o.orderId}</td>
-                  <td className="p-3">{o.customerName || "—"}</td>
-                  <td className="p-3">{o.restaurantName || "—"}</td>
-                  <td className="p-3">{formatCrypto(o.total)}</td>
-                  <td className="p-3">{o.status}</td>
-                  <td className="p-3">{formatDate(o.date)}</td>
+                  <td className="p-3">{o.client?.name || o.customerName || "—"}</td>
+                  <td className="p-3">{o.restaurant?.name || o.restaurantName || "—"}</td>
+                  <td className="p-3">{formatCrypto(o.totalAmount || o.total || 0)}</td>
+                  <td className="p-3">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      o.status === "DELIVERED" ? "bg-green-100 text-green-800" :
+                      o.status === "DISPUTED" ? "bg-red-100 text-red-800" :
+                      o.status === "IN_DELIVERY" ? "bg-blue-100 text-blue-800" :
+                      "bg-gray-100 text-gray-800"
+                    }`}>
+                      {o.status}
+                    </span>
+                  </td>
+                  <td className="p-3">{formatDate(o.createdAt || o.date)}</td>
                 </tr>
               ))}
             </tbody>

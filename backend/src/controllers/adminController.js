@@ -404,6 +404,123 @@ async function getAnalyticsRevenue(req, res) {
   }
 }
 
+/**
+ * Gets top deliverers by earnings
+ */
+async function getTopDeliverers(req, res) {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+
+    const topDeliverers = await Deliverer.find()
+      .sort({ earnings: -1 })
+      .limit(limit)
+      .select('address name earnings totalDeliveries rating vehicleType');
+
+    return res.status(200).json({
+      success: true,
+      data: topDeliverers.map(d => ({
+        address: d.address,
+        name: d.name || 'Unknown',
+        earnings: d.earnings || 0,
+        totalDeliveries: d.totalDeliveries || 0,
+        rating: d.rating || 0,
+        vehicleType: d.vehicleType || 'unknown'
+      }))
+    });
+  } catch (error) {
+    console.error("Error in getTopDeliverers:", error);
+    return res.status(500).json({ error: "Internal Server Error", message: "Failed to fetch top deliverers" });
+  }
+}
+
+/**
+ * Gets top restaurants by revenue
+ */
+async function getTopRestaurants(req, res) {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+
+    const topRestaurants = await Restaurant.find()
+      .sort({ revenue: -1 })
+      .limit(limit)
+      .select('address name revenue totalOrders rating cuisine');
+
+    return res.status(200).json({
+      success: true,
+      data: topRestaurants.map(r => ({
+        address: r.address,
+        name: r.name || 'Unknown',
+        revenue: r.revenue || 0,
+        totalOrders: r.totalOrders || 0,
+        rating: r.rating || 0,
+        cuisine: r.cuisine || 'unknown'
+      }))
+    });
+  } catch (error) {
+    console.error("Error in getTopRestaurants:", error);
+    return res.status(500).json({ error: "Internal Server Error", message: "Failed to fetch top restaurants" });
+  }
+}
+
+/**
+ * Gets disputes analytics (histogram by date)
+ */
+async function getAnalyticsDisputes(req, res) {
+  try {
+    const timeframe = req.query.timeframe || 'month';
+
+    let startDate = new Date();
+    if (timeframe === 'week') {
+      startDate.setDate(startDate.getDate() - 7);
+    } else if (timeframe === 'month') {
+      startDate.setMonth(startDate.getMonth() - 1);
+    } else {
+      startDate.setFullYear(startDate.getFullYear() - 1);
+    }
+
+    // Get disputed orders grouped by date
+    const disputes = await Order.aggregate([
+      {
+        $match: {
+          status: 'DISPUTED',
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Get dispute stats
+    const totalDisputes = await Order.countDocuments({ status: 'DISPUTED' });
+    const resolvedDisputes = await Order.countDocuments({ status: 'RESOLVED' });
+    const pendingDisputes = await Order.countDocuments({ status: 'DISPUTED', disputeReason: { $exists: true } });
+
+    return res.status(200).json({
+      success: true,
+      data: disputes.map(d => ({
+        date: d._id,
+        count: d.count
+      })),
+      summary: {
+        total: totalDisputes,
+        resolved: resolvedDisputes,
+        pending: pendingDisputes
+      },
+      timeframe
+    });
+  } catch (error) {
+    console.error("Error in getAnalyticsDisputes:", error);
+    return res.status(500).json({ error: "Internal Server Error", message: "Failed to fetch disputes analytics" });
+  }
+}
+
 async function ping(req, res) {
   return res.status(200).json({ success: true, message: "pong", timestamp: new Date().toISOString() });
 }
@@ -431,6 +548,9 @@ module.exports = {
   getOrders,
   getAnalyticsOrders,
   getAnalyticsRevenue,
+  getTopDeliverers,
+  getTopRestaurants,
+  getAnalyticsDisputes,
   ping,
   getConfig
 };

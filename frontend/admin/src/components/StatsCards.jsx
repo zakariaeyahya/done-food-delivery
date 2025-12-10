@@ -42,7 +42,7 @@ export default function StatsCards({
     },
     {
       label: "Temps Moyen Livraison",
-      value: formatDuration(avgDeliveryTime),
+      value: typeof avgDeliveryTime === "string" ? avgDeliveryTime : formatDuration(avgDeliveryTime),
       icon: <ClockIcon className="h-8 w-8 text-purple-600" />,
       bg: "bg-purple-50",
     },

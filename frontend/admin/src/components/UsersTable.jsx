@@ -54,8 +54,8 @@ export default function UsersTable() {
         sortOrder,
       });
 
-      setUsers(res.users || []);
-      setTotal(res.total || 0);
+      setUsers(res?.data || []);
+      setTotal(res?.total || 0);
     } catch (err) {
       console.error("Erreur users:", err.message);
     } finally {
