@@ -5,7 +5,7 @@ import { useApp } from "@/providers/AppProvider";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { StakingPanel } from "@/components/staking/StakingPanel";
+import StakingPanel  from "@/components/StakingPanel";
 import { RatingDisplay } from "@/components/rating/RatingDisplay";
 import api from "@/services/api";
 import { User, LogOut } from "lucide-react";

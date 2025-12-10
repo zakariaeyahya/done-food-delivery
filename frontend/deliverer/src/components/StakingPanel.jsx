@@ -1,16 +1,8 @@
-/**
- * Composant StakingPanel - Gestion du staking livreur
- */
-
 import { useState, useEffect } from "react";
 import blockchain from "../services/blockchain";
 import api from "../services/api";
-import { ethers } from "ethers";
+import "./StakingPanel.css";
 
-/**
- * Composant StakingPanel
- * @param {string} address - Adresse wallet du livreur
- */
 function StakingPanel({ address }) {
   const [stakedAmount, setStakedAmount] = useState(0);
   const [isStaked, setIsStaked] = useState(false);
@@ -19,8 +11,8 @@ function StakingPanel({ address }) {
   const [slashingHistory, setSlashingHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
 
-  /** Charger infos staking au montage */
   useEffect(() => {
     if (address) {
       fetchStakingInfo();
@@ -29,78 +21,78 @@ function StakingPanel({ address }) {
     }
   }, [address]);
 
-  /** Récupérer infos staking */
   async function fetchStakingInfo() {
     try {
       const stakeInfo = await blockchain.getStakeInfo(address);
       setStakedAmount(stakeInfo.amount);
       setIsStaked(stakeInfo.isStaked);
     } catch (err) {
-      console.error("Erreur récupération stake info :", err);
+      console.error("Erreur récupération stake info:", err);
     }
   }
 
-  /** Récupérer historique slashing */
   async function fetchSlashingHistory() {
     try {
       const events = await blockchain.getSlashingEvents(address);
       setSlashingHistory(events);
     } catch (err) {
-      console.error("Erreur récupération slashing history :", err);
+      console.error("Erreur récupération slashing history:", err);
     }
   }
 
-  /** Vérifier livraison active (backend) */
   async function checkActiveDelivery() {
     try {
       const active = await api.getActiveDelivery(address);
       setHasActiveDelivery(!!active);
     } catch (err) {
-      console.error("Erreur récupération livraison active :", err);
+      console.error("Erreur récupération livraison active:", err);
     }
   }
 
-  /** Effectuer staking */
-  /** Effectuer staking */
-async function handleStake() {
-  if (!address) {
-    setError("Adresse wallet requise.");
-    return;
+  async function handleStake() {
+    if (!address) {
+      setError("Adresse wallet requise.");
+      return;
+    }
+
+    let amount = parseFloat(stakeInput);
+
+    if (isNaN(amount) || amount <= 0) {
+      amount = 0.1;
+      setStakeInput("0.1");
+    }
+
+    if (amount < 0.1) {
+      setError("Montant minimum : 0.1 POL");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // MVP MODE: Simulation staking
+      console.log("🎬 MVP Mode: Simulation staking de", amount, "POL");
+      
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Simuler succès
+      setStakedAmount(amount);
+      setIsStaked(true);
+      setSuccess(`Staking réussi ! Vous avez staké ${amount} POL.`);
+      setStakeInput("0.1");
+      
+      // Sauvegarder dans localStorage pour persistance
+      localStorage.setItem(`staked_${address}`, amount.toString());
+    } catch (err) {
+      console.error("Erreur staking:", err);
+      setError(`Erreur: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  let amount = parseFloat(stakeInput);
-
-  // Si montant invalide ou 0, utiliser 0.1 par défaut
-  if (isNaN(amount) || amount <= 0) {
-    amount = 0.1;
-    setStakeInput("0.1");
-  }
-
-  if (amount < 0.1) {
-    setError("Montant minimum : 0.1 MATIC");
-    return;
-  }
-
-  setLoading(true);
-  setError(null);
-
-  try {
-    const { txHash } = await blockchain.stake(amount);
-    console.log("Transaction staking :", txHash);
-
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    await fetchStakingInfo();
-    alert(`Staking réussi ! ${amount} MATIC stakés.`);
-    setStakeInput("0.1"); // Reset input
-  } catch (err) {
-    setError(`Erreur staking : ${err.message}`);
-  } finally {
-    setLoading(false);
-  }
-}
-
-  /** Retirer staking */
   async function handleUnstake() {
     if (hasActiveDelivery) {
       setError("Impossible de retirer le staking pendant une livraison active.");
@@ -113,128 +105,163 @@ async function handleStake() {
 
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
-      const { txHash, amount } = await blockchain.unstake();
-      console.log("Transaction unstaking :", txHash);
+      // MVP MODE: Simulation unstaking
+      console.log("🎬 MVP Mode: Simulation unstaking");
+      
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      await fetchStakingInfo();
-      alert(`Unstaking réussi ! ${amount} MATIC retirés.`);
+      const amount = stakedAmount;
+      setStakedAmount(0);
+      setIsStaked(false);
+      setSuccess(`Unstaking réussi ! ${amount} POL retirés.`);
+      
+      // Supprimer du localStorage
+      localStorage.removeItem(`staked_${address}`);
     } catch (err) {
-      setError(`Erreur unstaking : ${err.message}`);
+      console.error("Erreur unstaking:", err);
+      setError(`Erreur: ${err.message}`);
     } finally {
       setLoading(false);
     }
   }
 
-  /** Total slashing */
   const totalSlashed = slashingHistory.reduce((sum, e) => sum + e.amount, 0);
 
   return (
-    <div className="staking-panel card">
-      <h2>Gestion du Staking</h2>
+    <div className="staking-card">
+      <div className="card-header">
+        <h2>💎 Gestion du Staking</h2>
+      </div>
 
-      {/* Statut staking */}
       <div className="staking-status">
         {isStaked ? (
-          <div className="status-badge status-staked">
-            ✅ Staké : {stakedAmount} MATIC
+          <div className="status-badge success">
+            <span className="icon">✅</span>
+            <div className="status-info">
+              <span className="label">Staké</span>
+              <span className="amount">{stakedAmount} POL</span>
+            </div>
           </div>
         ) : (
-          <div className="status-badge status-not-staked">❌ Non staké</div>
+          <div className="status-badge inactive">
+            <span className="icon">❌</span>
+            <div className="status-info">
+              <span className="label">Non staké</span>
+              <span className="amount">0 POL</span>
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Input staking */}
-      <div className="stake-input">
-        <label>Montant à staker (minimum 0.1 MATIC)</label>
-        <input
-            type="number"
-            value={stakeInput}
-            onChange={(e) => {
-              const val = e.target.value;
-              setStakeInput(val);
-              if (parseFloat(val) < 0.1 && parseFloat(val) !== 0) {
-                setError("Montant minimum : 0.1 MATIC");
-              } else {
-                setError(null);
-              }
-            }}
-            min="0.1"
-            step="0.1"
-            placeholder="0.1"
-          />
-        <button onClick={handleStake} disabled={loading || isStaked}>
-          {loading ? "En cours..." : `Stake ${parseFloat(stakeInput) > 0 ? stakeInput : "0.1"} POL`}
-        </button>
-      </div>
-
-      {/* Bouton unstake */}
-      {isStaked && (
-        <button
-          onClick={handleUnstake}
-          disabled={loading || hasActiveDelivery}
-          className="btn-danger"
-        >
-          {hasActiveDelivery
-            ? "Livraison active"
-            : loading
-            ? "En cours..."
-            : "Unstake"}
-        </button>
-      )}
-
-      {/* Historique slashing */}
-      {slashingHistory.length > 0 && (
-        <div className="slashing-history">
-          <h3>Historique Slashing</h3>
-
-          <p>Total slashé : {totalSlashed} MATIC</p>
-
-          {totalSlashed > 0.5 && (
-            <div className="warning">
-              ⚠️ Attention : vous avez été slashé plusieurs fois !
-            </div>
-          )}
-
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Raison</th>
-                <th>Montant</th>
-                <th>Transaction</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {slashingHistory.map((event, i) => (
-                <tr key={i}>
-                  <td>
-                    {new Date(event.timestamp * 1000).toLocaleDateString()}
-                  </td>
-                  <td>{event.reason}</td>
-                  <td>{event.amount} MATIC</td>
-                  <td>
-                    <a
-                      href={`https://mumbai.polygonscan.com/tx/${event.txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Voir
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {!isStaked && (
+        <div className="stake-form">
+          <label>Montant à staker</label>
+          <div className="input-group">
+            <input
+              type="number"
+              value={stakeInput}
+              onChange={(e) => {
+                const val = e.target.value;
+                setStakeInput(val);
+                if (parseFloat(val) < 0.1 && parseFloat(val) !== 0) {
+                  setError("Montant minimum : 0.1 POL");
+                } else {
+                  setError(null);
+                }
+              }}
+              min="0.1"
+              step="0.1"
+              placeholder="0.1"
+              disabled={loading}
+            />
+            <span className="input-suffix">POL</span>
+          </div>
+          <p className="hint">Minimum: 0.1 POL</p>
+          
+          <button 
+            className="btn-primary" 
+            onClick={handleStake} 
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span className="spinner"></span>
+                Staking en cours...
+              </>
+            ) : (
+              `Stake ${parseFloat(stakeInput) > 0 ? stakeInput : "0.1"} POL`
+            )}
+          </button>
         </div>
       )}
 
-      {/* Erreurs */}
-      {error && <div className="error-message">{error}</div>}
+      {isStaked && (
+        <div className="unstake-section">
+          <button
+            className="btn-danger"
+            onClick={handleUnstake}
+            disabled={loading || hasActiveDelivery}
+          >
+            {hasActiveDelivery ? (
+              "⚠️ Livraison active"
+            ) : loading ? (
+              <>
+                <span className="spinner"></span>
+                Unstaking...
+              </>
+            ) : (
+              "Retirer mon staking"
+            )}
+          </button>
+        </div>
+      )}
+
+      {success && (
+        <div className="alert success">
+          <span className="icon">✅</span>
+          <span>{success}</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="alert error">
+          <span className="icon">⚠️</span>
+          <span>{error}</span>
+        </div>
+      )}
+
+      {slashingHistory.length > 0 && (
+        <div className="slashing-section">
+          <h3>📊 Historique Slashing</h3>
+          <div className="slashing-total">
+            Total slashé: <strong>{totalSlashed.toFixed(3)} POL</strong>
+          </div>
+          
+          {totalSlashed > 0.5 && (
+            <div className="alert warning">
+              <span className="icon">⚠️</span>
+              <span>Attention: vous avez été slashé plusieurs fois!</span>
+            </div>
+          )}
+
+          <div className="slashing-list">
+            {slashingHistory.map((event, i) => (
+              <div key={i} className="slashing-item">
+                <div className="slashing-info">
+                  <span className="reason">{event.reason}</span>
+                  <span className="date">
+                    {new Date(event.timestamp * 1000).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="slashing-amount">-{event.amount} POL</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

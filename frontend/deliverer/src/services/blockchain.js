@@ -269,29 +269,45 @@ export async function getStakeInfo(address) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 5. Staker                                                                  */
+/* UTILITY: Retry avec backoff exponentiel                                    */
+/* -------------------------------------------------------------------------- */
+async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 2000) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const isRpcError = 
+        error.message?.includes('RPC endpoint') || 
+        error.code === 'UNKNOWN_ERROR' ||
+        error.code === -32002 ||
+        error.message?.includes('could not coalesce');
+      
+      const isLastRetry = i === maxRetries - 1;
+      
+      if (!isRpcError || isLastRetry) {
+        throw error;
+      }
+      
+      const delay = baseDelay * Math.pow(2, i);
+      console.warn(`⚠️ RPC error, tentative ${i + 1}/${maxRetries}. Attente ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* 5. Staker avec retry                                                       */
 /* -------------------------------------------------------------------------- */
 export async function stake(amount) {
-  try {
+  return retryWithBackoff(async () => {
     const stakingAddress = getStakingAddress();
     
-    // Enhanced debugging
-    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
-      console.log("🔍 Debug stake() - stakingAddress:", stakingAddress);
-      console.log("🔍 Debug stake() - process.env.NEXT_PUBLIC_STAKING_ADDRESS:", process.env.NEXT_PUBLIC_STAKING_ADDRESS);
-      console.log("🔍 Debug stake() - process.env keys:", Object.keys(process.env).filter(k => k.includes('STAKING')));
-    }
-    
     if (!stakingAddress || stakingAddress === '') {
-      const errorMsg = `Staking contract not configured. Please set NEXT_PUBLIC_STAKING_ADDRESS in your .env.local file. Current value: ${stakingAddress || 'undefined'}`;
-      console.error("❌ Staking error:", errorMsg);
-      throw new Error(errorMsg);
+      throw new Error("Staking contract not configured");
     }
 
     const signer = await getSigner();
-
-    // Always create contract with signer for transactions (not provider)
-    // Don't reuse stakingContract as it may have been created with provider (read-only)
+    
     const stakingContractWithSigner = new ethers.Contract(
       stakingAddress,
       DoneStakingABI.abi,
@@ -302,16 +318,16 @@ export async function stake(amount) {
     const min = ethers.parseEther("0.1");
     if (amountWei < min) throw new Error("Minimum stake: 0.1 POL");
 
+    console.log("📤 Envoi transaction staking...");
     const tx = await stakingContractWithSigner.stakeAsDeliverer({
       value: amountWei,
     });
 
+    console.log("⏳ Attente confirmation transaction...");
     const receipt = await tx.wait();
+    
     return { txHash: receipt.hash, receipt };
-  } catch (err) {
-    console.error("Stake error:", err);
-    throw new Error(err.message);
-  }
+  }, 3, 3000);
 }
 
 /* -------------------------------------------------------------------------- */
