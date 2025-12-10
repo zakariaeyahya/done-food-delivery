@@ -1,27 +1,10 @@
-import React, { useState, useRef } from 'react';
-import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
+import React, { useState } from 'react';
 import RestaurantList from '../components/RestaurantList';
-import ConnectWallet from '../components/ConnectWallet'; // Assuming you want this on the homepage
-
-const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'; // Replace with your Google Maps API Key
-const LIBRARIES = ['places'];
+import ConnectWallet from '../components/ConnectWallet';
 
 const HomePage = () => {
   const [searchAddress, setSearchAddress] = useState('');
   const [searchCuisine, setSearchCuisine] = useState('');
-  const autocompleteRef = useRef(null);
-
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: LIBRARIES,
-  });
-
-  const handlePlaceChanged = () => {
-    if (autocompleteRef.current) {
-      const place = autocompleteRef.current.getPlace();
-      setSearchAddress(place.formatted_address);
-    }
-  };
 
   const handleCuisineChange = (e) => {
     setSearchCuisine(e.target.value);
@@ -31,38 +14,29 @@ const HomePage = () => {
     setSearchCuisine(cuisineType);
   };
 
-  const popularCuisines = ['Italian', 'Mexican', 'Japanese', 'Indian', 'French']; // Example categories
+  const popularCuisines = ['Italian', 'Mexican', 'Japanese', 'Indian', 'French'];
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Hero Section */}
-      <div className="relative h-96 bg-cover bg-center" style={{ backgroundImage: 'url("https://via.placeholder.com/1500x500/cccccc/ffffff?text=Delicious+Food")' }}>
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="relative h-96 bg-cover bg-center" style={{ 
+        backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1500&h=500&fit=crop)' 
+      }}>
+        <div className="absolute inset-0 flex items-center justify-center p-4">
           <div className="text-center text-white">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Craving something delicious?</h1>
             <p className="text-xl mb-6">Order food from your favorite local restaurants.</p>
             
             <div className="flex flex-col md:flex-row gap-4 justify-center">
-              <div className="w-full md:w-1/2">
-                {loadError && <p>Error loading Google Maps</p>}
-                {isLoaded && (
-                  <Autocomplete
-                    onLoad={(ref) => (autocompleteRef.current = ref)}
-                    onPlaceChanged={handlePlaceChanged}
-                  >
-                    <input
-                      type="text"
-                      placeholder="Enter your delivery address"
-                      className="w-full p-3 border border-gray-300 rounded-lg text-gray-800"
-                      value={searchAddress}
-                      onChange={(e) => setSearchAddress(e.target.value)}
-                    />
-                  </Autocomplete>
-                )}
-              </div>
               <input
                 type="text"
-                placeholder="Search by cuisine type (e.g., Italian)"
+                placeholder="Enter your delivery address"
+                className="w-full md:w-1/2 p-3 border border-gray-300 rounded-lg text-gray-800"
+                value={searchAddress}
+                onChange={(e) => setSearchAddress(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Search by cuisine type"
                 className="w-full md:w-1/4 p-3 border border-gray-300 rounded-lg text-gray-800"
                 value={searchCuisine}
                 onChange={handleCuisineChange}
@@ -76,7 +50,6 @@ const HomePage = () => {
       </div>
 
       <div className="container mx-auto p-8">
-        {/* Featured Cuisine Categories */}
         <section className="mb-12">
           <h2 className="text-3xl font-bold text-center mb-6">Explore by Cuisine</h2>
           <div className="flex flex-wrap justify-center gap-4">
@@ -92,18 +65,8 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* Popular Restaurants List (Filtered by search/category) */}
         <section>
-          {/* You might pass the searchAddress and searchCuisine to RestaurantList as props */}
           <RestaurantList filters={{ cuisine: searchCuisine, address: searchAddress }} />
-        </section>
-        
-        {/* Example of ConnectWallet on homepage, remove if not desired here */}
-        <section className="mt-12 text-center">
-          <h2 className="text-3xl font-bold mb-4">Connect Your Wallet</h2>
-          <div className="flex justify-center">
-            <ConnectWallet />
-          </div>
         </section>
       </div>
     </div>

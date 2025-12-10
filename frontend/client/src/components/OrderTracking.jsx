@@ -3,7 +3,7 @@ import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-go
 import { useSocket } from '../contexts/SocketContext';
 import { confirmOnChainDelivery } from '../services/blockchain';
 
-const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'; // Replace with your API Key
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const LIBRARIES = ['places'];
 
 const containerStyle = {

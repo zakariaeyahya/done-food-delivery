@@ -4,7 +4,7 @@ import { createOnChainOrder } from '../services/blockchain';
 import { createOrder as createApiOrder } from '../services/api';
 import { formatPriceInEUR, formatPriceInMATIC } from '../utils/formatters';
 
-const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'; // Replace with your Google Maps API Key
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const LIBRARIES = ['places'];
 
 const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal, finalTotalMATIC }) => {

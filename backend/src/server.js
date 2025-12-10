@@ -41,7 +41,7 @@ const server = http.createServer(app);
 
 // Liste des origines autorisées pour CORS
 const allowedOrigins = [
-  "http://localhost:3001", // Client
+  "http://localhost:5173", // Client
   "http://localhost:5175", // Deliverer
   "http://localhost:5176", // Deliverer (alternative port)
   "http://localhost:3002", // Restaurant

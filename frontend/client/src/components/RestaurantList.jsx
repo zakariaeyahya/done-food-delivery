@@ -18,18 +18,27 @@ const RestaurantList = () => {
         setLoading(true);
         setError('');
         const response = await getRestaurants(filters);
-        // Assuming the API returns an array of restaurants in response.data
-        setRestaurants(response.data);
+        
+        if (Array.isArray(response.data)) {
+          setRestaurants(response.data);
+        } else if (response.data && Array.isArray(response.data.restaurants)) {
+          setRestaurants(response.data.restaurants);
+        } else {
+          console.error('Invalid response format:', response.data);
+          setRestaurants([]);
+          setError('Invalid data format received from server');
+        }
       } catch (err) {
         console.error('Failed to fetch restaurants:', err);
         setError('Failed to load restaurants. Please try again later.');
+        setRestaurants([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchRestaurants();
-  }, [filters]); // Refetch when filters change
+  }, [filters]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -43,11 +52,9 @@ const RestaurantList = () => {
     <div className="container p-4 mx-auto">
       <h2 className="mb-6 text-3xl font-bold text-center">Our Restaurants</h2>
 
-      {/* Filter Section */}
       <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
         <select name="cuisine" value={filters.cuisine} onChange={handleFilterChange} className="p-2 border rounded">
           <option value="">All Cuisines</option>
-          {/* These would typically come from an API or a predefined list */}
           <option value="Italian">Italian</option>
           <option value="Mexican">Mexican</option>
           <option value="Japanese">Japanese</option>
@@ -68,15 +75,19 @@ const RestaurantList = () => {
         </select>
       </div>
 
-      {/* Restaurant Grid */}
       {loading ? (
         <p className="text-center">Loading restaurants...</p>
       ) : error ? (
         <p className="text-center text-red-500">{error}</p>
+      ) : restaurants.length === 0 ? (
+        <p className="text-center">No restaurants found</p>
       ) : (
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {restaurants.map((restaurant) => (
-            <RestaurantCard key={restaurant.id} restaurant={restaurant} />
+            <RestaurantCard 
+              key={restaurant.id || restaurant._id || restaurant.address} 
+              restaurant={restaurant} 
+            />
           ))}
         </div>
       )}

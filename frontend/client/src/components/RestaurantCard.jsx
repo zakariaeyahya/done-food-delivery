@@ -1,27 +1,19 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getImageUrl } from '../services/ipfs'; // Assuming ipfs.js is in the same services directory
+import { getImageUrl } from '../services/ipfs';
 
-/**
- * A card component to display information about a single restaurant.
- * @param {object} props - The props object.
- * @param {object} props.restaurant - The restaurant data to display.
- * @param {string} props.restaurant.id - Unique ID of the restaurant.
- * @param {string} props.restaurant.name - Name of the restaurant.
- * @param {string} props.restaurant.cuisine - Type of cuisine.
- * @param {string} props.restaurant.ipfsImageHash - IPFS hash for the restaurant's image.
- * @param {number} props.restaurant.rating - Average rating of the restaurant.
- * @param {number} props.restaurant.reviewCount - Total number of reviews.
- * @param {string} props.restaurant.estimatedDeliveryTime - Estimated delivery time (e.g., "30-45 min").
- */
 const RestaurantCard = ({ restaurant }) => {
   const navigate = useNavigate();
 
   const handleCardClick = () => {
-    navigate(`/restaurant/${restaurant.id}`);
+    const restaurantId = restaurant.id || restaurant._id || restaurant.address;
+    navigate(`/restaurant/${restaurantId}`);
   };
 
-  const imageUrl = restaurant.ipfsImageHash ? getImageUrl(restaurant.ipfsImageHash) : 'https://via.placeholder.com/400x200.png?text=Restaurant';
+  const imageUrl = restaurant.ipfsImageHash 
+    ? getImageUrl(restaurant.ipfsImageHash) 
+    : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=200&fit=crop';
+  
   const displayRating = (restaurant.rating || 0).toFixed(1);
   const displayReviewCount = restaurant.reviewCount !== undefined ? `(${restaurant.reviewCount} reviews)` : '';
   const displayDeliveryTime = restaurant.estimatedDeliveryTime ? `~${restaurant.estimatedDeliveryTime}` : 'N/A';
