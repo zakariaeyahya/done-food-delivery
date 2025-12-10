@@ -48,10 +48,11 @@ function handleApiError(error) {
 /**
  * 0. (Bonus) Récupérer un restaurant par adresse wallet
  * Route: GET /api/restaurants/by-address/:address
+ * @returns {Object|null} Restaurant data or null if not found
  */
 async function getRestaurantByAddress(address) {
   try {
-    if (!address) throw new Error("Restaurant address is required");
+    if (!address) return null;
 
     const response = await axios.get(
       `${API_BASE_URL}/restaurants/by-address/${address}`,
@@ -59,6 +60,10 @@ async function getRestaurantByAddress(address) {
     );
     return response.data;
   } catch (error) {
+    // 404 = restaurant non enregistré, retourner null silencieusement
+    if (error?.response?.status === 404) {
+      return null;
+    }
     handleApiError(error);
     throw error;
   }

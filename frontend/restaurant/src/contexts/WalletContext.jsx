@@ -27,7 +27,7 @@ export function WalletProvider({ children }) {
   // Fonction pour charger restaurant profile
   async function fetchRestaurantProfile(addr) {
     try {
-      // Chercher restaurant par address
+      // Chercher restaurant par address (retourne null si non trouvé)
       const restaurantData = await api.getRestaurantByAddress(addr);
       setRestaurant(restaurantData);
       return restaurantData;
@@ -42,11 +42,16 @@ export function WalletProvider({ children }) {
   useEffect(() => {
     async function init() {
       const savedAddress = localStorage.getItem('restaurantWalletAddress');
+      const isRegistered = localStorage.getItem('restaurantIsRegistered');
+
       if (savedAddress) {
         setAddress(savedAddress);
         setIsConnected(true);
-        // Charger restaurant profile
-        await fetchRestaurantProfile(savedAddress);
+
+        // Seulement fetch si marqué comme enregistré
+        if (isRegistered === 'true') {
+          await fetchRestaurantProfile(savedAddress);
+        }
       }
       setLoading(false);
     }
@@ -60,10 +65,28 @@ export function WalletProvider({ children }) {
       setAddress(connectedAddress);
       setIsConnected(true);
       localStorage.setItem('restaurantWalletAddress', connectedAddress);
-      await fetchRestaurantProfile(connectedAddress);
+      // Ne pas fetch ici - laisser RegisterPage gérer
     } catch (error) {
       console.error('Error connecting wallet:', error);
     }
+  }
+
+  // Fonction appelée après inscription réussie
+  async function onRegistrationSuccess(restaurantData) {
+    setRestaurant(restaurantData);
+    localStorage.setItem('restaurantIsRegistered', 'true');
+  }
+
+  // Fonction pour rafraîchir le profil restaurant (appelée manuellement)
+  async function refreshRestaurant() {
+    if (address) {
+      const data = await fetchRestaurantProfile(address);
+      if (data) {
+        localStorage.setItem('restaurantIsRegistered', 'true');
+      }
+      return data;
+    }
+    return null;
   }
 
   // Fonction pour déconnecter wallet
@@ -73,10 +96,21 @@ export function WalletProvider({ children }) {
     setRestaurant(null);
     setIsConnected(false);
     localStorage.removeItem('restaurantWalletAddress');
+    localStorage.removeItem('restaurantIsRegistered');
   }
 
   return (
-    <WalletContext.Provider value={{ address, balance, restaurant, isConnected, loading, connect, disconnect }}>
+    <WalletContext.Provider value={{
+      address,
+      balance,
+      restaurant,
+      isConnected,
+      loading,
+      connect,
+      disconnect,
+      onRegistrationSuccess,
+      refreshRestaurant
+    }}>
       {children}
     </WalletContext.Provider>
   );

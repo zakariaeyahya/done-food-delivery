@@ -13,7 +13,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000
 
 function RegisterPage() {
   const navigate = useNavigate();
-  const { address } = useWallet();
+  const { address, onRegistrationSuccess } = useWallet();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -149,12 +149,14 @@ function RegisterPage() {
         throw new Error(data.message || 'Erreur lors de l\'inscription');
       }
 
+      // Mettre à jour le context avec le nouveau restaurant
+      await onRegistrationSuccess(data.restaurant || data);
+
       setSuccess(true);
 
       // Rediriger vers dashboard après 2 secondes
       setTimeout(() => {
         navigate('/');
-        window.location.reload(); // Recharger pour fetch le nouveau restaurant
       }, 2000);
 
     } catch (err) {

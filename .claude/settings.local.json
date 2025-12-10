@@ -13,7 +13,8 @@
       "Bash(powershell \"Invoke-WebRequest -Uri ''http://localhost:3000/api/restaurants/by-address/0x081aC3Aa3977f7220cE626baf6a805fF5847038c'' -UseBasicParsing | Select-Object -ExpandProperty Content\")",
       "Bash(timeout /t 5 /nobreak)",
       "Bash(powershell \"Get-Content ''C:\\Users\\Hp\\Desktop\\blockchain\\blockchain\\frontend\\restaurant\\src\\index.css'' | Measure-Object -Line | Select-Object -ExpandProperty Lines\")",
-      "Bash(ping:*)"
+      "Bash(ping:*)",
+      "Bash(dir:*)"
     ]
   }
 }
