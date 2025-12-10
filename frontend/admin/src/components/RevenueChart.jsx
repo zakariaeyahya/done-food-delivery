@@ -52,17 +52,27 @@ export default function RevenueChart() {
       // Off-chain analytics
       const analytics = await api.getAnalytics("revenue", { timeframe });
 
+      // Vérifier si les données sont valides
+      const transactions = chain?.transactions || [];
+
+      if (transactions.length === 0) {
+        setChartData(null);
+        setBreakdown(null);
+        setComparison(null);
+        return;
+      }
+
       // Final labels
-      const labels = chain.transactions.map((tx) =>
+      const labels = transactions.map((tx) =>
         formatDateShort(tx.timestamp * 1000)
       );
 
-      const datasetPlatform = chain.transactions.map((tx) =>
+      const datasetPlatform = transactions.map((tx) =>
         Number(tx.platformAmount)
       );
 
-      const datasetRestaurants = analytics.restaurantRevenue || [];
-      const datasetDeliverers = analytics.delivererRevenue || [];
+      const datasetRestaurants = analytics?.restaurantRevenue || [];
+      const datasetDeliverers = analytics?.delivererRevenue || [];
 
       setChartData({
         labels,
@@ -94,11 +104,12 @@ export default function RevenueChart() {
         ],
       });
 
-      setBreakdown(analytics.breakdown);
+      setBreakdown(analytics?.breakdown || null);
 
-      setComparison(analytics.comparison || null);
+      setComparison(analytics?.comparison || null);
     } catch (err) {
       console.error("Erreur revenue chart:", err);
+      setChartData(null);
     } finally {
       setLoading(false);
     }

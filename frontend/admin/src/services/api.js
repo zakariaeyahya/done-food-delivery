@@ -278,3 +278,22 @@ export async function getAnalyticsDisputes(filters = {}) {
   }
 }
 
+// ============================================
+// 9. DASHBOARD STATS (Stats globales)
+// ============================================
+
+export async function getDashboardStats() {
+  try {
+    const address = localStorage.getItem("adminWalletAddress");
+
+    const res = await axios.get(
+      `${API_BASE_URL}/api/admin/stats`,
+      { headers: authHeaders(address) }
+    );
+
+    return res.data;
+  } catch (err) {
+    handleApiError(err);
+  }
+}
+

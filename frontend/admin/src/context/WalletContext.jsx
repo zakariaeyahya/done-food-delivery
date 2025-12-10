@@ -25,8 +25,9 @@ const AMOY_PARAMS = {
 const WalletContext = createContext(null);
 
 export function WalletProvider({ children }) {
-  const [address, setAddress] = useState(localStorage.getItem("adminWalletAddress") || null);
-  const [hasAdminRole] = useState(true); // ⚠️ plus tard remplacé par vérification smart-contract
+  const [address, setAddress] = useState(null);
+  const [hasAdminRole] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   // --------------------------------------------------------------------
   // 🔌 Connexion MetaMask + Vérification / Switch réseau Amoy
@@ -98,6 +99,40 @@ export function WalletProvider({ children }) {
   }
 
   // --------------------------------------------------------------------
+  // 🚀 Auto-connexion au démarrage
+  // --------------------------------------------------------------------
+
+  useEffect(() => {
+    async function autoConnect() {
+      if (!window.ethereum) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Vérifier si déjà connecté
+        const accounts = await window.ethereum.request({ method: "eth_accounts" });
+
+        if (accounts && accounts.length > 0) {
+          // Vérifier le réseau
+          const ok = await ensureCorrectNetwork();
+          if (ok) {
+            setAddress(accounts[0]);
+            localStorage.setItem("adminWalletAddress", accounts[0]);
+            console.log("Auto-connexion réussie :", accounts[0]);
+          }
+        }
+      } catch (err) {
+        console.error("Erreur auto-connexion:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    autoConnect();
+  }, []);
+
+  // --------------------------------------------------------------------
   // 📡 Listeners : changement réseau + changement compte
   // --------------------------------------------------------------------
 
@@ -142,7 +177,7 @@ export function WalletProvider({ children }) {
   // --------------------------------------------------------------------
 
   return (
-    <WalletContext.Provider value={{ address, hasAdminRole, connect }}>
+    <WalletContext.Provider value={{ address, hasAdminRole, connect, isLoading }}>
       {children}
     </WalletContext.Provider>
   );
