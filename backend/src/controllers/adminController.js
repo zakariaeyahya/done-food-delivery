@@ -318,12 +318,120 @@ async function getAllDeliverers(req, res) {
   }
 }
 
+// ============================================
+// NOUVELLES FONCTIONS
+// ============================================
+
+async function getOrders(req, res) {
+  try {
+    const { page = 1, limit = 10, sortField = 'createdAt', sortOrder = 'desc', status } = req.query;
+    const query = {}; if (status) query.status = status;
+    const sortOptions = {};
+    sortOptions[sortField === 'date' ? 'createdAt' : sortField] = sortOrder === 'desc' ? -1 : 1;
+    const total = await Order.countDocuments(query);
+    const orders = await Order.find(query)
+      .populate('client', 'address name').populate('restaurant', 'address name').populate('deliverer', 'address name')
+      .sort(sortOptions).skip((page - 1) * limit).limit(parseInt(limit)).lean();
+    return res.status(200).json({ success: true, data: orders, pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) } });
+  } catch (error) {
+    console.error("Error in getOrders:", error);
+    return res.status(500).json({ error: "Internal Server Error", message: "Failed to fetch orders" });
+  }
+}
+
+async function getAnalyticsOrders(req, res) {
+  try {
+    const { timeframe = 'week' } = req.query;
+    let startDate = new Date();
+    if (timeframe === 'day') startDate.setDate(startDate.getDate() - 1);
+    else if (timeframe === 'week') startDate.setDate(startDate.getDate() - 7);
+    else if (timeframe === 'month') startDate.setMonth(startDate.getMonth() - 1);
+    else startDate.setDate(startDate.getDate() - 7);
+    const orders = await Order.find({ createdAt: { $gte: startDate } }).lean();
+    const groupedData = {};
+    orders.forEach(order => {
+      const date = order.createdAt.toISOString().split('T')[0];
+      if (!groupedData[date]) groupedData[date] = { count: 0, total: 0 };
+      groupedData[date].count++;
+      groupedData[date].total += order.totalAmount || 0;
+    });
+    const chartData = Object.entries(groupedData).map(([date, data]) => ({ date, orders: data.count, revenue: data.total })).sort((a, b) => new Date(a.date) - new Date(b.date));
+    return res.status(200).json({ success: true, data: chartData, timeframe, summary: { totalOrders: orders.length, totalRevenue: orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0) } });
+  } catch (error) {
+    console.error("Error in getAnalyticsOrders:", error);
+    return res.status(500).json({ error: "Internal Server Error", message: "Failed to fetch orders analytics" });
+  }
+}
+
+async function getAnalyticsRevenue(req, res) {
+  try {
+    const { timeframe = 'week' } = req.query;
+    let startDate = new Date();
+    if (timeframe === 'day') startDate.setDate(startDate.getDate() - 1);
+    else if (timeframe === 'week') startDate.setDate(startDate.getDate() - 7);
+    else if (timeframe === 'month') startDate.setMonth(startDate.getMonth() - 1);
+    else startDate.setDate(startDate.getDate() - 7);
+    const orders = await Order.find({ createdAt: { $gte: startDate }, status: 'DELIVERED' }).lean();
+    const groupedData = {};
+    orders.forEach(order => {
+      const date = order.createdAt.toISOString().split('T')[0];
+      if (!groupedData[date]) groupedData[date] = { platform: 0, restaurant: 0, deliverer: 0, total: 0 };
+      const total = order.totalAmount || 0;
+      groupedData[date].platform += total * 0.1;
+      groupedData[date].restaurant += total * 0.7;
+      groupedData[date].deliverer += total * 0.2;
+      groupedData[date].total += total;
+    });
+    const chartData = Object.entries(groupedData).map(([date, data]) => ({
+      date,
+      platform: parseFloat(data.platform.toFixed(2)),
+      restaurant: parseFloat(data.restaurant.toFixed(2)),
+      deliverer: parseFloat(data.deliverer.toFixed(2)),
+      total: parseFloat(data.total.toFixed(2))
+    })).sort((a, b) => new Date(a.date) - new Date(b.date));
+    const totals = orders.reduce((acc, order) => {
+      const total = order.totalAmount || 0;
+      acc.platform += total * 0.1;
+      acc.restaurant += total * 0.7;
+      acc.deliverer += total * 0.2;
+      acc.total += total;
+      return acc;
+    }, { platform: 0, restaurant: 0, deliverer: 0, total: 0 });
+    return res.status(200).json({ success: true, data: chartData, timeframe, totals: { platform: parseFloat(totals.platform.toFixed(2)), restaurant: parseFloat(totals.restaurant.toFixed(2)), deliverer: parseFloat(totals.deliverer.toFixed(2)), total: parseFloat(totals.total.toFixed(2)) } });
+  } catch (error) {
+    console.error("Error in getAnalyticsRevenue:", error);
+    return res.status(500).json({ error: "Internal Server Error", message: "Failed to fetch revenue analytics" });
+  }
+}
+
+async function ping(req, res) {
+  return res.status(200).json({ success: true, message: "pong", timestamp: new Date().toISOString() });
+}
+
+async function getConfig(req, res) {
+  return res.status(200).json({
+    success: true,
+    contracts: {
+      orderManager: process.env.ORDER_MANAGER_ADDRESS || null,
+      token: process.env.TOKEN_ADDRESS || null,
+      staking: process.env.STAKING_ADDRESS || null,
+      paymentSplitter: process.env.PAYMENT_SPLITTER_ADDRESS || null
+    },
+    network: { chainId: 80002, name: "Polygon Amoy Testnet", rpcUrl: "https://rpc-amoy.polygon.technology" }
+  });
+}
+
 module.exports = {
   getStats,
   getDisputes,
   resolveDispute,
   getAllUsers,
   getAllRestaurants,
-  getAllDeliverers
+  getAllDeliverers,
+  getOrders,
+  getAnalyticsOrders,
+  getAnalyticsRevenue,
+  ping,
+  getConfig
 };
 

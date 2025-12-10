@@ -47,6 +47,13 @@ export default function OrdersAnalyticsChart() {
 
       const data = await getAnalytics("orders", { timeframe });
 
+      // Vérifier si les données sont valides
+      if (!data || !data.dates || !data.orders) {
+        setChartData(null);
+        setSummary(null);
+        return;
+      }
+
       // Labels → dates formatées
       const labels = data.dates.map((d) => formatDateShort(d));
 

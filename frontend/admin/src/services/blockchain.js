@@ -136,10 +136,58 @@ export async function connectWallet() {
    VERIFICATION DES ROLES
 ============================================================ */
 
-/* export async function hasRole(addr, role) {
-  if (!orderManagerContract) await initContracts();
-  return await orderManagerContract.hasRole(role, addr);
-}*/
-export async function hasRole() {
-  return true; // TEMPORAIRE : bypass
+export async function hasRole(addr, role) {
+  try {
+    if (!orderManagerContract) await initContracts();
+    return await orderManagerContract.hasRole(role, addr);
+  } catch (err) {
+    console.error("Erreur vérification rôle:", err);
+    return false;
+  }
+}
+
+/* ============================================================
+   RECUPERER LES REVENUS PLATEFORME (On-Chain)
+============================================================ */
+
+export async function getPlatformRevenue(timeframe = "week") {
+  // Note: eth_getLogs est limité sur le RPC public Polygon Amoy
+  // Les revenus seront récupérés via l'API backend à la place
+  return {
+    transactions: [],
+    totals: { platform: "0", restaurant: "0", deliverer: "0" },
+    timeframe,
+  };
+}
+
+/* ============================================================
+   RECUPERER LES STATS GLOBALES (On-Chain)
+============================================================ */
+
+export async function getGlobalStats() {
+  try {
+    if (!orderManagerContract) await initContracts();
+
+    // Récupérer le nombre total de commandes
+    const totalOrders = await orderManagerContract.orderCounter();
+
+    // Récupérer le total supply des tokens DONE
+    const totalTokens = await tokenContract.totalSupply();
+
+    // Récupérer le total staké
+    const totalStaked = await stakingContract.totalStaked();
+
+    return {
+      totalOrders: Number(totalOrders),
+      totalTokens: ethers.formatEther(totalTokens),
+      totalStaked: ethers.formatEther(totalStaked),
+    };
+  } catch (err) {
+    console.error("Erreur récupération stats globales:", err);
+    return {
+      totalOrders: 0,
+      totalTokens: "0",
+      totalStaked: "0",
+    };
+  }
 }
