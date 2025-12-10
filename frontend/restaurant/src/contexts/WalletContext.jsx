@@ -22,28 +22,35 @@ export function WalletProvider({ children }) {
   const [balance, setBalance] = useState('0');
   const [restaurant, setRestaurant] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Fonction pour charger restaurant profile
-  async function fetchRestaurantProfile(address) {
+  async function fetchRestaurantProfile(addr) {
     try {
       // Chercher restaurant par address
-      const restaurantData = await api.getRestaurantByAddress(address);
+      const restaurantData = await api.getRestaurantByAddress(addr);
       setRestaurant(restaurantData);
+      return restaurantData;
     } catch (error) {
       console.error('Error fetching restaurant profile:', error);
+      setRestaurant(null);
+      return null;
     }
   }
 
   // useEffect pour charger wallet depuis localStorage
   useEffect(() => {
-    const savedAddress = localStorage.getItem('restaurantWalletAddress');
-    if (savedAddress) {
-      setAddress(savedAddress);
-      setIsConnected(true);
-      // Charger restaurant profile
-      fetchRestaurantProfile(savedAddress);
+    async function init() {
+      const savedAddress = localStorage.getItem('restaurantWalletAddress');
+      if (savedAddress) {
+        setAddress(savedAddress);
+        setIsConnected(true);
+        // Charger restaurant profile
+        await fetchRestaurantProfile(savedAddress);
+      }
+      setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    init();
   }, []);
 
   // Fonction pour connecter wallet
@@ -69,7 +76,7 @@ export function WalletProvider({ children }) {
   }
 
   return (
-    <WalletContext.Provider value={{ address, balance, restaurant, isConnected, connect, disconnect }}>
+    <WalletContext.Provider value={{ address, balance, restaurant, isConnected, loading, connect, disconnect }}>
       {children}
     </WalletContext.Provider>
   );

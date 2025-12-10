@@ -44,24 +44,15 @@ const allowedOrigins = [
   "http://localhost:5173", // Client
   "http://localhost:5174", // Client (alternative port)
   "http://localhost:5175", // Deliverer
-  "http://localhost:5176", // Deliverer (alternative port)
+  "http://localhost:5176", // Restaurant
   "http://localhost:3002", // Admin
-  "http://localhost:3002", // Restaurant
   "http://localhost:3003", // Admin (alternative port)
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
 // Initialiser Socket.io avec CORS configuré
-// Autoriser plusieurs origines : client et restaurant
-const allowedOrigins = [
-  process.env.FRONTEND_URL || "http://localhost:3001", // Client
-  "http://localhost:5176", // Restaurant
-  "http://localhost:5173"  // Autre frontend potentiel
-];
-
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
     origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true
@@ -89,8 +80,6 @@ app.use(cors({
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-address', 'x-wallet-address'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
-  origin: allowedOrigins,
-  credentials: true
 }));
 
 // Middleware Helmet pour la sécurité HTTP

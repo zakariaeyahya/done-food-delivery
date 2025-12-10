@@ -4,9 +4,10 @@
  * @dev Gère l'upload d'images IPFS et l'enregistrement via API
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
+import ConnectWallet from '../components/ConnectWallet';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
@@ -37,13 +38,6 @@ function RegisterPage() {
   const [menuItems, setMenuItems] = useState([
     { name: '', description: '', price: '', category: '', image: null, available: true }
   ]);
-
-  // Rediriger si pas de wallet connecté
-  useEffect(() => {
-    if (!address) {
-      navigate('/');
-    }
-  }, [address, navigate]);
 
   // Gestion changement formulaire
   const handleInputChange = (e) => {
@@ -174,8 +168,12 @@ function RegisterPage() {
   if (!address) {
     return (
       <div className="register-page">
-        <div className="alert alert-warning">
-          Veuillez connecter votre wallet pour continuer
+        <div className="register-container">
+          <h1>Inscription Restaurant</h1>
+          <p className="subtitle">Connectez votre wallet pour commencer</p>
+          <div className="connect-wallet-section">
+            <ConnectWallet />
+          </div>
         </div>
       </div>
     );

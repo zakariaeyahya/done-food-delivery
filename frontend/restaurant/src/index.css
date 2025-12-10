@@ -6,11 +6,7 @@
 @layer base {
   /* TODO: Styles de base */
   * {
-<<<<<<< HEAD
-    @apply border-gray-200;
-=======
     @apply border-neutral-200;
->>>>>>> main
   }
   
   body {
