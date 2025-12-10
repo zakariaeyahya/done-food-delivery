@@ -36,11 +36,6 @@ function RegisterPage() {
   // Images du restaurant
   const [restaurantImages, setRestaurantImages] = useState([]);
 
-  // Menu items
-  const [menuItems, setMenuItems] = useState([
-    { name: '', description: '', price: '', category: '', image: null, available: true }
-  ]);
-
   // Vérifier si le restaurant existe déjà quand l'adresse change
   useEffect(() => {
     async function checkExistingRestaurant() {
@@ -85,37 +80,6 @@ function RegisterPage() {
     setRestaurantImages(files);
   };
 
-  // Gestion menu items
-  const handleMenuItemChange = (index, field, value) => {
-    const newMenuItems = [...menuItems];
-    newMenuItems[index][field] = value;
-    setMenuItems(newMenuItems);
-  };
-
-  const handleMenuItemImageChange = (index, file) => {
-    const newMenuItems = [...menuItems];
-    newMenuItems[index].image = file;
-    setMenuItems(newMenuItems);
-  };
-
-  const addMenuItem = () => {
-    setMenuItems([...menuItems, {
-      name: '',
-      description: '',
-      price: '',
-      category: '',
-      image: null,
-      available: true
-    }]);
-  };
-
-  const removeMenuItem = (index) => {
-    if (menuItems.length > 1) {
-      const newMenuItems = menuItems.filter((_, i) => i !== index);
-      setMenuItems(newMenuItems);
-    }
-  };
-
   // Soumission du formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -154,22 +118,8 @@ function RegisterPage() {
         submitData.append('images', file);
       });
 
-      // Préparer menu items (sans images d'abord)
-      const menuData = menuItems.filter(item => item.name).map(item => ({
-        name: item.name,
-        description: item.description,
-        price: parseFloat(item.price) || 0,
-        category: item.category,
-        available: item.available
-      }));
-      submitData.append('menu', JSON.stringify(menuData));
-
-      // Ajouter images menu items
-      menuItems.forEach((item, index) => {
-        if (item.image) {
-          submitData.append(`menuItem_${index}`, item.image);
-        }
-      });
+      // Menu vide par défaut (sera ajouté depuis le dashboard)
+      submitData.append('menu', JSON.stringify([]));
 
       // Envoyer la requête
       const response = await fetch(`${API_BASE_URL}/restaurants/register`, {
@@ -383,91 +333,9 @@ function RegisterPage() {
                 <p className="file-count">{restaurantImages.length} image(s) sélectionnée(s)</p>
               )}
             </div>
-          </section>
-
-          {/* Menu */}
-          <section className="form-section">
-            <h2>Menu</h2>
-            <p className="section-description">Ajoutez les plats de votre menu</p>
-
-            {menuItems.map((item, index) => (
-              <div key={index} className="menu-item-form">
-                <div className="menu-item-header">
-                  <h3>Plat #{index + 1}</h3>
-                  {menuItems.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeMenuItem(index)}
-                      className="btn-remove"
-                    >
-                      Supprimer
-                    </button>
-                  )}
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Nom du plat *</label>
-                    <input
-                      type="text"
-                      value={item.name}
-                      onChange={(e) => handleMenuItemChange(index, 'name', e.target.value)}
-                      placeholder="Ex: Pizza Margherita"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Catégorie</label>
-                    <input
-                      type="text"
-                      value={item.category}
-                      onChange={(e) => handleMenuItemChange(index, 'category', e.target.value)}
-                      placeholder="Ex: Pizzas, Desserts..."
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Description</label>
-                  <textarea
-                    value={item.description}
-                    onChange={(e) => handleMenuItemChange(index, 'description', e.target.value)}
-                    rows="2"
-                    placeholder="Décrivez ce plat..."
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Prix (MAD) *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={item.price}
-                      onChange={(e) => handleMenuItemChange(index, 'price', e.target.value)}
-                      placeholder="50.00"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Photo du plat</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleMenuItemImageChange(index, e.target.files[0])}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={addMenuItem}
-              className="btn-add-menu-item"
-            >
-              + Ajouter un plat
-            </button>
+            <p className="section-description" style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#666' }}>
+              Vous pourrez ajouter votre menu depuis le Dashboard après l'inscription.
+            </p>
           </section>
 
           {/* Wallet address (read-only) */}
