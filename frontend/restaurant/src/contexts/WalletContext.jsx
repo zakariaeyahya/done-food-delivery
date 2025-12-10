@@ -8,6 +8,12 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import * as blockchain from '../services/blockchain';
 import * as api from '../services/api';
 
+// Clés localStorage
+const STORAGE_KEYS = {
+  ADDRESS: 'restaurantWalletAddress',
+  RESTAURANT: 'restaurantData',
+};
+
 /**
  * Context pour le Wallet Restaurant
  */
@@ -22,28 +28,66 @@ export function WalletProvider({ children }) {
   const [balance, setBalance] = useState('0');
   const [restaurant, setRestaurant] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Fonction pour charger restaurant profile
-  async function fetchRestaurantProfile(address) {
-    try {
-      // Chercher restaurant par address
-      const restaurantData = await api.getRestaurantByAddress(address);
-      setRestaurant(restaurantData);
-    } catch (error) {
-      console.error('Error fetching restaurant profile:', error);
+  // Sauvegarder restaurant dans localStorage
+  function saveRestaurantToStorage(data) {
+    if (data) {
+      localStorage.setItem(STORAGE_KEYS.RESTAURANT, JSON.stringify(data));
     }
   }
 
-  // useEffect pour charger wallet depuis localStorage
-  useEffect(() => {
-    const savedAddress = localStorage.getItem('restaurantWalletAddress');
-    if (savedAddress) {
-      setAddress(savedAddress);
-      setIsConnected(true);
-      // Charger restaurant profile
-      fetchRestaurantProfile(savedAddress);
+  // Charger restaurant depuis localStorage
+  function loadRestaurantFromStorage() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.RESTAURANT);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn('Error loading restaurant from localStorage:', e);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return null;
+  }
+
+  // Fonction pour charger restaurant profile depuis l'API
+  async function fetchRestaurantProfile(addr) {
+    try {
+      const restaurantData = await api.getRestaurantByAddress(addr);
+      if (restaurantData) {
+        setRestaurant(restaurantData);
+        saveRestaurantToStorage(restaurantData);
+        return restaurantData;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching restaurant profile:', error);
+      return null;
+    }
+  }
+
+  // useEffect pour charger wallet et restaurant depuis localStorage
+  useEffect(() => {
+    async function init() {
+      const savedAddress = localStorage.getItem(STORAGE_KEYS.ADDRESS);
+      const savedRestaurant = loadRestaurantFromStorage();
+
+      if (savedAddress) {
+        setAddress(savedAddress);
+        setIsConnected(true);
+
+        // Charger restaurant depuis localStorage d'abord (instantané)
+        if (savedRestaurant && savedRestaurant.address?.toLowerCase() === savedAddress.toLowerCase()) {
+          setRestaurant(savedRestaurant);
+        }
+
+        // Optionnel: rafraîchir depuis l'API en arrière-plan (silencieusement)
+        // Décommenter si vous voulez toujours avoir les données à jour
+        // fetchRestaurantProfile(savedAddress);
+      }
+      setLoading(false);
+    }
+    init();
   }, []);
 
   // Fonction pour connecter wallet
@@ -52,11 +96,34 @@ export function WalletProvider({ children }) {
       const { address: connectedAddress } = await blockchain.connectWallet();
       setAddress(connectedAddress);
       setIsConnected(true);
-      localStorage.setItem('restaurantWalletAddress', connectedAddress);
-      await fetchRestaurantProfile(connectedAddress);
+      localStorage.setItem(STORAGE_KEYS.ADDRESS, connectedAddress);
+
+      // Vérifier si restaurant existe dans localStorage
+      const savedRestaurant = loadRestaurantFromStorage();
+      if (savedRestaurant && savedRestaurant.address?.toLowerCase() === connectedAddress.toLowerCase()) {
+        setRestaurant(savedRestaurant);
+      } else {
+        // Essayer de fetch depuis l'API
+        await fetchRestaurantProfile(connectedAddress);
+      }
     } catch (error) {
       console.error('Error connecting wallet:', error);
     }
+  }
+
+  // Fonction appelée après inscription réussie
+  function onRegistrationSuccess(restaurantData) {
+    setRestaurant(restaurantData);
+    saveRestaurantToStorage(restaurantData);
+  }
+
+  // Fonction pour rafraîchir le profil restaurant depuis l'API
+  async function refreshRestaurant() {
+    if (address) {
+      const data = await fetchRestaurantProfile(address);
+      return data;
+    }
+    return null;
   }
 
   // Fonction pour déconnecter wallet
@@ -65,11 +132,22 @@ export function WalletProvider({ children }) {
     setBalance('0');
     setRestaurant(null);
     setIsConnected(false);
-    localStorage.removeItem('restaurantWalletAddress');
+    localStorage.removeItem(STORAGE_KEYS.ADDRESS);
+    localStorage.removeItem(STORAGE_KEYS.RESTAURANT);
   }
 
   return (
-    <WalletContext.Provider value={{ address, balance, restaurant, isConnected, connect, disconnect }}>
+    <WalletContext.Provider value={{
+      address,
+      balance,
+      restaurant,
+      isConnected,
+      loading,
+      connect,
+      disconnect,
+      onRegistrationSuccess,
+      refreshRestaurant
+    }}>
       {children}
     </WalletContext.Provider>
   );

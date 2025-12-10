@@ -17,11 +17,14 @@ const API_BASE_URL =
  * Fonction helper pour créer les headers d'authentification
  * @param {string} address - Adresse wallet du restaurant
  * @returns {Object} Headers avec Authorization Bearer token
+ * @dev En mode développement, utilise mock_signature_for_testing
  */
 function authHeaders(address) {
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${address}`,
+    "Authorization": "Bearer mock_signature_for_testing",
+    "x-message": "Sign this message to authenticate with DONE Restaurant",
+    "x-wallet-address": address,
   };
 }
 
@@ -48,10 +51,11 @@ function handleApiError(error) {
 /**
  * 0. (Bonus) Récupérer un restaurant par adresse wallet
  * Route: GET /api/restaurants/by-address/:address
+ * @returns {Object|null} Restaurant data or null if not found
  */
 async function getRestaurantByAddress(address) {
   try {
-    if (!address) throw new Error("Restaurant address is required");
+    if (!address) return null;
 
     const response = await axios.get(
       `${API_BASE_URL}/restaurants/by-address/${address}`,
@@ -59,6 +63,10 @@ async function getRestaurantByAddress(address) {
     );
     return response.data;
   } catch (error) {
+    // 404 = restaurant non enregistré, retourner null silencieusement
+    if (error?.response?.status === 404) {
+      return null;
+    }
     handleApiError(error);
     throw error;
   }
@@ -67,6 +75,7 @@ async function getRestaurantByAddress(address) {
 /**
  * 1. Récupérer les détails complets d'un restaurant avec son menu
  * Route: GET /api/restaurants/:id
+ * @returns {Object} Restaurant avec menu
  */
 async function getRestaurant(restaurantId) {
   try {
@@ -75,7 +84,8 @@ async function getRestaurant(restaurantId) {
     const response = await axios.get(
       `${API_BASE_URL}/restaurants/${restaurantId}`
     );
-    return response.data;
+    // L'API retourne { success, restaurant } - extraire restaurant
+    return response.data?.restaurant || response.data;
   } catch (error) {
     handleApiError(error);
     throw error;
@@ -85,6 +95,7 @@ async function getRestaurant(restaurantId) {
 /**
  * 2. Récupérer les commandes d'un restaurant avec filtres optionnels
  * Route: GET /api/restaurants/:id/orders?status=...&startDate=...&endDate=...
+ * @returns {Array} Liste des commandes
  */
 async function getOrders(restaurantId, filters = {}, restaurantAddress) {
   try {
@@ -106,7 +117,8 @@ async function getOrders(restaurantId, filters = {}, restaurantAddress) {
       headers: authHeaders(restaurantAddress),
     });
 
-    return response.data;
+    // L'API retourne { success, orders, pagination } - extraire les orders
+    return response.data?.orders || [];
   } catch (error) {
     handleApiError(error);
     throw error;
@@ -231,6 +243,7 @@ async function deleteMenuItem(restaurantId, itemId, restaurantAddress) {
 /**
  * 8. Récupérer les statistiques/analytics du restaurant
  * Route: GET /api/restaurants/:id/analytics?startDate=...&endDate=...
+ * @returns {Object} Données analytics { totalOrders, deliveredOrders, totalRevenue, etc. }
  */
 async function getAnalytics(restaurantId, params = {}, restaurantAddress) {
   try {
@@ -250,7 +263,8 @@ async function getAnalytics(restaurantId, params = {}, restaurantAddress) {
       headers: authHeaders(restaurantAddress),
     });
 
-    return response.data;
+    // L'API retourne { success, analytics } - extraire analytics
+    return response.data?.analytics || { totalOrders: 0, deliveredOrders: 0, totalRevenue: 0 };
   } catch (error) {
     handleApiError(error);
     throw error;
@@ -288,6 +302,7 @@ async function uploadImage(file) {
 /**
  * 10. Récupérer les revenus on-chain du restaurant
  * Route: GET /api/restaurants/:id/earnings?period=...&startDate=...&endDate=...
+ * @returns {Object} Données des revenus { pendingBalance, daily, weekly, etc. }
  */
 async function getEarnings(restaurantId, params = {}, restaurantAddress) {
   try {
@@ -308,7 +323,8 @@ async function getEarnings(restaurantId, params = {}, restaurantAddress) {
       headers: authHeaders(restaurantAddress),
     });
 
-    return response.data;
+    // L'API retourne { success, earnings } - extraire earnings
+    return response.data?.earnings || { pendingBalance: 0, daily: [], weekly: [], withdrawn: 0, transactions: [] };
   } catch (error) {
     handleApiError(error);
     throw error;

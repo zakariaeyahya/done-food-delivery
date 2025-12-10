@@ -106,12 +106,19 @@ async function registerRestaurant(req, res) {
     return res.status(201).json({
       success: true,
       restaurant: {
+        _id: restaurant._id,
         address: restaurant.address,
         name: restaurant.name,
         cuisine: restaurant.cuisine,
+        description: restaurant.description,
+        email: restaurant.email,
+        phone: restaurant.phone,
         location: restaurant.location,
         images: restaurant.images,
-        menu: restaurant.menu
+        menu: restaurant.menu,
+        rating: restaurant.rating,
+        totalOrders: restaurant.totalOrders,
+        isActive: restaurant.isActive
       }
     });
   } catch (error) {
@@ -688,48 +695,54 @@ async function addMenuItem(req, res) {
       });
     }
     
-    const { name, description, price, category, available } = req.body;
-    
+    const { name, description, price, category, available, image } = req.body;
+
+    console.log('📝 [addMenuItem] Received data:', { name, description, price, category, available, image });
+
     if (!name || !price) {
       return res.status(400).json({
         error: "Bad Request",
         message: "name and price are required"
       });
     }
-    
-    // Upload image si fournie
-    let imageHash = null;
+
+    // Upload image si fournie via file, sinon utiliser le hash IPFS du body
+    let imageHash = image || null;
     if (req.file) {
       try {
         const ipfsResult = await ipfsService.uploadImage(req.file.buffer, req.file.originalname);
         imageHash = ipfsResult.ipfsHash;
+        console.log('📷 [addMenuItem] Image uploaded to IPFS:', imageHash);
       } catch (ipfsError) {
         console.warn("Error uploading menu item image to IPFS:", ipfsError);
       }
     }
-    
-    // Ajouter l'item au menu
-    restaurant.menu.push({
+
+    // Créer le nouvel item
+    const newItem = {
       name,
       description: description || "",
       price: parseFloat(price),
       image: imageHash,
       category: category || "",
       available: available !== undefined ? available : true
-    });
-    
+    };
+
+    console.log('✅ [addMenuItem] Adding item to menu:', newItem);
+
+    // Ajouter l'item au menu
+    restaurant.menu.push(newItem);
+
     await restaurant.save();
-    
+
+    console.log('💾 [addMenuItem] Restaurant saved. Total menu items:', restaurant.menu.length);
+
+    // Récupérer l'item avec son _id
+    const savedItem = restaurant.menu[restaurant.menu.length - 1];
+
     return res.status(201).json({
       success: true,
-      menuItem: {
-        name,
-        description,
-        price: parseFloat(price),
-        image: imageHash,
-        category,
-        available
-      }
+      menuItem: savedItem
     });
   } catch (error) {
     console.error("Error adding menu item:", error);
@@ -783,24 +796,38 @@ async function updateMenuItem(req, res) {
       });
     }
     
-    // Trouver l'item dans le menu
-    const itemIndex = parseInt(itemId);
-    if (itemIndex < 0 || itemIndex >= restaurant.menu.length) {
+    // Trouver l'item dans le menu par _id ou par index
+    let menuItem;
+    let itemIndex;
+
+    // Essayer de trouver par MongoDB _id
+    itemIndex = restaurant.menu.findIndex(item => item._id.toString() === itemId);
+
+    if (itemIndex === -1) {
+      // Essayer par index numérique
+      const numIndex = parseInt(itemId);
+      if (!isNaN(numIndex) && numIndex >= 0 && numIndex < restaurant.menu.length) {
+        itemIndex = numIndex;
+      }
+    }
+
+    if (itemIndex === -1) {
       return res.status(404).json({
         error: "Not Found",
         message: "Menu item not found"
       });
     }
-    
-    const menuItem = restaurant.menu[itemIndex];
+
+    menuItem = restaurant.menu[itemIndex];
     
     // Mettre à jour les champs
-    const { name, description, price, category, available } = req.body;
+    const { name, description, price, category, available, image } = req.body;
     if (name) menuItem.name = name;
     if (description !== undefined) menuItem.description = description;
     if (price) menuItem.price = parseFloat(price);
     if (category !== undefined) menuItem.category = category;
     if (available !== undefined) menuItem.available = available;
+    if (image !== undefined) menuItem.image = image;
     
     // Upload nouvelle image si fournie
     if (req.file) {
@@ -877,15 +904,24 @@ async function deleteMenuItem(req, res) {
       });
     }
     
-    // Trouver et supprimer l'item
-    const itemIndex = parseInt(itemId);
-    if (itemIndex < 0 || itemIndex >= restaurant.menu.length) {
+    // Trouver l'item par _id ou par index
+    let itemIndex = restaurant.menu.findIndex(item => item._id.toString() === itemId);
+
+    if (itemIndex === -1) {
+      // Essayer par index numérique
+      const numIndex = parseInt(itemId);
+      if (!isNaN(numIndex) && numIndex >= 0 && numIndex < restaurant.menu.length) {
+        itemIndex = numIndex;
+      }
+    }
+
+    if (itemIndex === -1) {
       return res.status(404).json({
         error: "Not Found",
         message: "Menu item not found"
       });
     }
-    
+
     restaurant.menu.splice(itemIndex, 1);
     await restaurant.save();
     

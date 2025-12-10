@@ -4,16 +4,7 @@
  * @dev Gère état global, navigation sidebar, Socket.io, authentification restaurant
  */
 
-<<<<<<< HEAD
-import { useState, useEffect, createContext } from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-
-// Import Socket.io
-import io from 'socket.io-client';
-=======
-import { useContext } from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
->>>>>>> main
+import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 
 // Import des pages
 import DashboardPage from './pages/DashboardPage';
@@ -26,43 +17,8 @@ import RegisterPage from './pages/RegisterPage';
 import ConnectWallet from './components/ConnectWallet';
 
 // Import des contexts
-<<<<<<< HEAD
 import { WalletProvider, useWallet } from './contexts/WalletContext';
-
-/**
- * Context pour Socket.io
- * @notice Fournit socket connection à toute l'application
- */
-const SocketContext = createContext(null);
-
-/**
- * Provider pour SocketContext
- * @notice Gère la connexion Socket.io
- */
-function SocketProvider({ children }) {
-  const [socket, setSocket] = useState(null);
-
-  // useEffect pour initialiser Socket.io
-  useEffect(() => {
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
-    const newSocket = io(socketUrl);
-    setSocket(newSocket);
-
-    return () => {
-      newSocket.close();
-    };
-  }, []);
-
-  return (
-    <SocketContext.Provider value={socket}>
-      {children}
-    </SocketContext.Provider>
-  );
-}
-=======
-import { WalletContext, WalletProvider } from './contexts/WalletContext';
 import { SocketContext, SocketProvider } from './contexts/SocketContext';
->>>>>>> main
 
 /**
  * Composant Sidebar
@@ -71,26 +27,40 @@ import { SocketContext, SocketProvider } from './contexts/SocketContext';
 function Sidebar() {
   const location = useLocation();
 
+  const menuItems = [
+    { path: '/', label: 'Dashboard', icon: '📊' },
+    { path: '/orders', label: 'Commandes', icon: '📦' },
+    { path: '/menu', label: 'Menu', icon: '🍽️' },
+    { path: '/analytics', label: 'Statistiques', icon: '📈' },
+  ];
+
   return (
     <div className="dashboard-sidebar">
       <div className="sidebar-header">
-        <h2>DONE Restaurant</h2>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🍕</span>
+          <h2>DONE Restaurant</h2>
+        </div>
       </div>
 
       <nav className="sidebar-nav">
-        <Link to="/" className={location.pathname === '/' ? 'active' : ''}>
-          Dashboard
-        </Link>
-        <Link to="/orders" className={location.pathname === '/orders' ? 'active' : ''}>
-          Commandes
-        </Link>
-        <Link to="/menu" className={location.pathname === '/menu' ? 'active' : ''}>
-          Menu
-        </Link>
-        <Link to="/analytics" className={location.pathname === '/analytics' ? 'active' : ''}>
-          Statistiques
-        </Link>
+        {menuItems.map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={location.pathname === item.path ? 'active' : ''}
+          >
+            <span className="mr-3 text-lg">{item.icon}</span>
+            {item.label}
+          </Link>
+        ))}
       </nav>
+
+      <div className="sidebar-footer">
+        <div className="px-6 py-4 text-xs text-primary-300">
+          © 2025 DONE Platform
+        </div>
+      </div>
     </div>
   );
 }
@@ -131,6 +101,54 @@ function Layout({ children }) {
 }
 
 /**
+ * Composant ProtectedRoute
+ * @notice Redirige vers /register si le restaurant n'est pas enregistré
+ */
+function ProtectedRoute({ children }) {
+  const { address, restaurant, isConnected, loading } = useWallet();
+
+  // Attendre que le chargement soit terminé
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <p>Chargement...</p>
+      </div>
+    );
+  }
+
+  // Si pas connecté ou pas de restaurant enregistré, rediriger vers /register
+  if (!isConnected || !address || !restaurant) {
+    return <Navigate to="/register" replace />;
+  }
+
+  return children;
+}
+
+/**
+ * Composant AppRoutes
+ * @notice Gère le routing avec protection
+ */
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/*" element={
+        <ProtectedRoute>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/menu" element={<MenuPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+            </Routes>
+          </Layout>
+        </ProtectedRoute>
+      } />
+    </Routes>
+  );
+}
+
+/**
  * Composant App principal
  * @notice Configure routing et providers
  */
@@ -139,19 +157,7 @@ function App() {
     <WalletProvider>
       <SocketProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/*" element={
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<DashboardPage />} />
-                  <Route path="/orders" element={<OrdersPage />} />
-                  <Route path="/menu" element={<MenuPage />} />
-                  <Route path="/analytics" element={<AnalyticsPage />} />
-                </Routes>
-              </Layout>
-            } />
-          </Routes>
+          <AppRoutes />
         </BrowserRouter>
       </SocketProvider>
     </WalletProvider>

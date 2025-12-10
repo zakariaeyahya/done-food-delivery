@@ -1,20 +1,23 @@
 /**
  * Page RegisterPage - Inscription Restaurant
  * @notice Formulaire d'inscription pour créer un nouveau restaurant
- * @dev Gère l'upload d'images IPFS et l'enregistrement via API
+ * @dev Vérifie d'abord si le wallet est déjà enregistré, sinon affiche le formulaire
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
+import ConnectWallet from '../components/ConnectWallet';
+import * as api from '../services/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
 function RegisterPage() {
   const navigate = useNavigate();
-  const { address } = useWallet();
+  const { address, restaurant, onRegistrationSuccess } = useWallet();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingExisting, setIsCheckingExisting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
@@ -33,17 +36,37 @@ function RegisterPage() {
   // Images du restaurant
   const [restaurantImages, setRestaurantImages] = useState([]);
 
-  // Menu items
-  const [menuItems, setMenuItems] = useState([
-    { name: '', description: '', price: '', category: '', image: null, available: true }
-  ]);
-
-  // Rediriger si pas de wallet connecté
+  // Vérifier si le restaurant existe déjà quand l'adresse change
   useEffect(() => {
-    if (!address) {
-      navigate('/');
+    async function checkExistingRestaurant() {
+      if (!address) return;
+
+      // Si on a déjà un restaurant dans le context, rediriger
+      if (restaurant && restaurant._id) {
+        navigate('/');
+        return;
+      }
+
+      setIsCheckingExisting(true);
+      try {
+        // Vérifier dans la BDD si ce wallet a déjà un restaurant
+        const existingRestaurant = await api.getRestaurantByAddress(address);
+
+        if (existingRestaurant && existingRestaurant._id) {
+          // Restaurant trouvé ! Sauvegarder et rediriger
+          onRegistrationSuccess(existingRestaurant);
+          navigate('/');
+        }
+      } catch (err) {
+        // Pas de restaurant trouvé (404) - c'est normal, afficher le formulaire
+        console.log('Aucun restaurant existant pour cette adresse');
+      } finally {
+        setIsCheckingExisting(false);
+      }
     }
-  }, [address, navigate]);
+
+    checkExistingRestaurant();
+  }, [address, restaurant, navigate, onRegistrationSuccess]);
 
   // Gestion changement formulaire
   const handleInputChange = (e) => {
@@ -55,37 +78,6 @@ function RegisterPage() {
   const handleRestaurantImagesChange = (e) => {
     const files = Array.from(e.target.files);
     setRestaurantImages(files);
-  };
-
-  // Gestion menu items
-  const handleMenuItemChange = (index, field, value) => {
-    const newMenuItems = [...menuItems];
-    newMenuItems[index][field] = value;
-    setMenuItems(newMenuItems);
-  };
-
-  const handleMenuItemImageChange = (index, file) => {
-    const newMenuItems = [...menuItems];
-    newMenuItems[index].image = file;
-    setMenuItems(newMenuItems);
-  };
-
-  const addMenuItem = () => {
-    setMenuItems([...menuItems, {
-      name: '',
-      description: '',
-      price: '',
-      category: '',
-      image: null,
-      available: true
-    }]);
-  };
-
-  const removeMenuItem = (index) => {
-    if (menuItems.length > 1) {
-      const newMenuItems = menuItems.filter((_, i) => i !== index);
-      setMenuItems(newMenuItems);
-    }
   };
 
   // Soumission du formulaire
@@ -126,22 +118,8 @@ function RegisterPage() {
         submitData.append('images', file);
       });
 
-      // Préparer menu items (sans images d'abord)
-      const menuData = menuItems.map(item => ({
-        name: item.name,
-        description: item.description,
-        price: parseFloat(item.price),
-        category: item.category,
-        available: item.available
-      }));
-      submitData.append('menu', JSON.stringify(menuData));
-
-      // Ajouter images menu items
-      menuItems.forEach((item, index) => {
-        if (item.image) {
-          submitData.append(`menuItem_${index}`, item.image);
-        }
-      });
+      // Menu vide par défaut (sera ajouté depuis le dashboard)
+      submitData.append('menu', JSON.stringify([]));
 
       // Envoyer la requête
       const response = await fetch(`${API_BASE_URL}/restaurants/register`, {
@@ -155,12 +133,14 @@ function RegisterPage() {
         throw new Error(data.message || 'Erreur lors de l\'inscription');
       }
 
+      // Mettre à jour le context avec le nouveau restaurant
+      onRegistrationSuccess(data.restaurant || data);
+
       setSuccess(true);
 
       // Rediriger vers dashboard après 2 secondes
       setTimeout(() => {
         navigate('/');
-        window.location.reload(); // Recharger pour fetch le nouveau restaurant
       }, 2000);
 
     } catch (err) {
@@ -171,11 +151,31 @@ function RegisterPage() {
     }
   };
 
+  // Afficher loading pendant la vérification
+  if (isCheckingExisting) {
+    return (
+      <div className="register-page">
+        <div className="register-container" style={{ textAlign: 'center', padding: '4rem' }}>
+          <div className="spinner" style={{ width: '3rem', height: '3rem', margin: '0 auto 1rem' }}></div>
+          <h2>Vérification en cours...</h2>
+          <p>Nous vérifions si votre wallet est déjà enregistré</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!address) {
     return (
       <div className="register-page">
-        <div className="alert alert-warning">
-          Veuillez connecter votre wallet pour continuer
+        <div className="register-container">
+          <h1>Espace Restaurant</h1>
+          <p className="subtitle">Connectez votre wallet MetaMask pour continuer</p>
+          <div className="connect-wallet-section" style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
+            <ConnectWallet />
+          </div>
+          <p style={{ textAlign: 'center', marginTop: '2rem', color: '#666' }}>
+            Si vous avez déjà un restaurant, vous serez redirigé automatiquement vers le dashboard.
+          </p>
         </div>
       </div>
     );
@@ -185,7 +185,7 @@ function RegisterPage() {
     return (
       <div className="register-page">
         <div className="success-message">
-          <h2>✅ Restaurant enregistré avec succès !</h2>
+          <h2>Restaurant enregistré avec succès !</h2>
           <p>Redirection vers le dashboard...</p>
         </div>
       </div>
@@ -333,93 +333,9 @@ function RegisterPage() {
                 <p className="file-count">{restaurantImages.length} image(s) sélectionnée(s)</p>
               )}
             </div>
-          </section>
-
-          {/* Menu */}
-          <section className="form-section">
-            <h2>Menu</h2>
-            <p className="section-description">Ajoutez les plats de votre menu</p>
-
-            {menuItems.map((item, index) => (
-              <div key={index} className="menu-item-form">
-                <div className="menu-item-header">
-                  <h3>Plat #{index + 1}</h3>
-                  {menuItems.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeMenuItem(index)}
-                      className="btn-remove"
-                    >
-                      ✕ Supprimer
-                    </button>
-                  )}
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Nom du plat *</label>
-                    <input
-                      type="text"
-                      value={item.name}
-                      onChange={(e) => handleMenuItemChange(index, 'name', e.target.value)}
-                      required
-                      placeholder="Ex: Pizza Margherita"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Catégorie</label>
-                    <input
-                      type="text"
-                      value={item.category}
-                      onChange={(e) => handleMenuItemChange(index, 'category', e.target.value)}
-                      placeholder="Ex: Pizzas, Desserts..."
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Description</label>
-                  <textarea
-                    value={item.description}
-                    onChange={(e) => handleMenuItemChange(index, 'description', e.target.value)}
-                    rows="2"
-                    placeholder="Décrivez ce plat..."
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Prix (MAD) *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={item.price}
-                      onChange={(e) => handleMenuItemChange(index, 'price', e.target.value)}
-                      required
-                      placeholder="50.00"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Photo du plat</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleMenuItemImageChange(index, e.target.files[0])}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={addMenuItem}
-              className="btn-add-menu-item"
-            >
-              + Ajouter un plat
-            </button>
+            <p className="section-description" style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#666' }}>
+              Vous pourrez ajouter votre menu depuis le Dashboard après l'inscription.
+            </p>
           </section>
 
           {/* Wallet address (read-only) */}
