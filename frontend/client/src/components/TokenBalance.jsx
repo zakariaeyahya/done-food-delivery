@@ -15,42 +15,40 @@ const TokenBalance = ({ clientAddress, currentOrderId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchData = useCallback(async () => {
-    if (!clientAddress) return;
+
+const fetchData = useCallback(async () => {
+  if (!clientAddress) return;
+
+  try {
+    setLoading(true);
+    setError('');
 
     try {
-      setLoading(true);
-      setError('');
-
-      // 1. Tokens user
-      try {
-        const tokensResponse = await getUserTokens(clientAddress);
-        setBalance(tokensResponse.data.balance ?? 0);
-        setHistory(tokensResponse.data.transactions ?? []);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          setBalance(0);
-          setHistory([]);
-        } else {
-          throw err;
-        }
-      }
-
-      // 2. Taux conversion
-      try {
-        const rateResponse = await getTokenRate();
-        setRate(rateResponse.data.rate);
-      } catch (err) {
-        console.error('Failed to fetch token rate:', err);
-        // on ne bloque pas toute la page pour ça
-      }
+      const tokensResponse = await getUserTokens(clientAddress);
+      setBalance(tokensResponse.data.balance ?? 0);
+      setHistory(tokensResponse.data.transactions ?? []);
     } catch (err) {
-      console.error('Failed to fetch token data:', err);
-      setError('Failed to load token data.');
-    } finally {
-      setLoading(false);
+      if (err.response?.status === 404) {
+        setBalance(0);
+        setHistory([]);
+      } else {
+        throw err;
+      }
     }
-  }, [clientAddress]);
+
+    try {
+      const rateResponse = await getTokenRate();
+      setRate(rateResponse.data.rate);
+    } catch (err) {
+      console.error('Token rate fetch failed:', err);
+    }
+  } catch (err) {
+    console.error('Token data fetch failed:', err);
+    setError('Failed to load token data.');
+  } finally {
+    setLoading(false);
+  }
+}, [clientAddress]);
 
   useEffect(() => {
     fetchData();
