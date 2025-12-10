@@ -1,98 +1,145 @@
-import React, { useState, useMemo } from 'react';
+// src/pages/CheckoutPage.jsx
+import React, { useMemo } from 'react';
 import Cart from '../components/Cart';
 import Checkout from '../components/Checkout';
+import { useWallet } from '../contexts/WalletContext';
+import { useCart, useCartDispatch } from '../contexts/CartContext';
+import { useNavigate } from 'react-router-dom';
+// import { convertCurrency, createOrder } from '../services/api';
+// import { createOnChainOrder } from '../services/blockchain';
 
-// Placeholder data - in a real app, this would come from a global state (like Context or Redux)
-const INITIAL_CART_ITEMS = [
-  { id: 'menu1', name: 'Margherita Pizza', priceEUR: 12.50, priceMATIC: 14.7, quantity: 2 },
-  { id: 'menu2', name: 'Spaghetti Carbonara', priceEUR: 15.00, priceMATIC: 17.6, quantity: 1 },
-  { id: 'menu3', name: 'Tiramisu', priceEUR: 7.50, priceMATIC: 8.8, quantity: 1 },
-];
+const DELIVERY_FEE_EUR = 5.0;
+const PLATFORM_COMMISSION_RATE = 0.1;
 
-const DELIVERY_FEE_EUR = 5.00;
-const PLATFORM_COMMISSION_RATE = 0.10;
-
+// ✅ Tous les hooks DOIVENT être à l'intérieur du composant
 const CheckoutPage = () => {
-  const cartItems = useCart(); t
+  const { address, isConnected } = useWallet();
+  const cartItems = useCart();
   const dispatch = useCartDispatch();
+  const navigate = useNavigate();
+
+  // Si pas connecté → on bloque la page
+  if (!isConnected) {
+    return (
+      <div className="container mx-auto p-8 text-center">
+        <h2 className="text-2xl font-semibold mb-2">
+          Please connect your wallet to proceed to checkout
+        </h2>
+        <p className="text-gray-500">
+          You need to connect your wallet before placing an order.
+        </p>
+      </div>
+    );
+  }
+
+  // Si panier vide
+  if (!cartItems || cartItems.length === 0) {
+    return (
+      <div className="container mx-auto p-8 text-center">
+        <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
+        <button
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+          onClick={() => navigate('/')}
+        >
+          Back to restaurants
+        </button>
+      </div>
+    );
+  }
+
+  /** Handlers **/
 
   const handleUpdateQuantity = (itemId, newQuantity) => {
     if (newQuantity <= 0) {
-      // If quantity drops to 0 or less, remove the item
       handleRemoveItem(itemId);
     } else {
-      setCartItems(prevItems =>
-        prevItems.map(item =>
-          item.id === itemId ? { ...item, quantity: newQuantity } : item
-        )
-      );
+      dispatch({
+        type: 'UPDATE_QUANTITY',
+        payload: { id: itemId, quantity: newQuantity },
+      });
     }
   };
 
   const handleRemoveItem = (itemId) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));
+    dispatch({ type: 'REMOVE_ITEM', payload: { id: itemId } });
   };
-  
+
   const handleCheckout = () => {
-    alert('Proceeding to payment!');
-    // This function would typically navigate the user or trigger the next step in the flow
+    // Ici tu peux ouvrir un modal de confirmation ou scroller sur le résumé
+    console.log('Review checkout clicked');
   };
 
-  // Calculations to pass to both Cart and Checkout
-  const foodTotal = useMemo(() => 
-    cartItems.reduce((total, item) => 
-      total + item.priceEUR * item.quantity, 0
-    ), [cartItems]
-  );
+  // TODO: branche cette fonction à ton bouton "Place Order" dans <Checkout />
   const handlePlaceOrder = async () => {
-    try {
-      // 1. Convertir prix EUR → MATIC
-      const conversionResponse = await convertCurrency({
-        amount: finalTotalEUR,
-        from: 'EUR',
-        to: 'MATIC'
-      });
-      
-      // 2. Créer commande dans backend
-      const orderResponse = await createOrder({
-        restaurantId: cartItems[0].restaurantId,
-        items: cartItems.map(item => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.priceEUR
-        })),
-        deliveryAddress,
-        clientAddress: walletAddress,
-        totalAmount: conversionResponse.data.convertedAmount
-      });
-
-      // 3. Transaction blockchain
-      const tx = await createOnChainOrder(
-        orderResponse.data.orderId,
-        restaurantAddress,
-        delivererAddress,
-        conversionResponse.data.convertedAmount
-      );
-      
-      await tx.wait();
-      
-      // 4. Vider panier
-      dispatch({ type: 'CLEAR_CART' });
-      
-      // 5. Rediriger vers tracking
-      navigate(`/tracking/${orderResponse.data.orderId}`);
-      
-    } catch (error) {
-      console.error('Order failed:', error);
-    }
+    alert('Place order logic not implemented yet');
+    // Exemple de squelette si tu veux l’implémenter plus tard :
+    //
+    // if (!isConnected) {
+    //   alert('Please connect wallet first');
+    //   return;
+    // }
+    //
+    // try {
+    //   const conversionResponse = await convertCurrency({
+    //     amount: finalTotalEUR,
+    //     from: 'EUR',
+    //     to: 'MATIC',
+    //   });
+    //
+    //   const orderResponse = await createOrder({
+    //     clientAddress: address,
+    //     restaurantId: cartItems[0].restaurantId,
+    //     items: cartItems.map((item) => ({
+    //       name: item.name,
+    //       quantity: item.quantity,
+    //       price: item.priceEUR,
+    //     })),
+    //     deliveryAddress,
+    //     totalAmount: conversionResponse.data.convertedAmount,
+    //   });
+    //
+    //   const tx = await createOnChainOrder(
+    //     orderResponse.data.orderId,
+    //     restaurantAddress,
+    //     delivererAddress,
+    //     conversionResponse.data.convertedAmount
+    //   );
+    //
+    //   await tx.wait();
+    //   dispatch({ type: 'CLEAR_CART' });
+    //   navigate(`/tracking/${orderResponse.data.orderId}`);
+    // } catch (error) {
+    //   console.error('Order failed:', error);
+    // }
   };
-  const platformCommission = useMemo(() => foodTotal * PLATFORM_COMMISSION_RATE, [foodTotal]);
-  const finalTotalEUR = useMemo(() => foodTotal + DELIVERY_FEE_EUR + platformCommission, [foodTotal, platformCommission]);
-  
-  // This is a placeholder. In a real app, you would get this from an oracle or API.
-  const EUR_TO_MATIC_RATE = 1.18; 
-  const finalTotalMATIC = useMemo(() => finalTotalEUR / EUR_TO_MATIC_RATE, [finalTotalEUR]);
 
+  /** Calculs totaux **/
+
+  const foodTotal = useMemo(
+    () =>
+      cartItems.reduce(
+        (total, item) => total + item.priceEUR * item.quantity,
+        0
+      ),
+    [cartItems]
+  );
+
+  const platformCommission = useMemo(
+    () => foodTotal * PLATFORM_COMMISSION_RATE,
+    [foodTotal]
+  );
+
+  const finalTotalEUR = useMemo(
+    () => foodTotal + DELIVERY_FEE_EUR + platformCommission,
+    [foodTotal, platformCommission]
+  );
+
+  // Placeholder : taux EUR → MATIC
+  const EUR_TO_MATIC_RATE = 1.18;
+  const finalTotalMATIC = useMemo(
+    () => finalTotalEUR / EUR_TO_MATIC_RATE,
+    [finalTotalEUR]
+  );
 
   return (
     <div className="container mx-auto p-4 sm:p-8">
@@ -117,6 +164,7 @@ const CheckoutPage = () => {
             commission={platformCommission}
             finalTotal={finalTotalEUR}
             finalTotalMATIC={finalTotalMATIC}
+            onPlaceOrder={handlePlaceOrder} // si ton composant Checkout accepte cette prop
           />
         </div>
       </div>

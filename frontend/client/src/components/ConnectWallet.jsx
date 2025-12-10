@@ -1,35 +1,62 @@
-import React, { useState, useEffect } from 'react';
-import { connectWallet } from '../services/blockchain';
+import React from 'react';
+import { useWallet } from '../contexts/WalletContext';
+import { registerUser, getUserProfile } from '../services/api';
+import { formatAddress } from '../utils/web3';
 
 const ConnectWallet = () => {
-  const [connected, setConnected] = useState(false);
+  const { address, balance, isConnected, isConnecting, connect, disconnect } = useWallet();
 
   const handleConnect = async () => {
     try {
-      await connectWallet();
-      setConnected(true);
+      await connect();
+      
+      // Auto-registration
+      const walletAddress = window.ethereum?.selectedAddress;
+      if (walletAddress) {
+        try {
+          await getUserProfile(walletAddress);
+        } catch (err) {
+          if (err.response?.status === 404) {
+            await registerUser({ 
+              address: walletAddress,
+              name: '',
+              email: ''
+            });
+          }
+        }
+      }
     } catch (err) {
       console.error('Failed to connect wallet:', err);
     }
   };
 
-  useEffect(() => {
-    if (window.ethereum?.selectedAddress) {
-      setConnected(true);
-    }
-  }, []);
-
   return (
-    <div className="p-6 max-w-sm mx-auto bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl shadow-xl text-white text-center font-bold text-xl">
-      {!connected ? (
+    <div className="flex items-center gap-2">
+      {!isConnected ? (
         <button
           onClick={handleConnect}
-          className="px-6 py-3 bg-white text-indigo-600 rounded-xl font-semibold hover:bg-gray-100 transition-all"
+          disabled={isConnecting}
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
         >
-          Connect Wallet
+          {isConnecting ? 'Connecting...' : 'Connect Wallet'}
         </button>
       ) : (
-        <p>Wallet Connected</p>
+        <div className="flex items-center gap-2">
+          <div className="px-3 py-1 bg-gray-100 rounded-lg">
+            <p className="text-xs text-gray-500">Address</p>
+            <p className="font-mono text-sm">{formatAddress(address)}</p>
+          </div>
+          <div className="px-3 py-1 bg-gray-100 rounded-lg">
+            <p className="text-xs text-gray-500">Balance</p>
+            <p className="font-mono text-sm">{parseFloat(balance).toFixed(4)} MATIC</p>
+          </div>
+          <button
+            onClick={disconnect}
+            className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
+          >
+            Disconnect
+          </button>
+        </div>
       )}
     </div>
   );
