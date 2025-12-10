@@ -27,26 +27,40 @@ import { SocketContext, SocketProvider } from './contexts/SocketContext';
 function Sidebar() {
   const location = useLocation();
 
+  const menuItems = [
+    { path: '/', label: 'Dashboard', icon: '📊' },
+    { path: '/orders', label: 'Commandes', icon: '📦' },
+    { path: '/menu', label: 'Menu', icon: '🍽️' },
+    { path: '/analytics', label: 'Statistiques', icon: '📈' },
+  ];
+
   return (
     <div className="dashboard-sidebar">
       <div className="sidebar-header">
-        <h2>DONE Restaurant</h2>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🍕</span>
+          <h2>DONE Restaurant</h2>
+        </div>
       </div>
 
       <nav className="sidebar-nav">
-        <Link to="/" className={location.pathname === '/' ? 'active' : ''}>
-          Dashboard
-        </Link>
-        <Link to="/orders" className={location.pathname === '/orders' ? 'active' : ''}>
-          Commandes
-        </Link>
-        <Link to="/menu" className={location.pathname === '/menu' ? 'active' : ''}>
-          Menu
-        </Link>
-        <Link to="/analytics" className={location.pathname === '/analytics' ? 'active' : ''}>
-          Statistiques
-        </Link>
+        {menuItems.map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={location.pathname === item.path ? 'active' : ''}
+          >
+            <span className="mr-3 text-lg">{item.icon}</span>
+            {item.label}
+          </Link>
+        ))}
       </nav>
+
+      <div className="sidebar-footer">
+        <div className="px-6 py-4 text-xs text-primary-300">
+          © 2025 DONE Platform
+        </div>
+      </div>
     </div>
   );
 }

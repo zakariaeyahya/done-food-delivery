@@ -106,12 +106,19 @@ async function registerRestaurant(req, res) {
     return res.status(201).json({
       success: true,
       restaurant: {
+        _id: restaurant._id,
         address: restaurant.address,
         name: restaurant.name,
         cuisine: restaurant.cuisine,
+        description: restaurant.description,
+        email: restaurant.email,
+        phone: restaurant.phone,
         location: restaurant.location,
         images: restaurant.images,
-        menu: restaurant.menu
+        menu: restaurant.menu,
+        rating: restaurant.rating,
+        totalOrders: restaurant.totalOrders,
+        isActive: restaurant.isActive
       }
     });
   } catch (error) {

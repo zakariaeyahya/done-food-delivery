@@ -17,11 +17,14 @@ const API_BASE_URL =
  * Fonction helper pour créer les headers d'authentification
  * @param {string} address - Adresse wallet du restaurant
  * @returns {Object} Headers avec Authorization Bearer token
+ * @dev En mode développement, utilise mock_signature_for_testing
  */
 function authHeaders(address) {
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${address}`,
+    "Authorization": "Bearer mock_signature_for_testing",
+    "x-message": "Sign this message to authenticate with DONE Restaurant",
+    "x-wallet-address": address,
   };
 }
 
@@ -90,6 +93,7 @@ async function getRestaurant(restaurantId) {
 /**
  * 2. Récupérer les commandes d'un restaurant avec filtres optionnels
  * Route: GET /api/restaurants/:id/orders?status=...&startDate=...&endDate=...
+ * @returns {Array} Liste des commandes
  */
 async function getOrders(restaurantId, filters = {}, restaurantAddress) {
   try {
@@ -111,7 +115,8 @@ async function getOrders(restaurantId, filters = {}, restaurantAddress) {
       headers: authHeaders(restaurantAddress),
     });
 
-    return response.data;
+    // L'API retourne { success, orders, pagination } - extraire les orders
+    return response.data?.orders || [];
   } catch (error) {
     handleApiError(error);
     throw error;
@@ -236,6 +241,7 @@ async function deleteMenuItem(restaurantId, itemId, restaurantAddress) {
 /**
  * 8. Récupérer les statistiques/analytics du restaurant
  * Route: GET /api/restaurants/:id/analytics?startDate=...&endDate=...
+ * @returns {Object} Données analytics { totalOrders, deliveredOrders, totalRevenue, etc. }
  */
 async function getAnalytics(restaurantId, params = {}, restaurantAddress) {
   try {
@@ -255,7 +261,8 @@ async function getAnalytics(restaurantId, params = {}, restaurantAddress) {
       headers: authHeaders(restaurantAddress),
     });
 
-    return response.data;
+    // L'API retourne { success, analytics } - extraire analytics
+    return response.data?.analytics || { totalOrders: 0, deliveredOrders: 0, totalRevenue: 0 };
   } catch (error) {
     handleApiError(error);
     throw error;
@@ -293,6 +300,7 @@ async function uploadImage(file) {
 /**
  * 10. Récupérer les revenus on-chain du restaurant
  * Route: GET /api/restaurants/:id/earnings?period=...&startDate=...&endDate=...
+ * @returns {Object} Données des revenus { pendingBalance, daily, weekly, etc. }
  */
 async function getEarnings(restaurantId, params = {}, restaurantAddress) {
   try {
@@ -313,7 +321,8 @@ async function getEarnings(restaurantId, params = {}, restaurantAddress) {
       headers: authHeaders(restaurantAddress),
     });
 
-    return response.data;
+    // L'API retourne { success, earnings } - extraire earnings
+    return response.data?.earnings || { pendingBalance: 0, daily: [], weekly: [], withdrawn: 0, transactions: [] };
   } catch (error) {
     handleApiError(error);
     throw error;

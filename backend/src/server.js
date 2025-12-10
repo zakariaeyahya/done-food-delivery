@@ -78,7 +78,7 @@ app.use(cors({
     }
   },
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-address', 'x-wallet-address'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-address', 'x-wallet-address', 'x-message', 'x-address'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
 }));
 
