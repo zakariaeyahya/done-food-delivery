@@ -2,33 +2,18 @@ import React, { useEffect, useState } from "react";
 import {
   formatAddress,
   formatCrypto,
-  formatCompactNumber,
+  formatDate,
 } from "../services/formatters";
 
-import { getDeliverers } from "../services/api";
+import { getOrders } from "../services/api";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
 /* ============================================================
-   STAR RATING
+   ORDERS TABLE
    ============================================================ */
-function Stars({ rating }) {
-  const r = Math.round(rating || 0);
-  return (
-    <div className="flex">
-      {[1,2,3,4,5].map(i => (
-        <span key={i} className={i <= r ? "text-yellow-400" : "text-gray-300"}>
-          ★
-        </span>
-      ))}
-    </div>
-  );
-}
 
-/* ============================================================
-   DELIVERERS TABLE
-   ============================================================ */
-export default function DeliverersTable() {
-  const [deliverers, setDeliverers] = useState([]);
+export default function OrdersTable({ filters, onViewDetails }) {
+  const [orders, setOrders] = useState([]);
   const [total, setTotal] = useState(0);
 
   const [page, setPage] = useState(1);
@@ -37,7 +22,7 @@ export default function DeliverersTable() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const [sortField, setSortField] = useState("totalDeliveries");
+  const [sortField, setSortField] = useState("date");
   const [sortOrder, setSortOrder] = useState("desc");
 
   const [loading, setLoading] = useState(false);
@@ -54,31 +39,39 @@ export default function DeliverersTable() {
   }, [search]);
 
   /* ============================================================
-     LOAD DELIVERERS
+     LOAD ORDERS WITH FILTERS
      ============================================================ */
-  async function loadDeliverers() {
+  async function loadOrders() {
     try {
       setLoading(true);
-      const res = await getDeliverers({
+
+      const res = await getOrders({
         search: debouncedSearch,
         page,
         limit,
         sortField,
         sortOrder,
+
+        // Filtres provenant de OrdersPage.jsx
+        status: filters?.status,
+        dateFrom: filters?.dateFrom,
+        dateTo: filters?.dateTo,
+        restaurant: filters?.restaurant,
+        deliverer: filters?.deliverer,
       });
 
-      setDeliverers(res.deliverers || []);
+      setOrders(res.orders || []);
       setTotal(res.total || 0);
     } catch (err) {
-      console.error("Erreur livreurs:", err);
+      console.error("Erreur fetch commandes:", err);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadDeliverers();
-  }, [debouncedSearch, page, sortField, sortOrder]);
+    loadOrders();
+  }, [debouncedSearch, page, sortField, sortOrder, filters]);
 
   /* ============================================================
      SORTING
@@ -97,18 +90,19 @@ export default function DeliverersTable() {
   /* ============================================================
      RENDER
      ============================================================ */
+
   return (
     <div className="bg-white shadow rounded-xl p-6 border">
 
       {/* HEADER */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Livreurs</h2>
+        <h2 className="text-xl font-semibold">Commandes</h2>
 
         <div className="relative">
           <MagnifyingGlassIcon className="h-5 w-5 absolute left-2 top-2 text-gray-400" />
           <input
-            placeholder="Rechercher livreur..."
-            className="pl-10 pr-4 py-2 border rounded-lg w-64 bg-gray-50 focus:ring-indigo-500"
+            placeholder="Rechercher commande..."
+            className="pl-10 pr-4 py-2 border rounded-lg w-64 bg-gray-50"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -120,91 +114,118 @@ export default function DeliverersTable() {
         <table className="min-w-full border-collapse">
           <thead>
             <tr className="bg-gray-100 border-b">
-              <Th label="Identité" />
+
+              <Th label="ID" />
+
+              <Th label="Client" />
+
+              <Th label="Restaurant" />
+
+              <Th label="Livreur" />
+
               <Th
-                label="Staking"
+                label="Total"
                 sortable
-                active={sortField === "stakedAmount"}
+                active={sortField === "total"}
                 order={sortOrder}
-                onClick={() => toggleSort("stakedAmount")}
+                onClick={() => toggleSort("total")}
               />
+
               <Th
-                label="Livraisons"
+                label="Statut"
                 sortable
-                active={sortField === "totalDeliveries"}
+                active={sortField === "status"}
                 order={sortOrder}
-                onClick={() => toggleSort("totalDeliveries")}
+                onClick={() => toggleSort("status")}
               />
+
               <Th
-                label="Revenu Total"
+                label="Date"
                 sortable
-                active={sortField === "earnings"}
+                active={sortField === "date"}
                 order={sortOrder}
-                onClick={() => toggleSort("earnings")}
+                onClick={() => toggleSort("date")}
               />
-              <Th
-                label="Rating"
-                sortable
-                active={sortField === "rating"}
-                order={sortOrder}
-                onClick={() => toggleSort("rating")}
-              />
-              <Th label="Slashing" />
+
+              <Th label="Actions" />
             </tr>
           </thead>
 
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="6" className="text-center py-6">Chargement...</td>
+                <td colSpan="8" className="text-center py-6">
+                  Chargement...
+                </td>
               </tr>
-            ) : deliverers.length === 0 ? (
+            ) : orders.length === 0 ? (
               <tr>
-                <td colSpan="6" className="text-center py-6">Aucun livreur trouvé</td>
+                <td colSpan="8" className="text-center py-6">
+                  Aucune commande trouvée
+                </td>
               </tr>
             ) : (
-              deliverers.map((d, i) => (
+              orders.map((o, i) => (
                 <tr key={i} className="border-b hover:bg-gray-50">
+
+                  <td className="p-3 font-medium text-gray-700">
+                    #{o.orderId}
+                  </td>
+
                   <td className="p-3">
-                    <div className="font-semibold">{d.name || "—"}</div>
-                    <div className="text-sm text-gray-500">
-                      {formatAddress(d.address)}
+                    <div className="text-sm font-semibold">
+                      {o.clientName || "—"}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {formatAddress(o.client)}
                     </div>
                   </td>
 
                   <td className="p-3">
-                    {d.stakedAmount > 0 ? (
-                      <span className="text-green-700 font-medium">
-                        {formatCrypto(d.stakedAmount, "MATIC", 3)}
-                      </span>
+                    <div className="text-sm font-semibold">
+                      {o.restaurantName || "—"}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {formatAddress(o.restaurant)}
+                    </div>
+                  </td>
+
+                  <td className="p-3">
+                    {o.deliverer ? (
+                      <>
+                        <div className="text-sm font-semibold">
+                          {o.delivererName || "Livreur"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {formatAddress(o.deliverer)}
+                        </div>
+                      </>
                     ) : (
-                      <span className="text-red-600 font-semibold">
-                        Non staké
-                      </span>
+                      <span className="text-gray-400">Aucun livreur</span>
                     )}
                   </td>
 
                   <td className="p-3 text-gray-800">
-                    {formatCompactNumber(d.totalDeliveries)}
-                  </td>
-
-                  <td className="p-3 text-gray-800">
-                    {formatCrypto(d.earnings, "MATIC", 3)}
+                    {formatCrypto(o.total, "MATIC", 3)}
                   </td>
 
                   <td className="p-3">
-                    <Stars rating={d.rating} />
+                    <OrderStatusBadge status={o.status} />
+                  </td>
+
+                  <td className="p-3 text-gray-700">
+                    {formatDate(o.createdAt)}
                   </td>
 
                   <td className="p-3">
-                    {d.slashingCount > 0 ? (
-                      <span className="text-red-600 font-bold">
-                        {d.slashingCount} ⚠️
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">0</span>
-                    )}
+                    <button
+                      className="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                      onClick={() => onViewDetails(o)}
+                    >
+                      Voir
+                    </button>
                   </td>
+
                 </tr>
               ))
             )}
@@ -213,12 +234,32 @@ export default function DeliverersTable() {
       </div>
 
       {/* PAGINATION */}
-      <Pagination
-        page={page}
-        setPage={setPage}
-        totalPages={totalPages}
-      />
+      <Pagination page={page} setPage={setPage} totalPages={totalPages} />
     </div>
+  );
+}
+
+/* ============================================================
+   ORDER STATUS BADGE
+   ============================================================ */
+function OrderStatusBadge({ status }) {
+  const colors = {
+    CREATED: "bg-gray-200 text-gray-700",
+    PREPARING: "bg-yellow-200 text-yellow-700",
+    IN_DELIVERY: "bg-blue-200 text-blue-700",
+    DELIVERED: "bg-green-200 text-green-700",
+    DISPUTED: "bg-red-200 text-red-700",
+    CANCELLED: "bg-gray-300 text-gray-700",
+  };
+
+  return (
+    <span
+      className={`px-2 py-1 text-xs rounded-full font-semibold ${
+        colors[status] || "bg-gray-200"
+      }`}
+    >
+      {status}
+    </span>
   );
 }
 
