@@ -46,7 +46,7 @@ export const uploadJSON = async (jsonData) => {
   formData.append('file', jsonBlob, 'metadata.json');
 
   try {
-    const response = await axios.post(`${IP:FS_API_URL}/add`, formData, {
+    const response = await axios.post(`${IPFS_API_URL}/add`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import OrderHistory from '../components/OrderHistory';
 import TokenBalance from '../components/TokenBalance';
-import { formatAddress } from '../utils/formatters';
+import { formatAddress } from '../utils/web3';
 
 // Placeholder data - in a real app, this would come from an API and/or a wallet connection
 const initialUserData = {

@@ -5,7 +5,7 @@ import {
   getDoneTokenBalance,
   verifyMumbaiNetwork,
 } from '../services/blockchain';
-import { formatAddress, formatMatic, formatUnits } from '../utils/formatters';
+import { formatAddress, formatMatic, formatUnits } from '../utils/web3';
 
 const ConnectWallet = () => {
   const [address, setAddress] = useState(null);
