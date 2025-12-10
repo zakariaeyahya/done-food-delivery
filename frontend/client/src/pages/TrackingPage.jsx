@@ -9,7 +9,28 @@ const TrackingPage = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+// OrderTracking.jsx
+useEffect(() => {
+  // Écouter changements statut
+  socket.on('orderStatusChanged', (data) => {
+    if (data.orderId === order.id) {
+      setCurrentStatus(data.status);
+    }
+  });
 
+  // Écouter position livreur
+  socket.on('gpsUpdate', (data) => {
+    if (data.orderId === order.id) {
+      setDriverPosition(data.position);
+      setEta(data.eta);
+    }
+  });
+
+  return () => {
+    socket.off('orderStatusChanged');
+    socket.off('gpsUpdate');
+  };
+}, [socket, order.id]);
   useEffect(() => {
     const fetchOrderDetails = async () => {
       try {

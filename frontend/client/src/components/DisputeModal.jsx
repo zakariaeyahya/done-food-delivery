@@ -24,39 +24,28 @@ const DisputeModal = ({ isOpen, onClose, orderId }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!description) {
-      setError('Please provide a description of the issue.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError('');
-
+    
     try {
       let ipfsImageHash = null;
+      
       if (imageFile) {
-        // 1. Upload image to IPFS if one is provided
+        // Upload image sur IPFS
         ipfsImageHash = await uploadImage(imageFile);
       }
-
-      // 2. Submit the dispute to the backend API
-      const disputeData = {
-        problemType,
-        description,
-        ipfsImageHash,
-      };
-      await submitApiDispute(orderId, disputeData);
-
-      alert('Dispute submitted successfully!');
-      onClose(); // Close modal on success
-    } catch (err) {
-      console.error('Failed to submit dispute:', err);
-      setError('Failed to submit dispute. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+      
+      // Ouvrir litige
+      const response = await openDispute(orderId, {
+        reason: description,
+        evidence: ipfsImageHash
+      });
+      
+      alert('Dispute opened successfully!');
+      onClose();
+      
+    } catch (error) {
+      console.error('Failed to open dispute:', error);
     }
   };
-
   if (!isOpen) {
     return null;
   }

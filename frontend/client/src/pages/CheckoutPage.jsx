@@ -13,7 +13,8 @@ const DELIVERY_FEE_EUR = 5.00;
 const PLATFORM_COMMISSION_RATE = 0.10;
 
 const CheckoutPage = () => {
-  const [cartItems, setCartItems] = useState(INITIAL_CART_ITEMS);
+  const cartItems = useCart(); t
+  const dispatch = useCartDispatch();
 
   const handleUpdateQuantity = (itemId, newQuantity) => {
     if (newQuantity <= 0) {
@@ -38,7 +39,53 @@ const CheckoutPage = () => {
   };
 
   // Calculations to pass to both Cart and Checkout
-  const foodTotal = useMemo(() => cartItems.reduce((total, item) => total + item.priceEUR * item.quantity, 0), [cartItems]);
+  const foodTotal = useMemo(() => 
+    cartItems.reduce((total, item) => 
+      total + item.priceEUR * item.quantity, 0
+    ), [cartItems]
+  );
+  const handlePlaceOrder = async () => {
+    try {
+      // 1. Convertir prix EUR → MATIC
+      const conversionResponse = await convertCurrency({
+        amount: finalTotalEUR,
+        from: 'EUR',
+        to: 'MATIC'
+      });
+      
+      // 2. Créer commande dans backend
+      const orderResponse = await createOrder({
+        restaurantId: cartItems[0].restaurantId,
+        items: cartItems.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.priceEUR
+        })),
+        deliveryAddress,
+        clientAddress: walletAddress,
+        totalAmount: conversionResponse.data.convertedAmount
+      });
+
+      // 3. Transaction blockchain
+      const tx = await createOnChainOrder(
+        orderResponse.data.orderId,
+        restaurantAddress,
+        delivererAddress,
+        conversionResponse.data.convertedAmount
+      );
+      
+      await tx.wait();
+      
+      // 4. Vider panier
+      dispatch({ type: 'CLEAR_CART' });
+      
+      // 5. Rediriger vers tracking
+      navigate(`/tracking/${orderResponse.data.orderId}`);
+      
+    } catch (error) {
+      console.error('Order failed:', error);
+    }
+  };
   const platformCommission = useMemo(() => foodTotal * PLATFORM_COMMISSION_RATE, [foodTotal]);
   const finalTotalEUR = useMemo(() => foodTotal + DELIVERY_FEE_EUR + platformCommission, [foodTotal, platformCommission]);
   

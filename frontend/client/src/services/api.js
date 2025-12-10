@@ -17,7 +17,25 @@ const apiClient = axios.create({
 export const getRestaurants = (filters = {}) => {
   return apiClient.get('/restaurants', { params: filters });
 };
+export const convertCurrency = (data) => {
+  return apiClient.post('/oracles/convert', data);
+};
+// src/services/api.js
+export const getUserProfile = (address) => {
+  return apiClient.get(`/users/${address}`);
+};
 
+export const updateUserProfile = (address, userData) => {
+  return apiClient.put(`/users/${address}`, userData);
+};
+
+export const registerUser = (userData) => {
+  return apiClient.post('/users/register', userData);
+};
+
+export const getUserTokens = (address) => {
+  return apiClient.get(`/users/${address}/tokens`);
+};
 /**
  * Fetches the details of a single restaurant by its ID.
  * @param {string} id - The ID of the restaurant.
@@ -81,7 +99,14 @@ export const openDispute = (orderId, disputeData) => {
 export const submitReview = (reviewData) => {
   return apiClient.post('/reviews', reviewData);
 };
+// src/services/api.js
+export const getTokenRate = () => {
+  return apiClient.get('/tokens/rate');
+};
 
+export const useTokenDiscount = (data) => {
+  return apiClient.post('/tokens/use-discount', data);
+};
 export default {
   getRestaurants,
   getRestaurantById,

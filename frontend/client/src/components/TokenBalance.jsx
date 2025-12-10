@@ -23,80 +23,67 @@ const getTokenTransactionHistory = async (address) => {
  * @param {object} props - The props object.
  * @param {string} props.clientAddress - The blockchain address of the client.
  */
+import { getUserTokens, useTokenDiscount, getTokenRate } from '../services/api';
+
 const TokenBalance = ({ clientAddress }) => {
   const [balance, setBalance] = useState('0');
-  const [balanceInEUR, setBalanceInEUR] = useState(0);
   const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
+  const [rate, setRate] = useState({});
+  
   useEffect(() => {
-    if (!clientAddress) return;
-
     const fetchData = async () => {
       try {
-        setLoading(true);
-        setError('');
-
-        // Fetch balance and history in parallel
-        const [tokenBalance, txHistory] = await Promise.all([
-          getDoneTokenBalance(clientAddress),
-          getTokenTransactionHistory(clientAddress)
-        ]);
+        // 1. Balance + historique depuis backend
+        const tokensResponse = await getUserTokens(clientAddress);
+        setBalance(tokensResponse.data.balance);
+        setHistory(tokensResponse.data.transactions);
         
-        const balanceNum = parseFloat(tokenBalance);
-        setBalance(tokenBalance);
-        setBalanceInEUR(balanceNum * DONE_TO_EUR_RATE);
-        setHistory(txHistory);
-
-      } catch (err) {
-        console.error('Failed to fetch token data:', err);
-        setError('Failed to load token balance and history.');
-      } finally {
-        setLoading(false);
+        // 2. Taux conversion
+        const rateResponse = await getTokenRate();
+        setRate(rateResponse.data.rate);
+        
+      } catch (error) {
+        console.error('Failed to fetch token data:', error);
       }
     };
-
-    fetchData();
+    
+    if (clientAddress) {
+      fetchData();
+    }
   }, [clientAddress]);
 
-  if (loading) return <p>Loading token balance...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  const handleUseDiscount = async () => {
+    try {
+      const response = await useTokenDiscount({
+        userAddress: clientAddress,
+        tokensToUse: 50,
+        orderId: currentOrderId
+      });
+      
+      alert(`Discount applied: ${response.data.discountAmount} EUR`);
+      // Rafraîchir balance
+      fetchData();
+      
+    } catch (error) {
+      console.error('Failed to use discount:', error);
+    }
+  };
 
   return (
-    <div className="p-6 bg-white border rounded-lg shadow-xl">
-      <h2 className="mb-4 text-2xl font-bold">Your DONE Tokens</h2>
+    <div>
+      <h2>Balance: {balance} DONE</h2>
+      <p>1 DONE = {rate['1 DONE']} EUR</p>
       
-      {/* Balance Display */}
-      <div className="p-4 mb-6 text-center bg-blue-50 rounded-lg">
-        <p className="text-lg text-gray-600">Total Balance</p>
-        <p className="text-4xl font-bold text-blue-600">{parseFloat(balance).toFixed(2)} DONE</p>
-        <p className="font-semibold text-gray-500">~ {formatPriceInEUR(balanceInEUR)}</p>
-      </div>
-
-      {/* Actions */}
-      <div className="flex justify-center gap-4 mb-6">
-        <button className="px-4 py-2 font-semibold text-white bg-green-500 rounded-lg hover:bg-green-600">Apply Discount</button>
-        <button className="px-4 py-2 font-semibold text-white bg-purple-500 rounded-lg hover:bg-purple-600">View Rewards</button>
-      </div>
-
-      {/* Transaction History */}
-      <div>
-        <h3 className="mb-2 text-lg font-semibold">Transaction History</h3>
-        <div className="space-y-3">
-          {history.map(tx => (
-            <div key={tx.id} className="flex justify-between p-3 border rounded-md bg-gray-50">
-              <div>
-                <p className="font-medium">{tx.reason}</p>
-                <p className="text-sm text-gray-500">{formatDateTime(tx.date, 'dd MMM yyyy')}</p>
-              </div>
-              <p className={`font-semibold ${tx.type === 'earned' ? 'text-green-500' : 'text-red-500'}`}>
-                {tx.type === 'earned' ? '+' : ''}{tx.amount} DONE
-              </p>
-            </div>
-          ))}
+      {/* Historique */}
+      {history.map(tx => (
+        <div key={tx.id}>
+          <p>{tx.reason}: {tx.amount} DONE</p>
         </div>
-      </div>
+      ))}
+      
+      <button onClick={handleUseDiscount}>
+        Apply Discount
+      </button>
     </div>
   );
 };

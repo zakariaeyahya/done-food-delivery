@@ -56,9 +56,36 @@ const OrderHistory = ({ clientAddress }) => {
   
   // Placeholder action handlers
   const handleViewDetails = (orderId) => alert(`Viewing details for order ${orderId}`);
-  const handleReorder = (orderId) => alert(`Reordering items from order ${orderId}`);
-  const handleLeaveReview = (orderId) => alert(`Leaving a review for order ${orderId}`);
-
+  const handleReorder = (orderId) => {
+    // Récupérer items de la commande
+    const order = orders.find(o => o.id === orderId);
+    
+    // Ajouter au panier
+    order.items.forEach(item => {
+      dispatch({ type: 'ADD_ITEM', payload: item });
+    });
+    
+    // Rediriger vers checkout
+    navigate('/checkout');
+  };  const handleLeaveReview = async (orderId) => {
+    const rating = 5; // Depuis modal/form
+    const comment = 'Great food!';
+    
+    try {
+      await submitReview({
+        orderId,
+        rating,
+        comment,
+        clientAddress
+      });
+      alert('Review submitted successfully!');
+      // Rafraîchir commandes
+      fetchOrders();
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+      alert('Failed to submit review');
+    }
+  };
 
   if (loading) return <p>Loading order history...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
