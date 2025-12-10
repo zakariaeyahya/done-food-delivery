@@ -23,9 +23,25 @@ function StakingPanel({ address }) {
 
   async function fetchStakingInfo() {
     try {
+      // 1. D'abord, vérifier localStorage (MVP Mode)
+      const localStake = localStorage.getItem(`staked_${address}`);
+      if (localStake) {
+        const amount = parseFloat(localStake);
+        setStakedAmount(amount);
+        setIsStaked(true);
+        console.log("📦 Données chargées depuis localStorage:", amount, "POL");
+        return;
+      }
+  
+      // 2. Sinon, vérifier blockchain (si disponible)
       const stakeInfo = await blockchain.getStakeInfo(address);
       setStakedAmount(stakeInfo.amount);
       setIsStaked(stakeInfo.isStaked);
+      
+      // Sauvegarder dans localStorage pour persistance
+      if (stakeInfo.isStaked && stakeInfo.amount > 0) {
+        localStorage.setItem(`staked_${address}`, stakeInfo.amount.toString());
+      }
     } catch (err) {
       console.error("Erreur récupération stake info:", err);
     }
