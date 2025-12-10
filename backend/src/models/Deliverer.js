@@ -39,10 +39,12 @@ const delivererSchema = new mongoose.Schema({
     trim: true,
     validate: {
       validator: function(v) {
-        // Valider format téléphone
-        return /^\+?[1-9]\d{1,14}$/.test(v);
+        // Valider format téléphone - accepte les espaces, tirets, parenthèses
+        // Nettoyer et vérifier qu'il y a au moins 8 chiffres
+        const digitsOnly = v.replace(/[\s\-\(\)\.]/g, '');
+        return /^\+?[0-9]{8,15}$/.test(digitsOnly);
       },
-      message: 'Invalid phone number format'
+      message: 'Invalid phone number format (minimum 8 digits required)'
     }
   },
 

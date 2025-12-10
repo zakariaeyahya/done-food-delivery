@@ -3,20 +3,23 @@ import React, { useMemo } from 'react';
 import Cart from '../components/Cart';
 import Checkout from '../components/Checkout';
 import { useWallet } from '../contexts/WalletContext';
-import { useCart, useCartDispatch } from '../contexts/CartContext';
+import { useCart, useCartActions } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 // import { convertCurrency, createOrder } from '../services/api';
 // import { createOnChainOrder } from '../services/blockchain';
 
-const DELIVERY_FEE_EUR = 5.0;
+const DELIVERY_FEE_MATIC = 0.001;
 const PLATFORM_COMMISSION_RATE = 0.1;
 
 // ✅ Tous les hooks DOIVENT être à l'intérieur du composant
 const CheckoutPage = () => {
   const { address, isConnected } = useWallet();
-  const cartItems = useCart();
-  const dispatch = useCartDispatch();
+  const cart = useCart();
+  const { updateQuantity, removeItem, clearCart } = useCartActions();
   const navigate = useNavigate();
+
+  // Extract items from cart object
+  const cartItems = cart.items || [];
 
   // Si pas connecté → on bloque la page
   if (!isConnected) {
@@ -49,19 +52,16 @@ const CheckoutPage = () => {
 
   /** Handlers **/
 
-  const handleUpdateQuantity = (itemId, newQuantity) => {
+  const handleUpdateQuantity = async (itemId, newQuantity) => {
     if (newQuantity <= 0) {
-      handleRemoveItem(itemId);
+      await handleRemoveItem(itemId);
     } else {
-      dispatch({
-        type: 'UPDATE_QUANTITY',
-        payload: { id: itemId, quantity: newQuantity },
-      });
+      await updateQuantity(itemId, newQuantity);
     }
   };
 
-  const handleRemoveItem = (itemId) => {
-    dispatch({ type: 'REMOVE_ITEM', payload: { id: itemId } });
+  const handleRemoveItem = async (itemId) => {
+    await removeItem(itemId);
   };
 
   const handleCheckout = () => {
@@ -113,12 +113,12 @@ const CheckoutPage = () => {
     // }
   };
 
-  /** Calculs totaux **/
+  /** Calculs totaux (all in MATIC) **/
 
   const foodTotal = useMemo(
     () =>
       cartItems.reduce(
-        (total, item) => total + item.priceEUR * item.quantity,
+        (total, item) => total + (item.price || 0) * (item.quantity || 1),
         0
       ),
     [cartItems]
@@ -129,16 +129,9 @@ const CheckoutPage = () => {
     [foodTotal]
   );
 
-  const finalTotalEUR = useMemo(
-    () => foodTotal + DELIVERY_FEE_EUR + platformCommission,
-    [foodTotal, platformCommission]
-  );
-
-  // Placeholder : taux EUR → MATIC
-  const EUR_TO_MATIC_RATE = 1.18;
   const finalTotalMATIC = useMemo(
-    () => finalTotalEUR / EUR_TO_MATIC_RATE,
-    [finalTotalEUR]
+    () => foodTotal + DELIVERY_FEE_MATIC + platformCommission,
+    [foodTotal, platformCommission]
   );
 
   return (
@@ -160,11 +153,10 @@ const CheckoutPage = () => {
           <Checkout
             cartItems={cartItems}
             foodTotal={foodTotal}
-            deliveryFee={DELIVERY_FEE_EUR}
+            deliveryFee={DELIVERY_FEE_MATIC}
             commission={platformCommission}
-            finalTotal={finalTotalEUR}
-            finalTotalMATIC={finalTotalMATIC}
-            onPlaceOrder={handlePlaceOrder} // si ton composant Checkout accepte cette prop
+            finalTotal={finalTotalMATIC}
+            onPlaceOrder={handlePlaceOrder}
           />
         </div>
       </div>

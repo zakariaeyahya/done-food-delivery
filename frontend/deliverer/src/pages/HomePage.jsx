@@ -9,7 +9,8 @@ function HomePage() {
   const { address, connectWallet } = useApp();
   const [isOnline, setIsOnline] = useState(false);
   const [activeDelivery, setActiveDelivery] = useState(null);
-  const [isRegistered, setIsRegistered] = useState(true);
+  const [isRegistered, setIsRegistered] = useState(null); // null = unknown, true = registered, false = not registered
+  const [checkingRegistration, setCheckingRegistration] = useState(true);
   const [stats, setStats] = useState({
     todayDeliveries: 0,
     todayEarnings: 0,
@@ -27,15 +28,20 @@ function HomePage() {
   useEffect(() => {
     if (address) {
       loadData();
+    } else {
+      setCheckingRegistration(false);
+      setIsRegistered(null);
     }
   }, [address]);
 
   async function loadData() {
+    setCheckingRegistration(true);
     try {
       // Check if user is registered as deliverer
       const delivererData = await api.getDeliverer(address).catch((err) => {
         if (err.response?.status === 404) {
           setIsRegistered(false);
+          setCheckingRegistration(false);
           return null;
         }
         return null;
@@ -43,10 +49,12 @@ function HomePage() {
 
       if (!delivererData) {
         setIsRegistered(false);
+        setCheckingRegistration(false);
         return;
       }
 
       setIsRegistered(true);
+      setCheckingRegistration(false);
 
       // Load active delivery (may not exist - that's ok)
       const active = await api.getActiveDelivery(address).catch(() => null);
@@ -94,6 +102,13 @@ function HomePage() {
       alert("Inscription réussie !");
       await loadData();
     } catch (err) {
+      // Si déjà inscrit, recharger les données pour afficher le dashboard
+      if (err.alreadyRegistered) {
+        alert("Ce wallet est déjà inscrit. Redirection vers le tableau de bord...");
+        await loadData();
+        return;
+      }
+
       const errorMsg = err.response?.data?.details || err.response?.data?.message || err.message;
       alert("Erreur lors de l'inscription: " + errorMsg);
     } finally {
@@ -127,7 +142,19 @@ function HomePage() {
     );
   }
 
-  if (!isRegistered) {
+  // Show loading while checking registration status
+  if (checkingRegistration) {
+    return (
+      <div className="page">
+        <div className="card center">
+          <h2>Vérification en cours...</h2>
+          <p>Vérification de votre statut d'inscription</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isRegistered === false) {
     return (
       <div className="page">
         <div className="card">

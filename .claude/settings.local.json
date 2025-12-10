@@ -14,7 +14,9 @@
       "Bash(timeout /t 5 /nobreak)",
       "Bash(powershell \"Get-Content ''C:\\Users\\Hp\\Desktop\\blockchain\\blockchain\\frontend\\restaurant\\src\\index.css'' | Measure-Object -Line | Select-Object -ExpandProperty Lines\")",
       "Bash(ping:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(powershell \"Stop-Process -Id 24560 -Force\")",
+      "Bash(npm run dev:*)"
     ]
   }
 }

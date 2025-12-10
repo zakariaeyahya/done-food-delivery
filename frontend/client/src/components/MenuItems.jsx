@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { formatPriceInEUR, formatPriceInMATIC, truncateText } from '../utils/formatters';
-import { getImageUrl } from '../services/ipfs';
+import { formatPriceInMATIC, truncateText } from '../utils/formatters';
 
 /**
  * A component to display a restaurant's menu with category filters.
@@ -8,7 +7,7 @@ import { getImageUrl } from '../services/ipfs';
  * @param {Array<object>} props.menu - The list of menu items for the restaurant.
  * @param {Function} props.onAddToCart - Function to handle adding an item to the cart.
  */
-const MenuItems = ({ menu = [], onAddToCart }) => {
+const MenuItems = ({ menu = [], onAddToCart, isAddingToCart = false }) => {
   const [activeCategory, setActiveCategory] = useState('All');
 
   const categories = useMemo(() => {
@@ -51,28 +50,31 @@ const MenuItems = ({ menu = [], onAddToCart }) => {
 
       {/* Menu Item List */}
       <div className="space-y-4">
-        {filteredMenu.map(item => (
-          <div key={item.id} className="flex p-4 bg-white border rounded-lg shadow-sm">
-            <img 
-              src={item.ipfsImageHash ? getImageUrl(item.ipfsImageHash) : 'https://via.placeholder.com/100'} 
+        {filteredMenu.map((item, index) => (
+          <div key={item._id || item.id || index} className="flex p-4 bg-white border rounded-lg shadow-sm">
+            <img
+              src={item.imageUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23e5e7eb" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E'}
               alt={item.name}
               className="object-cover w-24 h-24 mr-4 rounded-md"
             />
             <div className="flex-grow">
               <h4 className="font-bold text-md">{item.name}</h4>
-              <p className="text-sm text-gray-600">{truncateText(item.description, 80)}</p>
+              <p className="text-sm text-gray-600">{truncateText(item.description || '', 80)}</p>
               <div className="mt-2 text-sm font-semibold">
-                <span>{formatPriceInEUR(item.priceEUR)}</span>
-                <span className="mx-2 text-gray-400">|</span>
-                <span>{formatPriceInMATIC(item.priceMATIC)}</span>
+                <span>{formatPriceInMATIC(item.price)}</span>
               </div>
             </div>
             <div className="flex items-center">
               <button
                 onClick={() => handleAddToCart(item)}
-                className="px-3 py-1 ml-4 text-sm font-bold text-white bg-green-500 rounded-lg hover:bg-green-600"
+                disabled={isAddingToCart}
+                className={`px-3 py-1 ml-4 text-sm font-bold text-white rounded-lg transition-colors ${
+                  isAddingToCart
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-green-500 hover:bg-green-600'
+                }`}
               >
-                Add to Cart
+                {isAddingToCart ? 'Adding...' : 'Add to Cart'}
               </button>
             </div>
           </div>

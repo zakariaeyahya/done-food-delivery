@@ -61,6 +61,46 @@ const userSchema = new mongoose.Schema({
     }
   },
 
+  // cart - Panier de l'utilisateur
+  cart: {
+    restaurantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Restaurant',
+      default: null
+    },
+    restaurantAddress: {
+      type: String,
+      default: null
+    },
+    items: [{
+      menuItemId: {
+        type: String,
+        required: true
+      },
+      name: {
+        type: String,
+        required: true
+      },
+      price: {
+        type: Number,
+        required: true
+      },
+      quantity: {
+        type: Number,
+        required: true,
+        min: 1,
+        default: 1
+      },
+      image: {
+        type: String
+      }
+    }],
+    updatedAt: {
+      type: Date,
+      default: Date.now
+    }
+  },
+
   // deliveryAddresses - Tableau d'adresses de livraison
   deliveryAddresses: [{
     label: {

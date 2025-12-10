@@ -2,12 +2,12 @@ import React, { useState, useRef } from 'react';
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 import { createOnChainOrder } from '../services/blockchain';
 import { createOrder as createApiOrder } from '../services/api';
-import { formatPriceInEUR, formatPriceInMATIC } from '../utils/formatters';
+import { formatPriceInMATIC } from '../utils/formatters';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const LIBRARIES = ['places'];
 
-const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal, finalTotalMATIC }) => {
+const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal }) => {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [txStatus, setTxStatus] = useState('idle'); // idle, pending, confirmed, error
   const [txHash, setTxHash] = useState('');
@@ -52,7 +52,7 @@ const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal, f
         orderId,
         'RESTAURANT_WALLET_ADDRESS', // Placeholder
         'DELIVERER_WALLET_ADDRESS',  // Placeholder
-        finalTotalMATIC.toString()
+        finalTotal.toString()
       );
       
       setTxHash(tx.hash);
@@ -70,11 +70,10 @@ const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal, f
     <div className="p-4 mb-6 bg-gray-50 rounded-lg">
       <h3 className="mb-2 text-lg font-semibold">Order Summary</h3>
       <div className="space-y-1 text-sm">
-        <div className="flex justify-between"><span>Food Total:</span> <span>{formatPriceInEUR(foodTotal)}</span></div>
-        <div className="flex justify-between"><span>Delivery Fee:</span> <span>{formatPriceInEUR(deliveryFee)}</span></div>
-        <div className="flex justify-between"><span>Platform Commission:</span> <span>{formatPriceInEUR(commission)}</span></div>
-        <div className="flex justify-between pt-2 mt-2 text-base font-bold border-t"><span>Final Total:</span> <span>{formatPriceInEUR(finalTotal)}</span></div>
-        <div className="flex justify-between font-semibold text-gray-500"><span>In MATIC (approx.):</span> <span>{formatPriceInMATIC(finalTotalMATIC)}</span></div>
+        <div className="flex justify-between"><span>Food Total:</span> <span>{formatPriceInMATIC(foodTotal)}</span></div>
+        <div className="flex justify-between"><span>Delivery Fee:</span> <span>{formatPriceInMATIC(deliveryFee)}</span></div>
+        <div className="flex justify-between"><span>Platform Commission:</span> <span>{formatPriceInMATIC(commission)}</span></div>
+        <div className="flex justify-between pt-2 mt-2 text-base font-bold border-t"><span>Final Total:</span> <span>{formatPriceInMATIC(finalTotal)}</span></div>
       </div>
     </div>
   );

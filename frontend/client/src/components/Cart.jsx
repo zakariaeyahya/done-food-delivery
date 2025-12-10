@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
-import { formatPriceInEUR, formatPriceInMATIC } from '../utils/formatters';
+import { formatPriceInMATIC } from '../utils/formatters';
 
-const DELIVERY_FEE_EUR = 5.00;
+const DELIVERY_FEE_MATIC = 0.001;
 const PLATFORM_COMMISSION_RATE = 0.10; // 10%
 
 /**
  * A component to display the user's shopping cart.
  * @param {object} props - The props object.
- * @param {Array<object>} props.cartItems - The items in the cart. e.g., [{ id, name, priceEUR, priceMATIC, quantity }]
+ * @param {Array<object>} props.cartItems - The items in the cart. e.g., [{ menuItemId, name, price, quantity }]
  * @param {Function} props.onUpdateQuantity - Function to update an item's quantity.
  * @param {Function} props.onRemoveItem - Function to remove an item from the cart.
  * @param {Function} props.onCheckout - Function to proceed to checkout.
@@ -15,7 +15,7 @@ const PLATFORM_COMMISSION_RATE = 0.10; // 10%
 const Cart = ({ cartItems = [], onUpdateQuantity, onRemoveItem, onCheckout }) => {
 
   const foodTotal = useMemo(() => {
-    return cartItems.reduce((total, item) => total + item.priceEUR * item.quantity, 0);
+    return cartItems.reduce((total, item) => total + (item.price || 0) * (item.quantity || 1), 0);
   }, [cartItems]);
 
   const platformCommission = useMemo(() => {
@@ -23,7 +23,7 @@ const Cart = ({ cartItems = [], onUpdateQuantity, onRemoveItem, onCheckout }) =>
   }, [foodTotal]);
 
   const finalTotal = useMemo(() => {
-    return foodTotal + DELIVERY_FEE_EUR + platformCommission;
+    return foodTotal + DELIVERY_FEE_MATIC + platformCommission;
   }, [foodTotal, platformCommission]);
 
   return (
@@ -34,17 +34,32 @@ const Cart = ({ cartItems = [], onUpdateQuantity, onRemoveItem, onCheckout }) =>
       ) : (
         <>
           <div className="space-y-4">
-            {cartItems.map(item => (
-              <div key={item.id} className="flex items-center justify-between">
+            {cartItems.map((item, index) => (
+              <div key={item.menuItemId || item._id || index} className="flex items-center justify-between">
                 <div>
                   <p className="font-semibold">{item.name}</p>
-                  <p className="text-sm text-gray-500">{formatPriceInEUR(item.priceEUR)}</p>
+                  <p className="text-sm text-gray-500">{formatPriceInMATIC(item.price)}</p>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <button onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} className="px-2 py-0.5 border rounded">-</button>
+                  <button
+                    onClick={() => onUpdateQuantity(item.menuItemId, item.quantity - 1)}
+                    className="px-2 py-0.5 border rounded hover:bg-gray-100"
+                  >
+                    -
+                  </button>
                   <span>{item.quantity}</span>
-                  <button onClick={() => onUpdateQuantity(item.id, item.quantity + 1)} className="px-2 py-0.5 border rounded">+</button>
-                  <button onClick={() => onRemoveItem(item.id)} className="text-red-500 hover:text-red-700">Remove</button>
+                  <button
+                    onClick={() => onUpdateQuantity(item.menuItemId, item.quantity + 1)}
+                    className="px-2 py-0.5 border rounded hover:bg-gray-100"
+                  >
+                    +
+                  </button>
+                  <button
+                    onClick={() => onRemoveItem(item.menuItemId)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    Remove
+                  </button>
                 </div>
               </div>
             ))}
@@ -53,28 +68,23 @@ const Cart = ({ cartItems = [], onUpdateQuantity, onRemoveItem, onCheckout }) =>
           <div className="pt-4 mt-6 border-t">
             <div className="flex justify-between text-sm">
               <p>Food Total:</p>
-              <p>{formatPriceInEUR(foodTotal)}</p>
+              <p>{formatPriceInMATIC(foodTotal)}</p>
             </div>
             <div className="flex justify-between text-sm">
               <p>Delivery Fee:</p>
-              <p>{formatPriceInEUR(DELIVERY_FEE_EUR)}</p>
+              <p>{formatPriceInMATIC(DELIVERY_FEE_MATIC)}</p>
             </div>
             <div className="flex justify-between text-sm">
               <p>Platform Commission (10%):</p>
-              <p>{formatPriceInEUR(platformCommission)}</p>
+              <p>{formatPriceInMATIC(platformCommission)}</p>
             </div>
             <div className="flex justify-between mt-2 text-lg font-bold">
               <p>Final Total:</p>
-              <p>{formatPriceInEUR(finalTotal)}</p>
-            </div>
-             <div className="flex justify-between text-sm font-semibold text-gray-500">
-                <p>Total in MATIC (approx.):</p>
-                {/* This would require a real-time price feed in a real app */}
-                <p>{formatPriceInMATIC(finalTotal * 1e18 / 0.85)}</p> {/* Placeholder conversion */}
+              <p>{formatPriceInMATIC(finalTotal)}</p>
             </div>
           </div>
-          
-          <button 
+
+          <button
             onClick={onCheckout}
             className="w-full px-4 py-2 mt-6 font-bold text-white bg-green-500 rounded-lg hover:bg-green-600"
           >

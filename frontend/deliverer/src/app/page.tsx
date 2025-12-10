@@ -17,7 +17,8 @@ import { motion } from "framer-motion";
 export default function HomePage() {
   const { address, connectWallet, setActiveDelivery, activeDelivery } = useApp();
   const [isOnline, setIsOnline] = useState(false);
-  const [isRegistered, setIsRegistered] = useState(true);
+  const [isRegistered, setIsRegistered] = useState<boolean | null>(null); // null = unknown, true = registered, false = not registered
+  const [checkingRegistration, setCheckingRegistration] = useState(true);
   const [stats, setStats] = useState({
     todayDeliveries: 0,
     todayEarnings: 0,
@@ -35,14 +36,19 @@ export default function HomePage() {
   useEffect(() => {
     if (address) {
       loadData();
+    } else {
+      setCheckingRegistration(false);
+      setIsRegistered(null);
     }
   }, [address]);
 
   async function loadData() {
+    setCheckingRegistration(true);
     try {
       const delivererData = await api.getDeliverer(address).catch((err: any) => {
         if (err.response?.status === 404) {
           setIsRegistered(false);
+          setCheckingRegistration(false);
           return null;
         }
         return null;
@@ -50,10 +56,12 @@ export default function HomePage() {
 
       if (!delivererData) {
         setIsRegistered(false);
+        setCheckingRegistration(false);
         return;
       }
 
       setIsRegistered(true);
+      setCheckingRegistration(false);
 
       const active = await api.getActiveDelivery(address).catch(() => null);
       setActiveDelivery(active);
@@ -98,6 +106,13 @@ export default function HomePage() {
       alert("Inscription réussie !");
       await loadData();
     } catch (err: any) {
+      // Si déjà inscrit, recharger les données pour afficher le dashboard
+      if (err.alreadyRegistered) {
+        alert("Ce wallet est déjà inscrit. Redirection vers le tableau de bord...");
+        await loadData();
+        return;
+      }
+
       const errorMsg =
         err.response?.data?.details ||
         err.response?.data?.message ||
@@ -138,7 +153,26 @@ export default function HomePage() {
     );
   }
 
-  if (!isRegistered) {
+  // Show loading while checking registration status
+  if (checkingRegistration) {
+    return (
+      <PageTransition>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="max-w-md text-center">
+            <h2 className="text-2xl font-bold text-white mb-4">
+              Vérification en cours...
+            </h2>
+            <p className="text-slate-400 mb-6">Vérification de votre statut d'inscription</p>
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+            </div>
+          </Card>
+        </div>
+      </PageTransition>
+    );
+  }
+
+  if (isRegistered === false) {
     return (
       <PageTransition>
         <Card className="max-w-md mx-auto">

@@ -292,7 +292,18 @@ async function registerDeliverer(data) {
     return response.data;
   } catch (error) {
     console.error("Error registering deliverer:", error);
-    throw new Error(`Failed to register deliverer: ${error.message}`);
+
+    // Extraire le message d'erreur du backend
+    const errorDetails = error.response?.data?.details ||
+                         error.response?.data?.message ||
+                         error.message;
+
+    // Si c'est une erreur 409 (déjà inscrit), le livreur existe déjà
+    if (error.response?.status === 409) {
+      throw { alreadyRegistered: true, message: "Ce wallet est déjà inscrit comme livreur" };
+    }
+
+    throw new Error(errorDetails);
   }
 }
 

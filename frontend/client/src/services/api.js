@@ -109,6 +109,53 @@ export const getTokenRate = () => {
 export const useTokenDiscount = (data) => {
   return apiClient.post('/tokens/use-discount', data);
 };
+// === CART API ===
+
+/**
+ * Gets the cart for a user
+ * @param {string} address - User's wallet address
+ */
+export const getCart = (address) => {
+  return apiClient.get(`/cart/${address}`);
+};
+
+/**
+ * Adds an item to the cart
+ * @param {string} address - User's wallet address
+ * @param {object} itemData - Item data including menuItemId, name, price, quantity, image, restaurantId, restaurantAddress
+ */
+export const addToCart = (address, itemData) => {
+  console.log('[API] Adding to cart:', { address, itemData });
+  return apiClient.post(`/cart/${address}/add`, itemData);
+};
+
+/**
+ * Updates item quantity in cart
+ * @param {string} address - User's wallet address
+ * @param {string} menuItemId - Menu item ID
+ * @param {number} quantity - New quantity
+ */
+export const updateCartItem = (address, menuItemId, quantity) => {
+  return apiClient.put(`/cart/${address}/update`, { menuItemId, quantity });
+};
+
+/**
+ * Removes an item from cart
+ * @param {string} address - User's wallet address
+ * @param {string} itemId - Menu item ID to remove
+ */
+export const removeFromCart = (address, itemId) => {
+  return apiClient.delete(`/cart/${address}/remove/${itemId}`);
+};
+
+/**
+ * Clears the entire cart
+ * @param {string} address - User's wallet address
+ */
+export const clearCart = (address) => {
+  return apiClient.delete(`/cart/${address}/clear`);
+};
+
 export default {
   getRestaurants,
   getRestaurantById,
@@ -118,4 +165,9 @@ export default {
   confirmDelivery,
   openDispute,
   submitReview,
+  getCart,
+  addToCart,
+  updateCartItem,
+  removeFromCart,
+  clearCart,
 };
