@@ -61,37 +61,44 @@ function StakingPanel({ address }) {
   }
 
   /** Effectuer staking */
-  async function handleStake() {
-    if (!address) {
-      setError("Adresse wallet requise.");
-      return;
-    }
-
-    const amount = parseFloat(stakeInput);
-
-    if (amount < 0.1) {
-      setError("Montant minimum : 0.1 MATIC");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { txHash } = await blockchain.stake(stakeInput);
-      console.log("Transaction staking :", txHash);
-
-      // Attendre la confirmation
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      await fetchStakingInfo();
-      alert("Staking réussi !");
-    } catch (err) {
-      setError(`Erreur staking : ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
+  /** Effectuer staking */
+async function handleStake() {
+  if (!address) {
+    setError("Adresse wallet requise.");
+    return;
   }
+
+  let amount = parseFloat(stakeInput);
+
+  // Si montant invalide ou 0, utiliser 0.1 par défaut
+  if (isNaN(amount) || amount <= 0) {
+    amount = 0.1;
+    setStakeInput("0.1");
+  }
+
+  if (amount < 0.1) {
+    setError("Montant minimum : 0.1 MATIC");
+    return;
+  }
+
+  setLoading(true);
+  setError(null);
+
+  try {
+    const { txHash } = await blockchain.stake(amount);
+    console.log("Transaction staking :", txHash);
+
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    await fetchStakingInfo();
+    alert(`Staking réussi ! ${amount} MATIC stakés.`);
+    setStakeInput("0.1"); // Reset input
+  } catch (err) {
+    setError(`Erreur staking : ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+}
 
   /** Retirer staking */
   async function handleUnstake() {
@@ -144,14 +151,23 @@ function StakingPanel({ address }) {
       <div className="stake-input">
         <label>Montant à staker (minimum 0.1 MATIC)</label>
         <input
-          type="number"
-          value={stakeInput}
-          onChange={(e) => setStakeInput(e.target.value)}
-          min="0.1"
-          step="0.1"
-        />
+            type="number"
+            value={stakeInput}
+            onChange={(e) => {
+              const val = e.target.value;
+              setStakeInput(val);
+              if (parseFloat(val) < 0.1 && parseFloat(val) !== 0) {
+                setError("Montant minimum : 0.1 MATIC");
+              } else {
+                setError(null);
+              }
+            }}
+            min="0.1"
+            step="0.1"
+            placeholder="0.1"
+          />
         <button onClick={handleStake} disabled={loading || isStaked}>
-          {loading ? "En cours..." : "Stake 0.1 MATIC"}
+          {loading ? "En cours..." : `Stake ${parseFloat(stakeInput) > 0 ? stakeInput : "0.1"} POL`}
         </button>
       </div>
 
