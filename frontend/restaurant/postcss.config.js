@@ -2,7 +2,8 @@
 export default {
   plugins: {
     // Permet d'utiliser @import dans tes fichiers CSS
-    "postcss-import": {},
+    // Décommenter si postcss-import est installé: npm i -D postcss-import
+    // "postcss-import": {},
 
     // Nesting natif compatible Tailwind
     "tailwindcss/nesting": {},

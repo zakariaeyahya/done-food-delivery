@@ -168,6 +168,11 @@ export default {
   },
 
   // Plugins utiles pour dashboard (inputs, texte, ratios...)
-  // TODO: Install these plugins if needed: npm i -D @tailwindcss/forms @tailwindcss/typography @tailwindcss/aspect-ratio
-  plugins: [],
+  // Décommenter et installer si nécessaire:
+  // npm i -D @tailwindcss/forms @tailwindcss/typography @tailwindcss/aspect-ratio
+  plugins: [
+    // require("@tailwindcss/forms"),
+    // require("@tailwindcss/typography"),
+    // require("@tailwindcss/aspect-ratio"),
+  ],
 };

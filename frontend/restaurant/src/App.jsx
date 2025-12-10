@@ -4,11 +4,16 @@
  * @dev Gère état global, navigation sidebar, Socket.io, authentification restaurant
  */
 
+<<<<<<< HEAD
 import { useState, useEffect, createContext } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 
 // Import Socket.io
 import io from 'socket.io-client';
+=======
+import { useContext } from 'react';
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+>>>>>>> main
 
 // Import des pages
 import DashboardPage from './pages/DashboardPage';
@@ -21,6 +26,7 @@ import RegisterPage from './pages/RegisterPage';
 import ConnectWallet from './components/ConnectWallet';
 
 // Import des contexts
+<<<<<<< HEAD
 import { WalletProvider, useWallet } from './contexts/WalletContext';
 
 /**
@@ -53,6 +59,10 @@ function SocketProvider({ children }) {
     </SocketContext.Provider>
   );
 }
+=======
+import { WalletContext, WalletProvider } from './contexts/WalletContext';
+import { SocketContext, SocketProvider } from './contexts/SocketContext';
+>>>>>>> main
 
 /**
  * Composant Sidebar

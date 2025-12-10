@@ -59,6 +59,21 @@ router.get(
   adminController.getAllDeliverers
 );
 
+// Route GET /api/admin/orders - Liste toutes les commandes
+router.get("/orders", adminController.getOrders);
+
+// Route GET /api/admin/analytics/orders - Analytics commandes
+router.get("/analytics/orders", adminController.getAnalyticsOrders);
+
+// Route GET /api/admin/analytics/revenue - Analytics revenus
+router.get("/analytics/revenue", adminController.getAnalyticsRevenue);
+
+// Route GET /api/admin/ping - Vérifier connexion
+router.get("/ping", adminController.ping);
+
+// Route GET /api/admin/config - Configuration contrats
+router.get("/config", adminController.getConfig);
+
 // Exporter le router
 module.exports = router;
 

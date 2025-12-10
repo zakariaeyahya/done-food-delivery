@@ -1,116 +1,50 @@
-/**
- * Context CartContext
- * @notice Fournit cart, addItem, removeItem, clearCart à toute l'application
- * @dev Gère l'état du panier global avec persistence localStorage
- */
+import React, { createContext, useContext, useReducer } from 'react';
 
-// TODO: Importer React
-// import { createContext, useState, useEffect } from 'react';
+const CartContext = createContext();
+const CartDispatchContext = createContext();
 
-/**
- * Créer le Context
- */
-// TODO: Créer CartContext
-// export const CartContext = createContext(null);
+const cartReducer = (state, action) => {
+  switch (action.type) {
+    case 'ADD_ITEM': {
+      const existingItem = state.find(item => item.id === action.payload.id);
+      if (existingItem) {
+        return state.map(item =>
+          item.id === action.payload.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [...state, { ...action.payload, quantity: 1 }];
+    }
+    case 'REMOVE_ITEM': {
+      return state.filter(item => item.id !== action.payload.id);
+    }
+    case 'UPDATE_QUANTITY': {
+      if (action.payload.quantity <= 0) {
+        return state.filter(item => item.id !== action.payload.id);
+      }
+      return state.map(item =>
+        item.id === action.payload.id ? { ...item, quantity: action.payload.quantity } : item
+      );
+    }
+    case 'CLEAR_CART': {
+        return [];
+    }
+    default: {
+      throw new Error(`Unknown action: ${action.type}`);
+    }
+  }
+};
 
-/**
- * Provider pour CartContext
- * @param {Object} props - Props avec children
- * @returns {JSX.Element} Provider avec valeur du context
- */
-// TODO: Créer CartProvider
-// export function CartProvider({ children }) {
-//   const [cart, setCart] = useState([]);
-//   
-//   // TODO: Charger panier depuis localStorage au montage
-//   // useEffect(() => {
-//   //   const savedCart = localStorage.getItem('cart');
-//   //   SI savedCart:
-//   //     ESSAYER:
-//   //       const parsedCart = JSON.parse(savedCart);
-//   //       setCart(parsedCart);
-//   //     CATCH error:
-//   //       console.error('Error parsing saved cart:', error);
-//   //       localStorage.removeItem('cart');
-//   //   }
-//   // }, []);
-//   
-//   // TODO: Sauvegarder panier dans localStorage quand il change
-//   // useEffect(() => {
-//   //   localStorage.setItem('cart', JSON.stringify(cart));
-//   // }, [cart]);
-//   
-//   // TODO: Fonction pour ajouter un item au panier
-//   // function addItem(item) {
-//   //   setCart(prev => {
-//   //     // Vérifier si l'item existe déjà (même id et même restaurantId)
-//   //     const existingIndex = prev.findIndex(
-//   //       i => i.id === item.id && i.restaurantId === item.restaurantId
-//   //     );
-//   //     
-//   //     SI existingIndex >= 0:
-//   //       // Incrémenter la quantité
-//   //       const updated = [...prev];
-//   //       updated[existingIndex].quantity = 
-//   //         (updated[existingIndex].quantity || 1) + (item.quantity || 1);
-//   //       RETOURNER updated;
-//   //     SINON:
-//   //       // Ajouter nouvel item
-//   //       RETOURNER [...prev, { ...item, quantity: item.quantity || 1 }];
-//   //   });
-//   // }
-//   
-//   // TODO: Fonction pour supprimer un item du panier
-//   // function removeItem(itemId) {
-//   //   setCart(prev => prev.filter(item => item.id !== itemId));
-//   // }
-//   
-//   // TODO: Fonction pour modifier la quantité d'un item
-//   // function updateQuantity(itemId, quantity) {
-//   //   SI quantity <= 0:
-//   //     removeItem(itemId);
-//   //     RETOURNER;
-//   //   
-//   //   setCart(prev => prev.map(item => 
-//   //     item.id === itemId ? { ...item, quantity: Math.min(quantity, 10) } : item
-//   //   ));
-//   // }
-//   
-//   // TODO: Fonction pour vider le panier
-//   // function clearCart() {
-//   //   setCart([]);
-//   // }
-//   
-//   // TODO: Fonction pour obtenir le nombre total d'items
-//   // function getItemCount() {
-//   //   RETOURNER cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
-//   // }
-//   
-//   // TODO: Fonction pour obtenir le total du panier
-//   // function getTotal() {
-//   //   RETOURNER cart.reduce((sum, item) => {
-//   //     const itemPrice = parseFloat(item.price) || 0;
-//   //     const itemQuantity = item.quantity || 1;
-//   //     RETOURNER sum + (itemPrice * itemQuantity);
-//   //   }, 0);
-//   // }
-//   
-//   // TODO: Valeur du context
-//   // const value = {
-//   //   cart,
-//   //   addItem,
-//   //   removeItem,
-//   //   updateQuantity,
-//   //   clearCart,
-//   //   getItemCount,
-//   //   getTotal
-//   // };
-//   
-//   // TODO: Retourner le Provider
-//   // RETOURNER (
-//   //   <CartContext.Provider value={value}>
-//   //     {children}
-//   //   </CartContext.Provider>
-//   // );
-// }
+export const CartProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(cartReducer, []);
 
+  return (
+    <CartContext.Provider value={state}>
+      <CartDispatchContext.Provider value={dispatch}>
+        {children}
+      </CartDispatchContext.Provider>
+    </CartContext.Provider>
+  );
+};
+
+export const useCart = () => useContext(CartContext);
+export const useCartDispatch = () => useContext(CartDispatchContext);

@@ -1,89 +1,175 @@
-/**
- * Page CheckoutPage
- * @notice Page de checkout complète
- * @dev Intègre le composant Checkout et gère le flux de paiement
- */
+// src/pages/CheckoutPage.jsx
+import React, { useMemo } from 'react';
+import Cart from '../components/Cart';
+import Checkout from '../components/Checkout';
+import { useWallet } from '../contexts/WalletContext';
+import { useCart, useCartDispatch } from '../contexts/CartContext';
+import { useNavigate } from 'react-router-dom';
+// import { convertCurrency, createOrder } from '../services/api';
+// import { createOnChainOrder } from '../services/blockchain';
 
-// TODO: Importer React et hooks nécessaires
-// import { useContext } from 'react';
-// import { useNavigate } from 'react-router-dom';
+const DELIVERY_FEE_EUR = 5.0;
+const PLATFORM_COMMISSION_RATE = 0.1;
 
-// TODO: Importer les composants
-// import Checkout from '../components/Checkout';
+// ✅ Tous les hooks DOIVENT être à l'intérieur du composant
+const CheckoutPage = () => {
+  const { address, isConnected } = useWallet();
+  const cartItems = useCart();
+  const dispatch = useCartDispatch();
+  const navigate = useNavigate();
 
-// TODO: Importer les Contexts (si disponibles)
-// import { CartContext } from '../contexts/CartContext';
-// import { WalletContext } from '../contexts/WalletContext';
+  // Si pas connecté → on bloque la page
+  if (!isConnected) {
+    return (
+      <div className="container mx-auto p-8 text-center">
+        <h2 className="text-2xl font-semibold mb-2">
+          Please connect your wallet to proceed to checkout
+        </h2>
+        <p className="text-gray-500">
+          You need to connect your wallet before placing an order.
+        </p>
+      </div>
+    );
+  }
 
-/**
- * Page CheckoutPage
- * @returns {JSX.Element} Page de checkout
- */
-// TODO: Créer le composant CheckoutPage
-// function CheckoutPage() {
-//   const navigate = useNavigate();
-//   
-//   // TODO: Récupérer le panier depuis Context
-//   // const { cart, clearCart } = useContext(CartContext);
-//   // const { address: clientAddress } = useContext(WalletContext);
-//   
-//   // TODO: State local si pas de Context
-//   // const [cart, setCart] = useState([]);
-//   // const [clientAddress, setClientAddress] = useState(null);
-//   
-//   // TODO: Récupérer restaurantId depuis le panier (tous les items doivent être du même restaurant)
-//   // const restaurantId = cart.length > 0 ? cart[0].restaurantId : null;
-//   
-//   // TODO: Fonction pour vider le panier après commande réussie
-//   // function handleClearCart() {
-//   //   SI clearCart:
-//   //     clearCart();
-//   // }
-//   
-//   // TODO: Vérifier que le panier n'est pas vide
-//   // SI !cart || cart.length === 0:
-//   //   RETOURNER (
-//   //     <div className="checkout-page">
-//   //       <div className="empty-cart-message">
-//   //         <h2>Votre panier est vide</h2>
-//   //         <p>Ajoutez des articles avant de passer commande</p>
-//   //         <button onClick={() => navigate('/')} className="btn btn-primary">
-//   //           Voir les restaurants
-//   //         </button>
-//   //       </div>
-//   //     </div>
-//   //   );
-//   
-//   // TODO: Vérifier que le wallet est connecté
-//   // SI !clientAddress:
-//   //   RETOURNER (
-//   //     <div className="checkout-page">
-//   //       <div className="wallet-required-message">
-//   //         <h2>Wallet non connecté</h2>
-//   //         <p>Veuillez connecter votre wallet pour passer commande</p>
-//   //         <button onClick={() => navigate('/')} className="btn btn-primary">
-//   //           Retour à l'accueil
-//   //         </button>
-//   //       </div>
-//   //     </div>
-//   //   );
-//   
-//   // TODO: Rendu du composant
-//   // RETOURNER (
-//   //   <div className="checkout-page">
-//   //     <div className="container-custom">
-//   //       {/* Intègre le composant Checkout */}
-//   //       <Checkout
-//   //         cart={cart}
-//   //         restaurantId={restaurantId}
-//   //         clientAddress={clientAddress}
-//   //         onClearCart={handleClearCart}
-//   //       />
-//   //     </div>
-//   //   </div>
-//   // );
-// }
+  // Si panier vide
+  if (!cartItems || cartItems.length === 0) {
+    return (
+      <div className="container mx-auto p-8 text-center">
+        <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
+        <button
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+          onClick={() => navigate('/')}
+        >
+          Back to restaurants
+        </button>
+      </div>
+    );
+  }
 
-// TODO: Exporter le composant
-// export default CheckoutPage;
+  /** Handlers **/
 
+  const handleUpdateQuantity = (itemId, newQuantity) => {
+    if (newQuantity <= 0) {
+      handleRemoveItem(itemId);
+    } else {
+      dispatch({
+        type: 'UPDATE_QUANTITY',
+        payload: { id: itemId, quantity: newQuantity },
+      });
+    }
+  };
+
+  const handleRemoveItem = (itemId) => {
+    dispatch({ type: 'REMOVE_ITEM', payload: { id: itemId } });
+  };
+
+  const handleCheckout = () => {
+    // Ici tu peux ouvrir un modal de confirmation ou scroller sur le résumé
+    console.log('Review checkout clicked');
+  };
+
+  // TODO: branche cette fonction à ton bouton "Place Order" dans <Checkout />
+  const handlePlaceOrder = async () => {
+    alert('Place order logic not implemented yet');
+    // Exemple de squelette si tu veux l’implémenter plus tard :
+    //
+    // if (!isConnected) {
+    //   alert('Please connect wallet first');
+    //   return;
+    // }
+    //
+    // try {
+    //   const conversionResponse = await convertCurrency({
+    //     amount: finalTotalEUR,
+    //     from: 'EUR',
+    //     to: 'MATIC',
+    //   });
+    //
+    //   const orderResponse = await createOrder({
+    //     clientAddress: address,
+    //     restaurantId: cartItems[0].restaurantId,
+    //     items: cartItems.map((item) => ({
+    //       name: item.name,
+    //       quantity: item.quantity,
+    //       price: item.priceEUR,
+    //     })),
+    //     deliveryAddress,
+    //     totalAmount: conversionResponse.data.convertedAmount,
+    //   });
+    //
+    //   const tx = await createOnChainOrder(
+    //     orderResponse.data.orderId,
+    //     restaurantAddress,
+    //     delivererAddress,
+    //     conversionResponse.data.convertedAmount
+    //   );
+    //
+    //   await tx.wait();
+    //   dispatch({ type: 'CLEAR_CART' });
+    //   navigate(`/tracking/${orderResponse.data.orderId}`);
+    // } catch (error) {
+    //   console.error('Order failed:', error);
+    // }
+  };
+
+  /** Calculs totaux **/
+
+  const foodTotal = useMemo(
+    () =>
+      cartItems.reduce(
+        (total, item) => total + item.priceEUR * item.quantity,
+        0
+      ),
+    [cartItems]
+  );
+
+  const platformCommission = useMemo(
+    () => foodTotal * PLATFORM_COMMISSION_RATE,
+    [foodTotal]
+  );
+
+  const finalTotalEUR = useMemo(
+    () => foodTotal + DELIVERY_FEE_EUR + platformCommission,
+    [foodTotal, platformCommission]
+  );
+
+  // Placeholder : taux EUR → MATIC
+  const EUR_TO_MATIC_RATE = 1.18;
+  const finalTotalMATIC = useMemo(
+    () => finalTotalEUR / EUR_TO_MATIC_RATE,
+    [finalTotalEUR]
+  );
+
+  return (
+    <div className="container mx-auto p-4 sm:p-8">
+      <h1 className="text-3xl font-bold text-center mb-8">Review Your Order</h1>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left Column: Cart Details */}
+        <div>
+          <Cart
+            cartItems={cartItems}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemoveItem={handleRemoveItem}
+            onCheckout={handleCheckout}
+          />
+        </div>
+
+        {/* Right Column: Checkout and Payment */}
+        <div>
+          <Checkout
+            cartItems={cartItems}
+            foodTotal={foodTotal}
+            deliveryFee={DELIVERY_FEE_EUR}
+            commission={platformCommission}
+            finalTotal={finalTotalEUR}
+            finalTotalMATIC={finalTotalMATIC}
+            onPlaceOrder={handlePlaceOrder} // si ton composant Checkout accepte cette prop
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CheckoutPage;

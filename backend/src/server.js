@@ -39,6 +39,18 @@ const app = express();
 // Créer le serveur HTTP
 const server = http.createServer(app);
 
+// Liste des origines autorisées pour CORS
+const allowedOrigins = [
+  "http://localhost:5173", // Client
+  "http://localhost:5174", // Client (alternative port)
+  "http://localhost:5175", // Deliverer
+  "http://localhost:5176", // Deliverer (alternative port)
+  "http://localhost:3002", // Admin
+  "http://localhost:3002", // Restaurant
+  "http://localhost:3003", // Admin (alternative port)
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 // Initialiser Socket.io avec CORS configuré
 // Autoriser plusieurs origines : client et restaurant
 const allowedOrigins = [
@@ -49,6 +61,7 @@ const allowedOrigins = [
 
 const io = new Server(server, {
   cors: {
+    origin: allowedOrigins,
     origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true
@@ -63,6 +76,19 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 
 // Middleware CORS pour autoriser les requêtes cross-origin
 app.use(cors({
+  origin: function (origin, callback) {
+    // Autoriser les requêtes sans origine (comme les apps mobiles ou Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-address', 'x-wallet-address'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
   origin: allowedOrigins,
   credentials: true
 }));
@@ -105,6 +131,33 @@ app.get("/api", (req, res) => {
       users: "/api/users",
       restaurants: "/api/restaurants",
       deliverers: "/api/deliverers"
+    }
+  });
+});
+
+// Route ping pour vérifier la connexion
+app.get("/api/ping", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "pong",
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Route config pour récupérer les adresses des contrats dynamiquement
+app.get("/api/config", (req, res) => {
+  res.status(200).json({
+    success: true,
+    contracts: {
+      orderManager: process.env.ORDER_MANAGER_ADDRESS || null,
+      token: process.env.TOKEN_ADDRESS || null,
+      staking: process.env.STAKING_ADDRESS || null,
+      paymentSplitter: process.env.PAYMENT_SPLITTER_ADDRESS || null
+    },
+    network: {
+      chainId: 80002,
+      name: "Polygon Amoy Testnet",
+      rpcUrl: "https://rpc-amoy.polygon.technology"
     }
   });
 });

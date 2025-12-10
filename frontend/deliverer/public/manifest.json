@@ -1,0 +1,9 @@
+{
+  "name": "DONE Livreur",
+  "short_name": "DONE Livreur",
+  "description": "Application de livraison DONE pour livreurs",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#16a34a"
+}

@@ -24,10 +24,11 @@ build/
 out/
 .cache/
 .parcel-cache/
+.next/
+.vercel/
 
 # Hardhat
 cache/
-artifacts/
 typechain-types/
 coverage/
 coverage.json
@@ -83,3 +84,5 @@ SPRINT_9.txt
 # Fichiers dans les dossiers sprint
 sprint */SPRINT_*.txt
 sprint */ETAPES_*.txt
+promt.txt
+prompt2.txt
