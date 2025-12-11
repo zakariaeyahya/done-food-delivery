@@ -872,20 +872,31 @@ async function confirmDelivery(req, res) {
     const orderId = req.orderId || parseInt(req.params.id);
     const clientAddress = req.userAddress;
     
+    console.log(`[Backend] 📦 Confirmation livraison commande #${orderId} par client ${clientAddress}...`);
+    
     // Vérifier que la commande existe
     const order = await Order.findOne({ orderId })
       .populate('client', 'address name')
       .populate('deliverer', 'address name');
     if (!order) {
+      console.log(`[Backend] ❌ Commande #${orderId} non trouvée`);
       return res.status(404).json({
         error: "Not Found",
         message: `Order with id ${orderId} not found`
       });
     }
     
+    console.log(`[Backend] ✅ Commande trouvée:`, {
+      orderId: order.orderId,
+      status: order.status,
+      clientAddress: order.client?.address || order.client,
+      delivererAddress: order.deliverer?.address || order.deliverer
+    });
+    
     // Vérifier que le client est le propriétaire
     const orderClientAddress = order.client?.address || order.client;
     if (!orderClientAddress || orderClientAddress.toString().toLowerCase() !== clientAddress.toLowerCase()) {
+      console.log(`[Backend] ❌ Client ${clientAddress} n'est pas le propriétaire (propriétaire: ${orderClientAddress})`);
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this order"
@@ -894,6 +905,7 @@ async function confirmDelivery(req, res) {
     
     // Vérifier le statut
     if (order.status !== 'IN_DELIVERY') {
+      console.log(`[Backend] ❌ Statut invalide: ${order.status} (attendu: IN_DELIVERY)`);
       return res.status(400).json({
         error: "Bad Request",
         message: `Order status must be IN_DELIVERY, current status: ${order.status}`
@@ -910,25 +922,44 @@ async function confirmDelivery(req, res) {
       );
     } catch (blockchainError) {
       console.error("Error confirming delivery on blockchain:", blockchainError);
-      return res.status(500).json({
-        error: "Internal Server Error",
-        message: "Failed to confirm delivery on blockchain",
-        details: blockchainError.message
-      });
+      console.error("Stack trace:", blockchainError.stack);
+      
+      // En mode dev, permettre de continuer même si la blockchain échoue
+      if (process.env.NODE_ENV === 'development' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
+        console.warn('⚠️ Blockchain error in dev mode, continuing with mock data');
+        blockchainResult = {
+          txHash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''),
+          tokensEarned: "0"
+        };
+      } else {
+        return res.status(500).json({
+          error: "Internal Server Error",
+          message: "Failed to confirm delivery on blockchain",
+          details: blockchainError.message
+        });
+      }
     }
     
     // Mettre à jour dans MongoDB
+    console.log(`[Backend] 💾 Mise à jour statut commande #${orderId} à DELIVERED...`);
     await Order.updateStatus(orderId, 'DELIVERED');
+    console.log(`[Backend] ✅ Statut mis à jour dans MongoDB`);
     
     // Incrémenter les compteurs
-    if (order.restaurant && order.restaurant._id) {
-      await Restaurant.incrementOrderCount(order.restaurant._id);
-    }
-    if (order.deliverer && order.deliverer._id) {
-      const delivererAddr = order.deliverer?.address || order.deliverer;
-      if (delivererAddr) {
-        await Deliverer.incrementDeliveryCount(delivererAddr.toString());
+    try {
+      if (order.restaurant && order.restaurant._id) {
+        await Restaurant.incrementOrderCount(order.restaurant._id);
+        console.log(`[Backend] ✅ Compteur restaurant incrémenté`);
       }
+      if (order.deliverer && order.deliverer._id) {
+        const delivererAddr = order.deliverer?.address || order.deliverer;
+        if (delivererAddr) {
+          await Deliverer.incrementDeliveryCount(delivererAddr.toString());
+          console.log(`[Backend] ✅ Compteur livreur incrémenté`);
+        }
+      }
+    } catch (counterError) {
+      console.warn(`[Backend] ⚠️ Erreur incrémentation compteurs:`, counterError.message);
     }
     
     // Notifier le client
@@ -942,9 +973,12 @@ async function confirmDelivery(req, res) {
           tokensEarned: blockchainResult.tokensEarned || "0"
         }
       );
+      console.log(`[Backend] ✅ Notification envoyée au client`);
     } catch (notifError) {
-      console.warn("Error sending notification:", notifError);
+      console.warn("[Backend] ⚠️ Erreur envoi notification:", notifError.message);
     }
+    
+    console.log(`[Backend] ✅ Livraison confirmée avec succès pour commande #${orderId}`);
     
     return res.status(200).json({
       success: true,

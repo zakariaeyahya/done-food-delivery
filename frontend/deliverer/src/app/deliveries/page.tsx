@@ -155,7 +155,7 @@ export default function DeliveriesPage() {
                       className="border-b border-white/5 hover:bg-white/5 transition-colors"
                     >
                       <td className="py-3 px-4 text-sm text-white font-mono">
-                        {d.orderId.slice(0, 8)}...
+                        #{String(d.orderId).slice(0, 8)}
                       </td>
                       <td className="py-3 px-4 text-sm text-white">
                         {d.restaurant?.name || "—"}

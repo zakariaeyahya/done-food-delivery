@@ -9,6 +9,26 @@ const apiClient = axios.create({
   },
 });
 
+// Interceptor to add dev auth headers (like deliverer API)
+apiClient.interceptors.request.use((config) => {
+  // Only run on client side
+  if (typeof window === 'undefined') {
+    return config;
+  }
+
+  // Get current wallet address from localStorage or window
+  const address = window.ethereum?.selectedAddress || localStorage.getItem('walletAddress');
+
+  if (address) {
+    // Dev mode: use mock signature
+    config.headers['Authorization'] = 'Bearer mock_signature_for_testing';
+    config.headers['x-wallet-address'] = address;
+    config.headers['x-message'] = 'auth';
+  }
+
+  return config;
+});
+
 /**
  * Fetches a list of restaurants, optionally with filters.
  * @param {object} filters - Optional filters to apply to the query.

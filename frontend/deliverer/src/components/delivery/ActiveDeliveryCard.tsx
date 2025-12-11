@@ -174,7 +174,7 @@ export function ActiveDeliveryCard({ order }: ActiveDeliveryCardProps) {
         <div>
           <Badge variant="info" pulse>Livraison en cours</Badge>
           <h2 className="text-xl font-bold text-white mt-2">
-            Commande #{order.orderId.slice(0, 8)}
+            Commande #{String(order.orderId).slice(0, 8)}
           </h2>
         </div>
         <div className="text-right">

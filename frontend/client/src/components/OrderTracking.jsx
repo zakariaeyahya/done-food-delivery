@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import { useSocket } from '../contexts/SocketContext';
-import { confirmOnChainDelivery } from '../services/blockchain';
+import { confirmDelivery } from '../services/api';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const LIBRARIES = ['places'];
@@ -63,12 +63,35 @@ const OrderTracking = ({ order }) => {
   
   const handleConfirmDelivery = async () => {
     try {
-      await confirmOnChainDelivery(orderId);
+      console.log(`[Client] ✅ Confirmation livraison commande #${orderId}...`);
+      
+      // Vérifier que le wallet est connecté
+      if (!window.ethereum) {
+        alert('MetaMask n\'est pas installé. Veuillez installer MetaMask pour confirmer la livraison.');
+        return;
+      }
+      
+      // S'assurer que le wallet est connecté
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accounts.length === 0) {
+        const connectedAccounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (connectedAccounts.length === 0) {
+          alert('Veuillez connecter votre wallet pour confirmer la livraison.');
+          return;
+        }
+      }
+      
+      // Utiliser l'API backend qui gère la blockchain et les notifications
+      const response = await confirmDelivery(orderId);
+      console.log(`[Client] ✅ Livraison confirmée pour commande #${orderId}:`, response.data);
+      
       // The status will be updated via socket event from the backend
-      alert('Delivery confirmation submitted!');
+      alert('Livraison confirmée avec succès !');
+      setCurrentStatus('DELIVERED');
     } catch (error) {
-      console.error('Failed to confirm delivery:', error);
-      alert('Failed to confirm delivery. Please try again.');
+      console.error(`[Client] ❌ Erreur confirmation livraison commande #${orderId}:`, error);
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Erreur inconnue';
+      alert(`Échec de la confirmation de livraison: ${errorMessage}`);
     }
   };
 
