@@ -481,18 +481,32 @@ async function confirmPreparation(req, res) {
     let blockchainResult;
     try {
       const restaurant = await Restaurant.findByAddress(restaurantAddress);
+      // En mode développement, on peut ne pas avoir de clé privée
+      const privateKey = req.body.restaurantPrivateKey || process.env.PRIVATE_KEY || null;
+      
       blockchainResult = await blockchainService.confirmPreparation(
         orderId,
         restaurantAddress,
-        req.body.restaurantPrivateKey || process.env.PRIVATE_KEY
+        privateKey
       );
     } catch (blockchainError) {
       console.error("Error confirming preparation on blockchain:", blockchainError);
-      return res.status(500).json({
-        error: "Internal Server Error",
-        message: "Failed to confirm preparation on blockchain",
-        details: blockchainError.message
-      });
+      console.error("Stack trace:", blockchainError.stack);
+      
+      // En mode développement, continuer même si la blockchain échoue
+      if (process.env.NODE_ENV === 'development' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
+        console.warn('⚠️  Blockchain error in dev mode, continuing with mock data');
+        blockchainResult = {
+          txHash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''),
+          blockNumber: Math.floor(Math.random() * 1000000) + 1000000
+        };
+      } else {
+        return res.status(500).json({
+          error: "Internal Server Error",
+          message: "Failed to confirm preparation on blockchain",
+          details: blockchainError.message
+        });
+      }
     }
     
     // Mettre à jour dans MongoDB

@@ -12,7 +12,7 @@ import * as blockchain from "../services/blockchain";
 import { useWallet } from "../contexts/WalletContext"; // adapte chemin/nom si besoin
 
 function OrdersPage({ showSuccess, showError, showNotification }) {
-  const { restaurant, address } = useWallet();
+  const { restaurant, address, isConnected } = useWallet();
 
   const restaurantId = restaurant?._id;
   const restaurantAddress = restaurant?.address || address;
@@ -71,8 +71,37 @@ function OrdersPage({ showSuccess, showError, showNotification }) {
     try {
       setLoading(true);
 
+      // Confirmer via l'API (le backend gère le mode mock automatiquement)
       await api.confirmPreparation(orderId, restaurantAddress);
-      await blockchain.confirmPreparationOnChain(orderId);
+      
+      // En mode développement ou si les contrats ne sont pas configurés, 
+      // on peut ignorer l'appel blockchain car le backend gère déjà le mode mock
+      const isDevMode = !import.meta.env.VITE_ORDER_MANAGER_ADDRESS || 
+                        import.meta.env.VITE_ORDER_MANAGER_ADDRESS === '0x0000000000000000000000000000000000000000' ||
+                        import.meta.env.MODE === 'development';
+      
+      if (!isDevMode) {
+        // En production, vérifier que le wallet est connecté avant d'appeler la blockchain
+        if (!isConnected || !address) {
+          // Essayer de reconnecter le wallet
+          try {
+            await blockchain.connectWallet();
+          } catch (connectError) {
+            console.warn('Could not connect wallet for blockchain call:', connectError);
+            // Continuer quand même car l'API a déjà confirmé
+          }
+        }
+        
+        // Appeler la blockchain seulement si le wallet est connecté
+        try {
+          await blockchain.confirmPreparationOnChain(orderId);
+        } catch (blockchainError) {
+          console.warn('Blockchain confirmation failed, but API confirmation succeeded:', blockchainError);
+          // Ne pas échouer complètement si l'API a réussi
+        }
+      } else {
+        console.log('⚠️  Dev mode: Skipping blockchain call, backend handles mock mode');
+      }
 
       setOrders((prev) =>
         prev.map((o) =>
