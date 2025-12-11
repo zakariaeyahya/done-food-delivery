@@ -76,7 +76,25 @@ async function registerDeliverer(req, res) {
     });
   } catch (error) {
     console.error("Error registering deliverer:", error);
-    
+
+    // Gérer les erreurs de validation Mongoose
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        error: "Validation Error",
+        message: "Invalid registration data",
+        details: validationErrors.join(', ')
+      });
+    }
+
+    // Gérer les erreurs de doublon
+    if (error.code === 11000) {
+      return res.status(409).json({
+        error: "Conflict",
+        message: "Deliverer with this address already exists"
+      });
+    }
+
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to register deliverer",

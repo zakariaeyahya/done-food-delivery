@@ -23,10 +23,26 @@ const blockchainEvents = new EventEmitter();
 async function createOrder(params) {
   try {
     // En mode test, toujours utiliser des données mock pour éviter les problèmes de fonds/blockchain
-    if (process.env.NODE_ENV === 'test' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
-      const mockOrderId = Math.floor(Math.random() * 1000000) + 1;
+    if (process.env.NODE_ENV === 'test' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.NODE_ENV === 'development') {
+      // Générer un orderId unique en trouvant le prochain disponible
+      let mockOrderId;
+      try {
+        const Order = require("../models/Order");
+        // Trouver le dernier orderId utilisé
+        const lastOrder = await Order.findOne().sort({ orderId: -1 }).limit(1);
+        const lastOrderId = lastOrder ? lastOrder.orderId : 0;
+        // Utiliser le suivant (au moins 100000 pour éviter les conflits avec le seed)
+        mockOrderId = Math.max(lastOrderId + 1, 100000);
+      } catch (error) {
+        // Si erreur (DB non disponible), utiliser un timestamp-based ID
+        console.warn("Could not query database for last orderId, using timestamp-based ID:", error.message);
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 10000);
+        mockOrderId = parseInt(`${timestamp}${random}`.slice(-10)) || Math.floor(Math.random() * 1000000) + 100000;
+      }
+      
       const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-      console.log('⚠️  Using mock blockchain (test mode):', { orderId: mockOrderId, txHash: mockTxHash });
+      console.log('⚠️  Using mock blockchain (test/dev mode):', { orderId: mockOrderId, txHash: mockTxHash });
 
       blockchainEvents.emit("OrderCreated", {
         orderId: mockOrderId,
@@ -133,6 +149,32 @@ async function createOrder(params) {
  */
 async function confirmPreparation(orderId, restaurantAddress, restaurantPrivateKey) {
   try {
+    // En mode test/dev, utiliser des données mock
+    // Vérifier aussi si les contrats ne sont pas configurés
+    const isMockMode = process.env.NODE_ENV === 'test' || 
+                       process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || 
+                       process.env.NODE_ENV === 'development' ||
+                       !process.env.CONTRACT_ORDER_MANAGER_ADDRESS;
+    
+    if (isMockMode) {
+      const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+      const mockBlockNumber = Math.floor(Math.random() * 1000000) + 1000000;
+      console.log('⚠️  Using mock blockchain for confirmPreparation (test/dev mode):', { orderId, txHash: mockTxHash, blockNumber: mockBlockNumber });
+      
+      // Émettre l'event via EventEmitter
+      blockchainEvents.emit("PreparationConfirmed", { orderId, restaurant: restaurantAddress });
+      
+      return {
+        txHash: mockTxHash,
+        blockNumber: mockBlockNumber
+      };
+    }
+    
+    // Mode production : utiliser la vraie blockchain
+    if (!restaurantPrivateKey) {
+      throw new Error("restaurantPrivateKey is required in production mode");
+    }
+    
     const orderManager = getContractInstance("orderManager");
     const provider = getProvider();
     
@@ -158,6 +200,18 @@ async function confirmPreparation(orderId, restaurantAddress, restaurantPrivateK
     };
   } catch (error) {
     console.error("Error confirming preparation:", error);
+    // En mode développement, si l'erreur vient de la blockchain, utiliser le mode mock
+    if ((process.env.NODE_ENV === 'development' || !process.env.CONTRACT_ORDER_MANAGER_ADDRESS) && 
+        (error.message?.includes('contract') || error.message?.includes('provider') || error.message?.includes('network'))) {
+      console.warn('⚠️  Blockchain error in dev mode, falling back to mock:', error.message);
+      const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+      const mockBlockNumber = Math.floor(Math.random() * 1000000) + 1000000;
+      blockchainEvents.emit("PreparationConfirmed", { orderId, restaurant: restaurantAddress });
+      return {
+        txHash: mockTxHash,
+        blockNumber: mockBlockNumber
+      };
+    }
     throw error;
   }
 }

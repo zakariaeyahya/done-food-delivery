@@ -7,6 +7,9 @@ import { format } from 'date-fns';
  * @returns {string} The formatted EUR currency string.
  */
 export const formatPriceInEUR = (amount) => {
+  if (amount === null || amount === undefined) {
+    return '€0.00';
+  }
   return new Intl.NumberFormat('en-EU', {
     style: 'currency',
     currency: 'EUR',
@@ -21,9 +24,16 @@ export const formatPriceInEUR = (amount) => {
  * @returns {string} The formatted balance in MATIC.
  */
 export const formatPriceInMATIC = (amount) => {
+  if (amount === null || amount === undefined) {
+    return '0.0000 MATIC';
+  }
+  // If it's already a simple number (not wei), just format it
+  if (typeof amount === 'number') {
+    return `${amount.toFixed(4)} MATIC`;
+  }
   // Assuming 'amount' is in wei, format it to ether (MATIC)
   const maticAmount = ethers.formatEther(amount);
-  return `${parseFloat(maticAmount).toFixed(4)} MATIC`; // Displaying 4 decimal places
+  return `${parseFloat(maticAmount).toFixed(4)} MATIC`;
 };
 
 /**
@@ -34,10 +44,23 @@ export const formatPriceInMATIC = (amount) => {
  */
 export const formatDateTime = (dateValue, formatStr = 'dd/MM/yyyy HH:mm') => {
   try {
-    return format(new Date(dateValue), formatStr);
+    // Vérifier que dateValue existe et est valide
+    if (!dateValue) {
+      return 'Date non disponible';
+    }
+    
+    // Créer un objet Date
+    const date = new Date(dateValue);
+    
+    // Vérifier que la date est valide
+    if (isNaN(date.getTime())) {
+      return 'Date invalide';
+    }
+    
+    return format(date, formatStr);
   } catch (error) {
-    console.error('Error formatting date:', error);
-    return 'Invalid Date';
+    console.error('Error formatting date:', error, 'dateValue:', dateValue);
+    return 'Date invalide';
   }
 };
 
@@ -48,6 +71,9 @@ export const formatDateTime = (dateValue, formatStr = 'dd/MM/yyyy HH:mm') => {
  * @returns {string} The truncated text.
  */
 export const truncateText = (text, maxLength) => {
+  if (!text) {
+    return '';
+  }
   if (text.length <= maxLength) {
     return text;
   }

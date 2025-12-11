@@ -1,7 +1,7 @@
 // src/components/OrderHistory.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { getOrdersByClient, submitReview } from '../services/api';
-import { formatDateTime, formatPriceInEUR } from '../utils/formatters';
+import { formatDateTime, formatPriceInMATIC } from '../utils/formatters';
 import { useWallet } from '../contexts/WalletContext';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
@@ -65,7 +65,7 @@ const OrderHistory = ({ clientAddress }) => {
   const handleViewDetails = (orderId) => navigate(`/order/${orderId}`);
 
   const handleReorder = (orderId) => {
-    const order = orders.find((o) => o.id === orderId);
+    const order = orders.find((o) => (o.orderId || o.id || o._id) === orderId);
     if (!order) return;
 
     order.items.forEach((item) => {
@@ -109,45 +109,48 @@ const OrderHistory = ({ clientAddress }) => {
       <h2 className="mb-4 text-2xl font-bold">Your Order History</h2>
 
       <div className="space-y-4">
-        {currentOrders.map((order) => (
-          <div
-            key={order.id}
-            className="p-4 border rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center"
-          >
-            <div className="flex-1 mb-4 sm:mb-0">
-              <p><strong>Order ID:</strong> {order.id}</p>
-              <p><strong>Restaurant:</strong> {order.restaurantName || 'N/A'}</p>
-              <p><strong>Date:</strong> {formatDateTime(order.date)}</p>
-              <p><strong>Total:</strong> {formatPriceInEUR(order.total)}</p>
-              <p><strong>Status:</strong> <span className="text-blue-600">{order.status}</span></p>
-            </div>
+        {currentOrders.map((order) => {
+          const orderId = order.orderId || order.id || order._id;
+          return (
+            <div
+              key={orderId}
+              className="p-4 border rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center"
+            >
+              <div className="flex-1 mb-4 sm:mb-0">
+                <p><strong>Order ID:</strong> {orderId}</p>
+                <p><strong>Restaurant:</strong> {order.restaurant?.name || order.restaurantName || 'N/A'}</p>
+                <p><strong>Date:</strong> {formatDateTime(order.createdAt || order.date)}</p>
+                <p><strong>Total:</strong> {formatPriceInMATIC(order.totalAmount || order.total)}</p>
+                <p><strong>Status:</strong> <span className="text-blue-600">{order.status || 'N/A'}</span></p>
+              </div>
 
-            <div className="flex flex-col sm:flex-row gap-2">
-              <button
-                onClick={() => handleViewDetails(order.id)}
-                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Details
-              </button>
-
-              <button
-                onClick={() => handleReorder(order.id)}
-                className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-              >
-                Reorder
-              </button>
-
-              {order.status === 'DELIVERED' && (
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
-                  onClick={() => handleLeaveReview(order.id)}
-                  className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                  onClick={() => handleViewDetails(orderId)}
+                  className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
                 >
-                  Review
+                  Details
                 </button>
-              )}
+
+                <button
+                  onClick={() => handleReorder(orderId)}
+                  className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                >
+                  Reorder
+                </button>
+
+                {order.status === 'DELIVERED' && (
+                  <button
+                    onClick={() => handleLeaveReview(orderId)}
+                    className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                  >
+                    Review
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex justify-between items-center mt-6">

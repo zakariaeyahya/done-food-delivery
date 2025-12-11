@@ -23,14 +23,23 @@ const { ethers } = require("ethers");
 function validateOrderCreation(req, res, next) {
   try {
     // Récupérer les données du body
-    const { restaurantId, items, deliveryAddress, clientAddress } = req.body;
+    const { restaurantId, restaurantAddress, items, deliveryAddress, clientAddress } = req.body;
     
-    // Vérifier que restaurantId existe
-    if (!restaurantId) {
+    // Vérifier que restaurantId OU restaurantAddress existe
+    if (!restaurantId && !restaurantAddress) {
       return res.status(400).json({
         error: "Bad Request",
-        message: "restaurantId is required",
+        message: "restaurantId or restaurantAddress is required",
         field: "restaurantId"
+      });
+    }
+    
+    // Si restaurantAddress est fourni, valider que c'est une adresse Ethereum valide
+    if (restaurantAddress && !ethers.isAddress(restaurantAddress)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "restaurantAddress must be a valid Ethereum address",
+        field: "restaurantAddress"
       });
     }
     

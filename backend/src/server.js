@@ -27,6 +27,7 @@ const oracleRoutes = require("./routes/oracles");
 const disputeRoutes = require("./routes/disputes");
 const tokenRoutes = require("./routes/tokens");
 const uploadRoutes = require("./routes/upload");
+const cartRoutes = require("./routes/cart");
 
 /**
  * Serveur principal de l'application backend
@@ -242,6 +243,7 @@ app.use("/api/oracles", oracleRoutes);
 app.use("/api/disputes", disputeRoutes);
 app.use("/api/tokens", tokenRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/cart", cartRoutes);
 
 // === GESTION DES ERREURS ===
 

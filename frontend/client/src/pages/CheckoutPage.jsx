@@ -3,65 +3,55 @@ import React, { useMemo } from 'react';
 import Cart from '../components/Cart';
 import Checkout from '../components/Checkout';
 import { useWallet } from '../contexts/WalletContext';
-import { useCart, useCartDispatch } from '../contexts/CartContext';
+import { useCart, useCartActions } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 // import { convertCurrency, createOrder } from '../services/api';
 // import { createOnChainOrder } from '../services/blockchain';
 
-const DELIVERY_FEE_EUR = 5.0;
+const DELIVERY_FEE_MATIC = 0.001;
 const PLATFORM_COMMISSION_RATE = 0.1;
 
 // ✅ Tous les hooks DOIVENT être à l'intérieur du composant
 const CheckoutPage = () => {
   const { address, isConnected } = useWallet();
-  const cartItems = useCart();
-  const dispatch = useCartDispatch();
+  const cart = useCart();
+  const { updateQuantity, removeItem, clearCart } = useCartActions();
   const navigate = useNavigate();
 
-  // Si pas connecté → on bloque la page
-  if (!isConnected) {
-    return (
-      <div className="container mx-auto p-8 text-center">
-        <h2 className="text-2xl font-semibold mb-2">
-          Please connect your wallet to proceed to checkout
-        </h2>
-        <p className="text-gray-500">
-          You need to connect your wallet before placing an order.
-        </p>
-      </div>
-    );
-  }
+  // Extract items from cart object
+  const cartItems = cart.items || [];
 
-  // Si panier vide
-  if (!cartItems || cartItems.length === 0) {
-    return (
-      <div className="container mx-auto p-8 text-center">
-        <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
-        <button
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-          onClick={() => navigate('/')}
-        >
-          Back to restaurants
-        </button>
-      </div>
-    );
-  }
+  /** Calculs totaux (all in MATIC) - DOIT être avant les retours conditionnels **/
+  const foodTotal = useMemo(
+    () =>
+      cartItems.reduce(
+        (total, item) => total + (item.price || 0) * (item.quantity || 1),
+        0
+      ),
+    [cartItems]
+  );
+
+  const platformCommission = useMemo(
+    () => foodTotal * PLATFORM_COMMISSION_RATE,
+    [foodTotal]
+  );
+
+  const finalTotalMATIC = useMemo(
+    () => foodTotal + DELIVERY_FEE_MATIC + platformCommission,
+    [foodTotal, platformCommission]
+  );
 
   /** Handlers **/
-
-  const handleUpdateQuantity = (itemId, newQuantity) => {
+  const handleUpdateQuantity = async (itemId, newQuantity) => {
     if (newQuantity <= 0) {
-      handleRemoveItem(itemId);
+      await handleRemoveItem(itemId);
     } else {
-      dispatch({
-        type: 'UPDATE_QUANTITY',
-        payload: { id: itemId, quantity: newQuantity },
-      });
+      await updateQuantity(itemId, newQuantity);
     }
   };
 
-  const handleRemoveItem = (itemId) => {
-    dispatch({ type: 'REMOVE_ITEM', payload: { id: itemId } });
+  const handleRemoveItem = async (itemId) => {
+    await removeItem(itemId);
   };
 
   const handleCheckout = () => {
@@ -72,7 +62,7 @@ const CheckoutPage = () => {
   // TODO: branche cette fonction à ton bouton "Place Order" dans <Checkout />
   const handlePlaceOrder = async () => {
     alert('Place order logic not implemented yet');
-    // Exemple de squelette si tu veux l’implémenter plus tard :
+    // Exemple de squelette si tu veux l'implémenter plus tard :
     //
     // if (!isConnected) {
     //   alert('Please connect wallet first');
@@ -113,33 +103,34 @@ const CheckoutPage = () => {
     // }
   };
 
-  /** Calculs totaux **/
+  // Si pas connecté → on bloque la page
+  if (!isConnected) {
+    return (
+      <div className="container mx-auto p-8 text-center">
+        <h2 className="text-2xl font-semibold mb-2">
+          Please connect your wallet to proceed to checkout
+        </h2>
+        <p className="text-gray-500">
+          You need to connect your wallet before placing an order.
+        </p>
+      </div>
+    );
+  }
 
-  const foodTotal = useMemo(
-    () =>
-      cartItems.reduce(
-        (total, item) => total + item.priceEUR * item.quantity,
-        0
-      ),
-    [cartItems]
-  );
-
-  const platformCommission = useMemo(
-    () => foodTotal * PLATFORM_COMMISSION_RATE,
-    [foodTotal]
-  );
-
-  const finalTotalEUR = useMemo(
-    () => foodTotal + DELIVERY_FEE_EUR + platformCommission,
-    [foodTotal, platformCommission]
-  );
-
-  // Placeholder : taux EUR → MATIC
-  const EUR_TO_MATIC_RATE = 1.18;
-  const finalTotalMATIC = useMemo(
-    () => finalTotalEUR / EUR_TO_MATIC_RATE,
-    [finalTotalEUR]
-  );
+  // Si panier vide
+  if (!cartItems || cartItems.length === 0) {
+    return (
+      <div className="container mx-auto p-8 text-center">
+        <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
+        <button
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+          onClick={() => navigate('/')}
+        >
+          Back to restaurants
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 sm:p-8">
@@ -160,11 +151,10 @@ const CheckoutPage = () => {
           <Checkout
             cartItems={cartItems}
             foodTotal={foodTotal}
-            deliveryFee={DELIVERY_FEE_EUR}
+            deliveryFee={DELIVERY_FEE_MATIC}
             commission={platformCommission}
-            finalTotal={finalTotalEUR}
-            finalTotalMATIC={finalTotalMATIC}
-            onPlaceOrder={handlePlaceOrder} // si ton composant Checkout accepte cette prop
+            finalTotal={finalTotalMATIC}
+            onPlaceOrder={handlePlaceOrder}
           />
         </div>
       </div>

@@ -31,6 +31,7 @@ function App() {
                   <Route path="/restaurant/:id" element={<RestaurantPage />} />
                   <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/tracking/:orderId" element={<TrackingPage />} />
+                  <Route path="/order/:id" element={<TrackingPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Routes>
               </main>
