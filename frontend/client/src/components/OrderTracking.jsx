@@ -15,8 +15,16 @@ const ORDER_STATUSES = ['CREATED', 'PREPARING', 'IN_DELIVERY', 'DELIVERED', 'DIS
 
 const OrderTracking = ({ order }) => {
   const socket = useSocket();
-  const [currentStatus, setCurrentStatus] = useState(order.status);
-  const [driverPosition, setDriverPosition] = useState(order.driver?.location);
+  
+  // Vérifier que order existe
+  if (!order) {
+    return <div className="p-6 text-center text-red-500">Commande non trouvée</div>;
+  }
+  
+  // Utiliser orderId au lieu de id pour correspondre à la structure du backend
+  const orderId = order.orderId || order.id || order._id;
+  const [currentStatus, setCurrentStatus] = useState(order.status || 'CREATED');
+  const [driverPosition, setDriverPosition] = useState(order.deliverer?.location || order.driver?.location || null);
   const [directions, setDirections] = useState(null);
   const [eta, setEta] = useState('');
 
@@ -26,34 +34,36 @@ const OrderTracking = ({ order }) => {
   });
 
   useEffect(() => {
+    if (!orderId) return;
+    
     // Join a room for this specific order to receive targeted updates
-    socket.emit('join_order_room', order.id);
+    socket.emit('join_order_room', orderId);
 
     // Listen for status updates
     socket.on('order_status_update', (data) => {
-      if (data.orderId === order.id) {
+      if (data.orderId === orderId || data.orderId === parseInt(orderId)) {
         setCurrentStatus(data.status);
       }
     });
 
     // Listen for driver position updates
     socket.on('driver_position_update', (data) => {
-      if (data.orderId === order.id) {
+      if (data.orderId === orderId || data.orderId === parseInt(orderId)) {
         setDriverPosition(data.position);
       }
     });
 
     // Clean up on component unmount
     return () => {
-      socket.emit('leave_order_room', order.id);
+      socket.emit('leave_order_room', orderId);
       socket.off('order_status_update');
       socket.off('driver_position_update');
     };
-  }, [socket, order.id]);
+  }, [socket, orderId]);
   
   const handleConfirmDelivery = async () => {
     try {
-      await confirmOnChainDelivery(order.id);
+      await confirmOnChainDelivery(orderId);
       // The status will be updated via socket event from the backend
       alert('Delivery confirmation submitted!');
     } catch (error) {
@@ -81,27 +91,65 @@ const OrderTracking = ({ order }) => {
 
   return (
     <div className="p-6 mx-auto bg-white border rounded-lg shadow-xl">
-      <h2 className="mb-4 text-2xl font-bold">Track Your Order: #{order.id}</h2>
+      <h2 className="mb-4 text-2xl font-bold">Suivi de votre commande: #{orderId}</h2>
 
       {renderTimeline()}
 
       <div className="mt-6">
-        <h3 className="mb-2 text-lg font-semibold">Live Map</h3>
-        {loadError && <p>Error loading map</p>}
+        <h3 className="mb-2 text-lg font-semibold">Carte en direct</h3>
+        {loadError && (
+          <div className="p-3 mb-2 text-sm text-yellow-800 bg-yellow-100 rounded">
+            <p>⚠️ Erreur de chargement de la carte. Google Maps ne peut pas se charger.</p>
+          </div>
+        )}
         {isLoaded ? (
           <GoogleMap
             mapContainerStyle={containerStyle}
-            center={order.client.location}
+            center={order.gpsTracking && order.gpsTracking.length > 0 
+              ? { lat: order.gpsTracking[order.gpsTracking.length - 1].lat, lng: order.gpsTracking[order.gpsTracking.length - 1].lng }
+              : { lat: 48.8566, lng: 2.3522 } // Paris par défaut
+            }
             zoom={12}
           >
-            <Marker position={order.restaurant.location} label="Restaurant" />
-            <Marker position={order.client.location} label="You" />
-            {driverPosition && <Marker position={driverPosition} label="Driver" icon={{ url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' }} />}
+            {/* Marqueur restaurant si coordonnées disponibles */}
+            {order.restaurant?.location && (
+              <Marker position={order.restaurant.location} label="🍽️ Restaurant" />
+            )}
+            {/* Marqueur client si coordonnées disponibles */}
+            {order.client?.location && (
+              <Marker position={order.client.location} label="🏠 Vous" />
+            )}
+            {/* Marqueur livreur si position disponible */}
+            {driverPosition && (
+              <Marker 
+                position={driverPosition} 
+                label="🚗 Livreur" 
+                icon={{ url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' }} 
+              />
+            )}
+            {/* Afficher le suivi GPS si disponible */}
+            {order.gpsTracking && order.gpsTracking.length > 0 && (
+              order.gpsTracking.map((point, index) => (
+                <Marker 
+                  key={index}
+                  position={{ lat: point.lat, lng: point.lng }} 
+                  label={index === order.gpsTracking.length - 1 ? "📍 Position actuelle" : ""}
+                />
+              ))
+            )}
+            {directions && <DirectionsRenderer directions={directions} />}
           </GoogleMap>
         ) : (
-          <p>Loading map...</p>
+          <div className="p-2 text-sm text-gray-500 bg-gray-50 rounded">
+            Chargement de la carte...
+          </div>
         )}
-        {eta && <p className="mt-2 text-sm text-center">Estimated Time of Arrival: {eta}</p>}
+        {eta && <p className="mt-2 text-sm text-center">Temps estimé d'arrivée : {eta}</p>}
+        {order.deliveryAddress && (
+          <p className="mt-2 text-sm text-center text-gray-600">
+            <strong>Adresse de livraison :</strong> {order.deliveryAddress}
+          </p>
+        )}
       </div>
 
       {currentStatus === 'IN_DELIVERY' && (

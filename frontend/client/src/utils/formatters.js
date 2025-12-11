@@ -44,10 +44,23 @@ export const formatPriceInMATIC = (amount) => {
  */
 export const formatDateTime = (dateValue, formatStr = 'dd/MM/yyyy HH:mm') => {
   try {
-    return format(new Date(dateValue), formatStr);
+    // Vérifier que dateValue existe et est valide
+    if (!dateValue) {
+      return 'Date non disponible';
+    }
+    
+    // Créer un objet Date
+    const date = new Date(dateValue);
+    
+    // Vérifier que la date est valide
+    if (isNaN(date.getTime())) {
+      return 'Date invalide';
+    }
+    
+    return format(date, formatStr);
   } catch (error) {
-    console.error('Error formatting date:', error);
-    return 'Invalid Date';
+    console.error('Error formatting date:', error, 'dateValue:', dateValue);
+    return 'Date invalide';
   }
 };
 

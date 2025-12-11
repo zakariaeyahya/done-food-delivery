@@ -5,42 +5,31 @@ import { getOrderById } from '../services/api';
 import { SocketProvider } from '../contexts/SocketContext'; // Import SocketProvider
 
 const TrackingPage = () => {
-  const { orderId } = useParams();
+  const { orderId, id } = useParams();
+  // Gérer les deux formats de paramètres : orderId (depuis /tracking/:orderId) ou id (depuis /order/:id)
+  const actualOrderId = orderId || id;
+  
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-// OrderTracking.jsx
-useEffect(() => {
-  // Écouter changements statut
-  socket.on('orderStatusChanged', (data) => {
-    if (data.orderId === order.id) {
-      setCurrentStatus(data.status);
-    }
-  });
 
-  // Écouter position livreur
-  socket.on('gpsUpdate', (data) => {
-    if (data.orderId === order.id) {
-      setDriverPosition(data.position);
-      setEta(data.eta);
-    }
-  });
-
-  return () => {
-    socket.off('orderStatusChanged');
-    socket.off('gpsUpdate');
-  };
-}, [socket, order.id]);
   useEffect(() => {
+    if (!actualOrderId) {
+      setError('Order ID is required');
+      setLoading(false);
+      return;
+    }
+
     const fetchOrderDetails = async () => {
       try {
         setLoading(true);
         setError('');
-        const response = await getOrderById(orderId);
-        // Assuming the backend returns the full order object including restaurant, client, and driver info
-        setOrder(response.data);
+        const response = await getOrderById(actualOrderId);
+        // Le backend retourne { success: true, order: {...} }
+        const orderData = response.data.order || response.data;
+        setOrder(orderData);
       } catch (err) {
-        console.error(`Failed to fetch order ${orderId} details:`, err);
+        console.error(`Failed to fetch order ${actualOrderId} details:`, err);
         setError('Failed to load order tracking details.');
       } finally {
         setLoading(false);
@@ -48,7 +37,7 @@ useEffect(() => {
     };
 
     fetchOrderDetails();
-  }, [orderId]);
+  }, [actualOrderId]);
 
   if (loading) return <div className="flex justify-center items-center h-screen">Loading order details...</div>;
   if (error) return <div className="flex justify-center items-center h-screen text-red-500">{error}</div>;
