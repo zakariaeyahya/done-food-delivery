@@ -6,7 +6,7 @@
 import axios from 'axios';
 
 // Configuration de base
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || process.env.VITE_API_URL || 'http://localhost:3000/api';
 
 // Create axios instance
 const apiClient = axios.create({
@@ -35,6 +35,20 @@ apiClient.interceptors.request.use((config) => {
 
   return config;
 });
+
+// Interceptor to suppress expected 404 errors from console
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Suppress console logging for expected 404s (deliverer not registered yet)
+    if (error.response?.status === 404 && error.config?.url?.includes('/deliverers/')) {
+      // Don't log to console - this is expected when deliverer isn't registered
+      return Promise.reject(error);
+    }
+    // For other errors, let axios log them normally
+    return Promise.reject(error);
+  }
+);
 
 /**
  * Headers d'authentification

@@ -13,46 +13,25 @@ const DEFAULT_ADDRESSES = {
   PAYMENT_SPLITTER_ADDRESS: '0xE99F26DA1B38a79d08ed8d853E45397C99818C2f',
 };
 
-// ENV - Helper function to get env vars dynamically (works better with Next.js)
+// ENV - Helper function to get env vars dynamically (works with Next.js)
 function getEnvVar(name) {
-  // In Next.js, NEXT_PUBLIC_* vars are available in both server and client
-  // But they need to be set at build time, so we check multiple sources
-  
-  // 1. Try NEXT_PUBLIC_* first (Next.js standard - available at build time)
-  let value = process.env[`NEXT_PUBLIC_${name}`];
-  
-  // 2. Fallback to VITE_* for compatibility
-  if (!value) {
+  let value;
+
+  // 1. Try NEXT_PUBLIC_* first (Next.js standard for client-side vars)
+  if (typeof process !== 'undefined' && process.env) {
+    value = process.env[`NEXT_PUBLIC_${name}`];
+  }
+
+  // 2. Fallback to VITE_* for compatibility (if migrating from Vite)
+  if (!value && typeof process !== 'undefined' && process.env) {
     value = process.env[`VITE_${name}`];
   }
-  
-  // 3. If still not found and we're in browser, try to get from window (for runtime injection)
-  if (!value && typeof window !== "undefined") {
-    // Next.js injects env vars, but sometimes they're not immediately available
-    // Try accessing via window.__NEXT_DATA__ or other methods
-    if (window.__NEXT_DATA__?.env?.[`NEXT_PUBLIC_${name}`]) {
-      value = window.__NEXT_DATA__.env[`NEXT_PUBLIC_${name}`];
-    }
-  }
-  
-  // 4. Fallback to default addresses for development (Polygon Amoy)
+
+  // 3. Fallback to default addresses if not found
   if (!value && DEFAULT_ADDRESSES[name]) {
-    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
-      console.warn(`⚠️ ${name} not found in env vars, using default address for Polygon Amoy`);
-    }
     value = DEFAULT_ADDRESSES[name];
   }
-  
-  // Debug logging (only in browser, development mode)
-  if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
-    if (name === 'STAKING_ADDRESS' && !value) {
-      console.warn("⚠️ NEXT_PUBLIC_STAKING_ADDRESS not found in process.env");
-      console.log("🔍 Available NEXT_PUBLIC_* vars:", Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC_')));
-      console.log("🔍 process.env.NEXT_PUBLIC_STAKING_ADDRESS:", process.env.NEXT_PUBLIC_STAKING_ADDRESS);
-      console.log("🔍 typeof process.env:", typeof process.env);
-    }
-  }
-  
+
   return value;
 }
 
