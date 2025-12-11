@@ -126,16 +126,37 @@ function OrdersQueue({
 
   async function handleConfirmPreparation(orderId) {
     try {
+      console.log(`[Restaurant] 🍽️ Confirmation préparation commande #${orderId}`);
       setLoading(true);
 
       // 1) confirmer via API backend
+      console.log(`[Restaurant] 📡 Envoi requête API pour commande #${orderId}...`);
       await api.confirmPreparation(orderId, restaurantAddress, {
         preparationTime,
       });
+      console.log(`[Restaurant] ✅ API confirmée pour commande #${orderId}`);
+      console.log(`[Restaurant] 📢 Notification envoyée aux livreurs pour commande #${orderId}`);
 
-      // 2) confirmer on-chain
-      // si ta fonction ne prend pas preparationTime => elle ignorera
-      await blockchain.confirmPreparationOnChain(orderId, preparationTime);
+      // 2) confirmer on-chain (optionnel en dev mode)
+      const isDevMode = !import.meta.env.VITE_ORDER_MANAGER_ADDRESS || 
+                        import.meta.env.VITE_ORDER_MANAGER_ADDRESS === '0x0000000000000000000000000000000000000000' ||
+                        import.meta.env.MODE === 'development';
+      
+      if (!isDevMode) {
+        // En production, vérifier que le wallet est connecté avant d'appeler la blockchain
+        try {
+          // Essayer de se connecter si pas déjà connecté
+          await blockchain.connectWallet();
+          console.log(`[Restaurant] ⛓️ Appel blockchain pour commande #${orderId}...`);
+          await blockchain.confirmPreparationOnChain(orderId, preparationTime);
+          console.log(`[Restaurant] ✅ Blockchain confirmée pour commande #${orderId}`);
+        } catch (blockchainError) {
+          console.warn(`[Restaurant] ⚠️ Erreur blockchain (mais API réussie):`, blockchainError.message);
+          // Ne pas faire échouer si l'API a réussi
+        }
+      } else {
+        console.log(`[Restaurant] ⚠️  Dev mode: Skipping blockchain call, backend handles mock mode`);
+      }
 
       // 3) update local optimiste
       setOrders((prev) =>
@@ -146,9 +167,11 @@ function OrdersQueue({
         )
       );
 
+      console.log(`[Restaurant] ✅ Commande #${orderId} mise à jour en statut PREPARING`);
       showSuccess?.("Préparation confirmée avec succès");
+      showNotification?.(`Commande #${orderId} en préparation`);
     } catch (e) {
-      console.error("Error confirming preparation:", e);
+      console.error(`[Restaurant] ❌ Erreur confirmation préparation commande #${orderId}:`, e);
       showError?.(`Erreur: ${e.message}`);
     } finally {
       setLoading(false);

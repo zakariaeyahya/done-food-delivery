@@ -15,29 +15,30 @@ interface OrderCardProps {
 }
 
 export function OrderCard({ order, currentLocation, onAccept, accepting }: OrderCardProps) {
-  if (!currentLocation) {
-    return (
-      <Card>
-        <p className="text-slate-400">Chargement de la position GPS...</p>
-      </Card>
-    );
-  }
-
-  const distanceMeters = geolocation.getDistance(
-    currentLocation,
-    order.restaurant.location
-  );
-  const distanceFormatted = geolocation.formatDistance(distanceMeters);
-  const distanceKm = distanceMeters / 1000;
   const earnings = order.totalAmount * 0.2;
+  
+  // Calculer la distance si GPS disponible
+  let distanceMeters: number | null = null;
+  let distanceFormatted: string = "N/A";
+  let distanceKm: number = 0;
+  let badge: { variant: "success" | "warning" | "danger"; label: string } = { variant: "warning", label: "GPS requis" };
 
-  const getDistanceBadge = () => {
-    if (distanceKm < 2) return { variant: "success" as const, label: "Proche" };
-    if (distanceKm < 5) return { variant: "warning" as const, label: "Moyen" };
-    return { variant: "danger" as const, label: "Loin" };
-  };
+  if (currentLocation && order.restaurant?.location) {
+    distanceMeters = geolocation.getDistance(
+      currentLocation,
+      order.restaurant.location
+    );
+    distanceFormatted = geolocation.formatDistance(distanceMeters);
+    distanceKm = distanceMeters / 1000;
 
-  const badge = getDistanceBadge();
+    const getDistanceBadge = () => {
+      if (distanceKm < 2) return { variant: "success" as const, label: "Proche" };
+      if (distanceKm < 5) return { variant: "warning" as const, label: "Moyen" };
+      return { variant: "danger" as const, label: "Loin" };
+    };
+
+    badge = getDistanceBadge();
+  }
 
   return (
     <Card className="group" glow>
@@ -60,7 +61,9 @@ export function OrderCard({ order, currentLocation, onAccept, accepting }: Order
         </div>
         <div className="flex items-center gap-2 text-slate-300">
           <Clock className="w-4 h-4 text-slate-500" />
-          <span className="text-sm">~{Math.ceil(distanceKm * 3)} min</span>
+          <span className="text-sm">
+            {distanceKm > 0 ? `~${Math.ceil(distanceKm * 3)} min` : "N/A"}
+          </span>
         </div>
         <div className="flex items-center gap-2 text-emerald-400">
           <Wallet className="w-4 h-4" />

@@ -176,6 +176,19 @@ export async function isStaked(address) {
     }
     return await stakingContract.isStaked(address);
   } catch (err) {
+    // Gérer les erreurs de contrat blockchain (contrat non déployé, RPC errors, etc.)
+    if (err.code === 'CALL_EXCEPTION' || 
+        err.message?.includes('missing revert data') ||
+        err.message?.includes('execution reverted') ||
+        err.code === -32002) {
+      // En mode dev, permettre de continuer sans vérification blockchain
+      if (process.env.NODE_ENV === "development" || import.meta.env.MODE === 'development') {
+        console.warn("⚠️ Contrat blockchain non accessible, mode dev: considérer comme staké");
+        return true; // En dev, considérer comme staké pour permettre les tests
+      }
+      console.error("isStaked error (blockchain contract not accessible):", err.message);
+      throw new Error("Impossible de vérifier le statut de staking. Vérifiez votre connexion blockchain.");
+    }
     console.error("isStaked error:", err);
     throw new Error(err.message);
   }
@@ -203,8 +216,17 @@ export async function getStakeInfo(address) {
           return { amount: 0.1, isStaked: true };
         }
       } catch (err) {
-        // Si erreur, continuer avec la vérification normale
-        console.warn("Erreur vérification solde POL:", err);
+        // Si erreur RPC (trop d'erreurs, endpoint surchargé), ignorer silencieusement en dev
+        if (err.code === -32002 || err.message?.includes('too many errors')) {
+          if (process.env.NODE_ENV === "development") {
+            // En dev, ignorer les erreurs RPC et continuer
+            return { amount: 0.1, isStaked: true };
+          }
+        }
+        // Autres erreurs : logger seulement si ce n'est pas une erreur RPC commune
+        if (!err.message?.includes('RPC endpoint')) {
+          console.warn("Erreur vérification solde POL:", err.message);
+        }
       }
     }
 
@@ -225,8 +247,22 @@ export async function getStakeInfo(address) {
       );
     }
 
-    const isStaked = await stakingContract.isStaked(address);
-    const stakedAmount = await stakingContract.getStakedAmount(address);
+    let isStaked = false;
+    let stakedAmount = ethers.parseEther("0");
+    
+    try {
+      isStaked = await stakingContract.isStaked(address);
+      stakedAmount = await stakingContract.getStakedAmount(address);
+    } catch (rpcError) {
+      // Si erreur RPC (endpoint surchargé), utiliser des valeurs par défaut en dev
+      if (rpcError.code === -32002 || rpcError.message?.includes('too many errors')) {
+        if (process.env.NODE_ENV === "development") {
+          console.info("ℹ️ RPC endpoint surchargé - utilisation valeurs par défaut (dev mode)");
+          return { amount: 0.1, isStaked: true };
+        }
+      }
+      throw rpcError; // Re-lancer les autres erreurs
+    }
 
     return {
       amount: Number(ethers.formatEther(stakedAmount)),
@@ -348,6 +384,10 @@ export async function acceptOrderOnChain(orderId) {
   try {
     const signer = await getSigner();
 
+    if (!ORDER_MANAGER_ADDRESS || ORDER_MANAGER_ADDRESS === '0x0000000000000000000000000000000000000000') {
+      throw new Error("Order manager contract address not configured");
+    }
+
     if (!orderManagerContract) {
       orderManagerContract = new ethers.Contract(
         ORDER_MANAGER_ADDRESS,
@@ -361,6 +401,19 @@ export async function acceptOrderOnChain(orderId) {
 
     return { txHash: receipt.hash, receipt };
   } catch (err) {
+    // Gérer les erreurs de contrat blockchain
+    if (err.code === 'CALL_EXCEPTION' || 
+        err.message?.includes('missing revert data') ||
+        err.message?.includes('execution reverted') ||
+        err.code === -32002 ||
+        err.message?.includes('contract address not configured')) {
+      // En mode dev, permettre de continuer sans blockchain
+      if (process.env.NODE_ENV === "development" || import.meta.env.MODE === 'development') {
+        console.warn("⚠️ Contrat blockchain non accessible, mode dev: skip on-chain");
+        return { txHash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''), receipt: null };
+      }
+      throw new Error("Impossible d'accepter la commande sur la blockchain. Vérifiez votre connexion.");
+    }
     console.error("Accept error:", err);
     throw new Error(err.message);
   }

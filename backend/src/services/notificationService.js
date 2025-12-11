@@ -113,8 +113,16 @@ async function notifyDeliverersAvailable(orderId, delivererAddresses, orderData 
       return { success: false, message: "Socket.io not initialized" };
     }
     
+    // Émettre un événement global pour tous les clients connectés (frontend écoute "orderReady")
+    io.emit('orderReady', {
+      orderId,
+      ...orderData
+    });
+    
+    // Émettre aussi aux rooms spécifiques pour les notifications ciblées
     for (const delivererAddress of delivererAddresses) {
-      io.to(`deliverer_${delivererAddress.toLowerCase()}`).emit('orderAvailable', {
+      const roomName = `deliverer_${delivererAddress.toLowerCase()}`;
+      io.to(roomName).emit('orderAvailable', {
         orderId,
         ...orderData
       });
@@ -123,6 +131,7 @@ async function notifyDeliverersAvailable(orderId, delivererAddresses, orderData 
     return { success: true };
   } catch (error) {
     console.error("Error notifying deliverers:", error);
+    console.error("Stack trace:", error.stack);
     throw error;
   }
 }

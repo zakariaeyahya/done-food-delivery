@@ -512,6 +512,11 @@ async function confirmPreparation(req, res) {
     // Mettre à jour dans MongoDB
     await Order.updateStatus(orderId, 'PREPARING');
     
+    // Récupérer la commande mise à jour avec toutes les relations
+    const updatedOrder = await Order.findOne({ orderId })
+      .populate('restaurant', 'address name location')
+      .populate('client', 'address');
+    
     // Notifier le client
     try {
       const clientAddr = order.client?.address || order.client;
@@ -522,7 +527,68 @@ async function confirmPreparation(req, res) {
         { message: "Your order is being prepared" }
       );
     } catch (notifError) {
-      console.warn("Error sending notification:", notifError);
+      console.warn("Error sending notification to client:", notifError);
+    }
+    
+    // Notifier les livreurs disponibles qu'une nouvelle commande est prête
+    try {
+      // Préparer les données de la commande pour les livreurs
+      const orderData = {
+        orderId: updatedOrder.orderId,
+        restaurant: {
+          name: updatedOrder.restaurant?.name || 'Restaurant',
+          address: updatedOrder.restaurant?.address || order.restaurant,
+          location: updatedOrder.restaurant?.location || null
+        },
+        totalAmount: updatedOrder.totalAmount,
+        deliveryAddress: updatedOrder.deliveryAddress,
+        items: updatedOrder.items
+      };
+      
+      // Récupérer tous les livreurs disponibles et stakés pour les notifications ciblées
+      const availableDeliverers = await Deliverer.find({ 
+        isAvailable: true,
+        isStaked: true 
+      }).select('address name isAvailable isStaked');
+      
+      console.log(`[Backend] 📋 Recherche livreurs disponibles pour commande #${orderId}:`);
+      console.log(`[Backend]   - Total livreurs en DB: ${await Deliverer.countDocuments()}`);
+      console.log(`[Backend]   - Livreurs disponibles (isAvailable=true): ${await Deliverer.countDocuments({ isAvailable: true })}`);
+      console.log(`[Backend]   - Livreurs stakés (isStaked=true): ${await Deliverer.countDocuments({ isStaked: true })}`);
+      console.log(`[Backend]   - Livreurs disponibles ET stakés: ${availableDeliverers.length}`);
+      
+      if (availableDeliverers.length > 0) {
+        console.log(`[Backend]   - Livreurs trouvés:`, availableDeliverers.map(d => ({
+          address: d.address,
+          name: d.name,
+          isAvailable: d.isAvailable,
+          isStaked: d.isStaked
+        })));
+      } else {
+        console.log(`[Backend]   ⚠️ Aucun livreur disponible ET staké trouvé dans la DB`);
+        console.log(`[Backend]   💡 Vérifiez que le livreur est:`);
+        console.log(`[Backend]      1. Enregistré dans la base de données`);
+        console.log(`[Backend]      2. Disponible (isAvailable: true) - via updateStatus`);
+        console.log(`[Backend]      3. Staké (isStaked: true) - synchronisé depuis la blockchain via getDeliverer`);
+      }
+      
+      const delivererAddresses = availableDeliverers && availableDeliverers.length > 0 
+        ? availableDeliverers.map(d => d.address)
+        : [];
+      
+      // Toujours notifier via Socket.io (même si aucun livreur n'est marqué disponible)
+      // Car un livreur peut être connecté mais pas encore marqué comme disponible dans la DB
+      console.log(`[Backend] 📢 Envoi notification Socket.io pour commande #${orderId} (${delivererAddresses.length} livreur(s) ciblé(s))`);
+      await notificationService.notifyDeliverersAvailable(
+        orderId,
+        delivererAddresses,
+        orderData
+      );
+      console.log(`[Backend] ✅ Notification envoyée pour commande #${orderId}`);
+    } catch (notifError) {
+      console.error("Error notifying deliverers:", notifError);
+      console.error("Stack trace:", notifError.stack);
+      // Ne pas faire échouer la requête si la notification échoue
     }
     
     return res.status(200).json({

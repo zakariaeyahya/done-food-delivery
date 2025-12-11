@@ -157,7 +157,7 @@ const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal })
       case 'pending':
         return <div className="p-3 mt-4 text-center text-blue-800 bg-blue-100 rounded">Transaction is pending...</div>;
       case 'confirmed':
-        return <div className="p-3 mt-4 text-center text-green-800 bg-green-100 rounded">Order Confirmed! <a href={`https://mumbai.polygonscan.com/tx/${txHash}`} target="_blank" rel="noopener noreferrer" className="underline">View Transaction</a></div>;
+        return <div className="p-3 mt-4 text-center text-green-800 bg-green-100 rounded">Order Confirmed! <a href={`https://amoy.polygonscan.com/tx/${txHash}`} target="_blank" rel="noopener noreferrer" className="underline hover:text-green-900">View Transaction</a></div>;
       case 'error':
         return <div className="p-3 mt-4 text-center text-red-800 bg-red-100 rounded">Error: {error}</div>;
       default:

@@ -65,18 +65,20 @@ function authHeaders(address) {
 /* -------------------------------------------------------------------------- */
 /* 1. Récupérer les commandes disponibles à proximité                         */
 /* -------------------------------------------------------------------------- */
-async function getAvailableOrders(location) {
+async function getAvailableOrders(location = {}) {
   try {
-    if (!location || !location.lat || !location.lng) {
-      throw new Error("Location is required with lat and lng");
+    const params = new URLSearchParams();
+    
+    // Ajouter les paramètres de position si disponibles
+    if (location && location.lat && location.lng) {
+      params.append('lat', location.lat.toString());
+      params.append('lng', location.lng.toString());
     }
 
-    const params = new URLSearchParams({
-      lat: location.lat.toString(),
-      lng: location.lng.toString(),
-    });
-
-    const response = await apiClient.get(`/deliverers/available?${params}`);
+    const queryString = params.toString();
+    const url = `/deliverers/available${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
     console.error("Error fetching available orders:", error);
@@ -100,7 +102,12 @@ async function acceptOrder(orderId, delivererAddress) {
     return response.data;
   } catch (error) {
     console.error("Error accepting order:", error);
-    throw new Error(`Failed to accept order: ${error.message}`);
+    const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+    const errorDetails = error.response?.data?.details || '';
+    console.error("  - Status:", error.response?.status);
+    console.error("  - Message:", errorMessage);
+    console.error("  - Details:", errorDetails);
+    throw new Error(`Failed to accept order: ${errorMessage}${errorDetails ? ` - ${errorDetails}` : ''}`);
   }
 }
 
