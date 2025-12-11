@@ -50,10 +50,22 @@ export const getRestaurantById = (id) => {
 /**
  * Creates a new order.
  * @param {object} orderData - The data for the new order.
+ * @param {string} clientAddress - The client's wallet address (for auth in dev mode)
  * @returns {Promise<AxiosResponse<any>>}
  */
-export const createOrder = (orderData) => {
-  return apiClient.post('/orders', orderData);
+export const createOrder = (orderData, clientAddress) => {
+  // En mode développement, utiliser la signature mock
+  const isDevelopment = import.meta.env.MODE === 'development' || import.meta.env.DEV;
+  
+  const headers = {};
+  if (isDevelopment && clientAddress) {
+    // Utiliser la signature mock pour le développement
+    headers['Authorization'] = 'Bearer mock_signature_for_testing';
+    headers['x-wallet-address'] = clientAddress;
+    headers['x-message'] = `Create order for ${clientAddress}`;
+  }
+  
+  return apiClient.post('/orders/create', orderData, { headers });
 };
 
 /**

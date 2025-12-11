@@ -23,10 +23,26 @@ const blockchainEvents = new EventEmitter();
 async function createOrder(params) {
   try {
     // En mode test, toujours utiliser des données mock pour éviter les problèmes de fonds/blockchain
-    if (process.env.NODE_ENV === 'test' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
-      const mockOrderId = Math.floor(Math.random() * 1000000) + 1;
+    if (process.env.NODE_ENV === 'test' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.NODE_ENV === 'development') {
+      // Générer un orderId unique en trouvant le prochain disponible
+      let mockOrderId;
+      try {
+        const Order = require("../models/Order");
+        // Trouver le dernier orderId utilisé
+        const lastOrder = await Order.findOne().sort({ orderId: -1 }).limit(1);
+        const lastOrderId = lastOrder ? lastOrder.orderId : 0;
+        // Utiliser le suivant (au moins 100000 pour éviter les conflits avec le seed)
+        mockOrderId = Math.max(lastOrderId + 1, 100000);
+      } catch (error) {
+        // Si erreur (DB non disponible), utiliser un timestamp-based ID
+        console.warn("Could not query database for last orderId, using timestamp-based ID:", error.message);
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 10000);
+        mockOrderId = parseInt(`${timestamp}${random}`.slice(-10)) || Math.floor(Math.random() * 1000000) + 100000;
+      }
+      
       const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-      console.log('⚠️  Using mock blockchain (test mode):', { orderId: mockOrderId, txHash: mockTxHash });
+      console.log('⚠️  Using mock blockchain (test/dev mode):', { orderId: mockOrderId, txHash: mockTxHash });
 
       blockchainEvents.emit("OrderCreated", {
         orderId: mockOrderId,

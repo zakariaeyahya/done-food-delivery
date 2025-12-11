@@ -44,13 +44,25 @@ async function createOrder(req, res) {
     }
     
     // Vérifier que le restaurant existe
-    const restaurant = await Restaurant.findById(restaurantId);
+    let restaurant;
+    if (restaurantId) {
+      restaurant = await Restaurant.findById(restaurantId);
+    }
+    
+    // Si restaurantId n'est pas fourni ou restaurant non trouvé, essayer de trouver par restaurantAddress
+    if (!restaurant && req.body.restaurantAddress) {
+      restaurant = await Restaurant.findByAddress(req.body.restaurantAddress);
+    }
+    
     if (!restaurant) {
       return res.status(404).json({
         error: "Not Found",
-        message: "Restaurant not found"
+        message: "Restaurant not found. Please provide a valid restaurantId or restaurantAddress."
       });
     }
+    
+    // Utiliser l'ID du restaurant trouvé
+    const finalRestaurantId = restaurant._id;
     
     // Calculer les prix
     let foodPrice = 0;
@@ -76,7 +88,7 @@ async function createOrder(req, res) {
       },
       client: {
         address: userAddress,
-        name: client.name
+        name: client.name || 'Client'
       },
       createdAt: new Date().toISOString()
     };
@@ -121,12 +133,42 @@ async function createOrder(req, res) {
     const platformFeeWei = (foodPriceWei * BigInt(10)) / BigInt(100);
     const totalAmountWei = foodPriceWei + deliveryFeeWei + platformFeeWei;
     
-    // Sauvegarder dans MongoDB
-    const order = new Order({
+    // Vérifier si la commande existe déjà (cas de duplication)
+    let order = await Order.findOne({ orderId: blockchainResult.orderId });
+    
+    if (order) {
+      // La commande existe déjà, vérifier si c'est la même commande
+      console.warn(`Order ${blockchainResult.orderId} already exists in database. Checking if it's the same order...`);
+      
+      // Si c'est la même transaction hash, retourner la commande existante
+      if (order.txHash === blockchainResult.txHash) {
+        console.log(`Order ${blockchainResult.orderId} already exists with same txHash. Returning existing order.`);
+        return res.status(200).json({
+          success: true,
+          order: {
+            orderId: order.orderId,
+            txHash: order.txHash,
+            status: order.status,
+            totalAmount: order.totalAmount.toString()
+          },
+          message: "Order already exists"
+        });
+      } else {
+        // Transaction hash différente, c'est un problème
+        return res.status(409).json({
+          error: "Conflict",
+          message: `Order ID ${blockchainResult.orderId} already exists with a different transaction hash`,
+          details: "This orderId is already in use. Please try again."
+        });
+      }
+    }
+    
+    // Créer une nouvelle commande
+    order = new Order({
       orderId: blockchainResult.orderId,
       txHash: blockchainResult.txHash,
       client: client._id,
-      restaurant: restaurant._id,
+      restaurant: finalRestaurantId,
       items: items.map(item => ({
         name: item.name,
         quantity: item.quantity,
@@ -142,7 +184,37 @@ async function createOrder(req, res) {
       totalAmount: totalAmountWei.toString()
     });
     
-    await order.save();
+    try {
+      await order.save();
+    } catch (saveError) {
+      // Gérer l'erreur de duplication de manière plus gracieuse
+      if (saveError.code === 11000) {
+        // Erreur de clé dupliquée
+        console.error(`Duplicate key error for orderId ${blockchainResult.orderId}:`, saveError);
+        
+        // Essayer de récupérer la commande existante
+        const existingOrder = await Order.findOne({ orderId: blockchainResult.orderId });
+        if (existingOrder) {
+          return res.status(200).json({
+            success: true,
+            order: {
+              orderId: existingOrder.orderId,
+              txHash: existingOrder.txHash,
+              status: existingOrder.status,
+              totalAmount: existingOrder.totalAmount.toString()
+            },
+            message: "Order already exists"
+          });
+        }
+        
+        return res.status(409).json({
+          error: "Conflict",
+          message: `Order ID ${blockchainResult.orderId} already exists`,
+          details: "This orderId is already in use. Please try again."
+        });
+      }
+      throw saveError; // Re-lancer l'erreur si ce n'est pas une duplication
+    }
     
     // Notifier le restaurant
     try {
@@ -166,11 +238,14 @@ async function createOrder(req, res) {
     });
   } catch (error) {
     console.error("Error creating order:", error);
+    console.error("Error stack:", error.stack);
+    console.error("Request body:", req.body);
     
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to create order",
-      details: error.message
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }

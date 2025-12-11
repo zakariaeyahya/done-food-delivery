@@ -37,9 +37,15 @@ async function getCart(req, res) {
 
     console.log(`[Cart] Cart retrieved for ${address}:`, user.cart);
 
+    // Convertir le restaurantId ObjectId en string pour la réponse JSON
+    const cartResponse = user.cart ? {
+      ...user.cart.toObject ? user.cart.toObject() : user.cart,
+      restaurantId: user.cart.restaurantId ? user.cart.restaurantId.toString() : null
+    } : { items: [], restaurantId: null, restaurantAddress: null };
+
     return res.status(200).json({
       success: true,
-      cart: user.cart || { items: [], restaurantId: null, restaurantAddress: null }
+      cart: cartResponse
     });
   } catch (error) {
     console.error("[Cart] Error getting cart:", error);
@@ -110,8 +116,49 @@ async function addToCart(req, res) {
     }
 
     // Mettre a jour le restaurant du panier
-    user.cart.restaurantId = restaurantId;
+    // Convertir restaurantId en ObjectId si c'est une string
+    const mongoose = require("mongoose");
+    
+    // Fonction helper pour trouver le restaurant par adresse
+    const findRestaurantByAddress = async (address) => {
+      if (!address) return null;
+      try {
+        return await Restaurant.findByAddress(address);
+      } catch (error) {
+        console.error(`[Cart] Error finding restaurant by address:`, error);
+        return null;
+      }
+    };
+    
+    if (restaurantId) {
+      try {
+        // Si c'est déjà un ObjectId, le garder tel quel
+        // Sinon, le convertir depuis une string
+        if (mongoose.Types.ObjectId.isValid(restaurantId)) {
+          user.cart.restaurantId = typeof restaurantId === 'string' 
+            ? new mongoose.Types.ObjectId(restaurantId) 
+            : restaurantId;
+        } else {
+          // restaurantId n'est pas un ObjectId valide, essayer de trouver par adresse
+          console.warn(`[Cart] restaurantId is not a valid ObjectId: ${restaurantId}, trying to find by address`);
+          const restaurant = await findRestaurantByAddress(restaurantAddress);
+          user.cart.restaurantId = restaurant ? restaurant._id : null;
+        }
+      } catch (error) {
+        console.error(`[Cart] Error converting restaurantId to ObjectId:`, error);
+        // Si la conversion échoue, essayer de trouver le restaurant par son adresse
+        const restaurant = await findRestaurantByAddress(restaurantAddress);
+        user.cart.restaurantId = restaurant ? restaurant._id : null;
+      }
+    } else {
+      // Si restaurantId n'est pas fourni, essayer de le trouver par restaurantAddress
+      const restaurant = await findRestaurantByAddress(restaurantAddress);
+      user.cart.restaurantId = restaurant ? restaurant._id : null;
+    }
+    
     user.cart.restaurantAddress = restaurantAddress;
+    
+    console.log(`[Cart] Updated cart restaurant - ID: ${user.cart.restaurantId}, Address: ${user.cart.restaurantAddress}`);
 
     // Chercher si l'item existe deja dans le panier
     const existingItemIndex = user.cart.items.findIndex(item => item.menuItemId === menuItemId);

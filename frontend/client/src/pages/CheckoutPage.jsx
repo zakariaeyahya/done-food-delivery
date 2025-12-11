@@ -21,37 +21,27 @@ const CheckoutPage = () => {
   // Extract items from cart object
   const cartItems = cart.items || [];
 
-  // Si pas connecté → on bloque la page
-  if (!isConnected) {
-    return (
-      <div className="container mx-auto p-8 text-center">
-        <h2 className="text-2xl font-semibold mb-2">
-          Please connect your wallet to proceed to checkout
-        </h2>
-        <p className="text-gray-500">
-          You need to connect your wallet before placing an order.
-        </p>
-      </div>
-    );
-  }
+  /** Calculs totaux (all in MATIC) - DOIT être avant les retours conditionnels **/
+  const foodTotal = useMemo(
+    () =>
+      cartItems.reduce(
+        (total, item) => total + (item.price || 0) * (item.quantity || 1),
+        0
+      ),
+    [cartItems]
+  );
 
-  // Si panier vide
-  if (!cartItems || cartItems.length === 0) {
-    return (
-      <div className="container mx-auto p-8 text-center">
-        <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
-        <button
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-          onClick={() => navigate('/')}
-        >
-          Back to restaurants
-        </button>
-      </div>
-    );
-  }
+  const platformCommission = useMemo(
+    () => foodTotal * PLATFORM_COMMISSION_RATE,
+    [foodTotal]
+  );
+
+  const finalTotalMATIC = useMemo(
+    () => foodTotal + DELIVERY_FEE_MATIC + platformCommission,
+    [foodTotal, platformCommission]
+  );
 
   /** Handlers **/
-
   const handleUpdateQuantity = async (itemId, newQuantity) => {
     if (newQuantity <= 0) {
       await handleRemoveItem(itemId);
@@ -72,7 +62,7 @@ const CheckoutPage = () => {
   // TODO: branche cette fonction à ton bouton "Place Order" dans <Checkout />
   const handlePlaceOrder = async () => {
     alert('Place order logic not implemented yet');
-    // Exemple de squelette si tu veux l’implémenter plus tard :
+    // Exemple de squelette si tu veux l'implémenter plus tard :
     //
     // if (!isConnected) {
     //   alert('Please connect wallet first');
@@ -113,26 +103,34 @@ const CheckoutPage = () => {
     // }
   };
 
-  /** Calculs totaux (all in MATIC) **/
+  // Si pas connecté → on bloque la page
+  if (!isConnected) {
+    return (
+      <div className="container mx-auto p-8 text-center">
+        <h2 className="text-2xl font-semibold mb-2">
+          Please connect your wallet to proceed to checkout
+        </h2>
+        <p className="text-gray-500">
+          You need to connect your wallet before placing an order.
+        </p>
+      </div>
+    );
+  }
 
-  const foodTotal = useMemo(
-    () =>
-      cartItems.reduce(
-        (total, item) => total + (item.price || 0) * (item.quantity || 1),
-        0
-      ),
-    [cartItems]
-  );
-
-  const platformCommission = useMemo(
-    () => foodTotal * PLATFORM_COMMISSION_RATE,
-    [foodTotal]
-  );
-
-  const finalTotalMATIC = useMemo(
-    () => foodTotal + DELIVERY_FEE_MATIC + platformCommission,
-    [foodTotal, platformCommission]
-  );
+  // Si panier vide
+  if (!cartItems || cartItems.length === 0) {
+    return (
+      <div className="container mx-auto p-8 text-center">
+        <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
+        <button
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+          onClick={() => navigate('/')}
+        >
+          Back to restaurants
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 sm:p-8">

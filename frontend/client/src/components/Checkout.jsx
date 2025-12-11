@@ -3,11 +3,15 @@ import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 import { createOnChainOrder } from '../services/blockchain';
 import { createOrder as createApiOrder } from '../services/api';
 import { formatPriceInMATIC } from '../utils/formatters';
+import { useWallet } from '../contexts/WalletContext';
+import { useCart } from '../contexts/CartContext';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const LIBRARIES = ['places'];
 
 const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal }) => {
+  const { address: clientAddress } = useWallet();
+  const cart = useCart(); // Récupérer le contexte du panier pour avoir restaurantId
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [txStatus, setTxStatus] = useState('idle'); // idle, pending, confirmed, error
   const [txHash, setTxHash] = useState('');
@@ -29,7 +33,28 @@ const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal })
 
   const handlePlaceOrder = async () => {
     if (!deliveryAddress) {
-      setError('Please enter a delivery address.');
+      setError('Veuillez saisir votre adresse de livraison (où vous souhaitez recevoir la commande).');
+      return;
+    }
+
+    if (!clientAddress) {
+      setError('Veuillez connecter votre wallet.');
+      return;
+    }
+
+    if (!cartItems || cartItems.length === 0) {
+      setError('Votre panier est vide.');
+      return;
+    }
+
+    // Récupérer restaurantId et restaurantAddress depuis le contexte du panier
+    const restaurantId = cart.restaurantId;
+    const restaurantAddress = cart.restaurantAddress;
+    
+    // Si restaurantId n'est pas disponible mais restaurantAddress l'est, on peut quand même créer la commande
+    if (!restaurantId && !restaurantAddress) {
+      console.error('[Checkout] RestaurantId et restaurantAddress manquants dans le panier:', cart);
+      setError('Impossible de déterminer le restaurant. Veuillez réessayer en ajoutant des articles au panier.');
       return;
     }
     
@@ -37,31 +62,80 @@ const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal })
       setError('');
       setTxStatus('pending');
 
-      // 1. Create an order in your backend to get an order ID
+      // 1. Créer la commande dans le backend pour obtenir un orderId
       const orderPayload = {
-        items: cartItems,
-        total: finalTotal,
-        address: deliveryAddress,
-        // ... other relevant data
+        items: cartItems.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          image: item.image || null
+        })),
+        deliveryAddress: deliveryAddress,
+        clientAddress: clientAddress,
+        deliveryFee: deliveryFee
       };
-      const apiResponse = await createApiOrder(orderPayload);
-      const { orderId } = apiResponse.data; // Assuming your API returns an orderId
-
-      // 2. Trigger the on-chain transaction with the orderId
-      const tx = await createOnChainOrder(
-        orderId,
-        'RESTAURANT_WALLET_ADDRESS', // Placeholder
-        'DELIVERER_WALLET_ADDRESS',  // Placeholder
-        finalTotal.toString()
-      );
       
-      setTxHash(tx.hash);
-      await tx.wait(); // Wait for the transaction to be mined
+      // Ajouter restaurantId ou restaurantAddress selon ce qui est disponible
+      if (restaurantId) {
+        orderPayload.restaurantId = restaurantId;
+      }
+      if (restaurantAddress) {
+        orderPayload.restaurantAddress = restaurantAddress;
+      }
+      
+      console.log('[Checkout] Order payload:', orderPayload);
 
-      setTxStatus('confirmed');
+      const apiResponse = await createApiOrder(orderPayload, clientAddress);
+      
+      // Le backend retourne { success: true, order: { orderId, txHash, ... } }
+      const orderId = apiResponse.data.order?.orderId || apiResponse.data.orderId;
+      
+      if (!orderId) {
+        throw new Error('OrderId non reçu du backend');
+      }
+
+      // 2. La transaction blockchain est déjà créée par le backend
+      // On peut juste afficher le hash de transaction
+      const txHashFromBackend = apiResponse.data.order?.txHash;
+      
+      if (txHashFromBackend) {
+        setTxHash(txHashFromBackend);
+        setTxStatus('confirmed');
+      } else {
+        // Si pas de txHash, on considère que c'est quand même créé
+        setTxStatus('confirmed');
+      }
     } catch (err) {
-      console.error('Order placement failed:', err);
-      setError('An error occurred during the transaction. Please try again.');
+      console.error('Erreur lors de la création de la commande:', err);
+      console.error('Détails de l\'erreur:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+      
+      // Afficher le contenu complet de la réponse pour debug
+      if (err.response?.data) {
+        console.error('Réponse complète du backend:', JSON.stringify(err.response.data, null, 2));
+      }
+      
+      // Afficher un message d'erreur plus détaillé
+      let errorMessage = 'Une erreur est survenue lors de la création de la commande.';
+      
+      if (err.response?.data) {
+        // Afficher le message d'erreur du backend
+        const backendMessage = err.response.data.message || err.response.data.error;
+        if (backendMessage) {
+          errorMessage = backendMessage;
+        }
+        // Ajouter les détails si disponibles
+        if (err.response.data.details) {
+          errorMessage += `\n\nDétails: ${err.response.data.details}`;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
       setTxStatus('error');
     }
   };
@@ -97,9 +171,17 @@ const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal })
       {renderOrderSummary()}
 
       <div className="mb-4">
-        <label htmlFor="address" className="block mb-2 font-semibold">Delivery Address</label>
-        {loadError && <p>Error loading Google Maps</p>}
-        {isLoaded && (
+        <label htmlFor="address" className="block mb-2 font-semibold">Adresse de livraison (votre adresse)</label>
+        {loadError && (
+          <div className="p-3 mb-2 text-sm text-yellow-800 bg-yellow-100 rounded">
+            <p className="font-semibold">⚠️ Google Maps ne peut pas se charger</p>
+            <p className="mt-1">
+              Cela peut être dû à un bloqueur de publicités. Veuillez désactiver temporairement 
+              votre bloqueur de publicités ou saisir votre adresse manuellement ci-dessous.
+            </p>
+          </div>
+        )}
+        {isLoaded ? (
           <Autocomplete
             onLoad={(ref) => (autocompleteRef.current = ref)}
             onPlaceChanged={handlePlaceChanged}
@@ -107,26 +189,39 @@ const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal })
             <input
               type="text"
               id="address"
-              placeholder="Start typing your address..."
+              placeholder="Commencez à taper votre adresse..."
               className="w-full p-2 border rounded"
               value={deliveryAddress}
               onChange={(e) => setDeliveryAddress(e.target.value)}
             />
           </Autocomplete>
+        ) : !loadError ? (
+          <div className="p-2 text-sm text-gray-500 bg-gray-50 rounded">
+            Chargement de Google Maps...
+          </div>
+        ) : (
+          <input
+            type="text"
+            id="address"
+            placeholder="Saisissez votre adresse manuellement..."
+            className="w-full p-2 border rounded"
+            value={deliveryAddress}
+            onChange={(e) => setDeliveryAddress(e.target.value)}
+          />
         )}
       </div>
 
-      {error && !txStatus === 'error' && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {error && txStatus !== 'error' && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
       {renderTransactionStatus()}
 
       {txStatus !== 'confirmed' && (
         <button
           onClick={handlePlaceOrder}
-          disabled={txStatus === 'pending' || !isLoaded}
+          disabled={txStatus === 'pending'}
           className="w-full px-4 py-2 mt-4 font-bold text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
         >
-          {txStatus === 'pending' ? 'Processing...' : 'Place Order & Pay with MetaMask'}
+          {txStatus === 'pending' ? 'Traitement en cours...' : 'Passer la commande'}
         </button>
       )}
     </div>
