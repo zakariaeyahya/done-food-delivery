@@ -187,7 +187,7 @@ function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }
 
         <button
           onClick={handleOpenAddModal}
-          className="rounded-2xl bg-primary-500 px-4 py-3 font-semibold text-white shadow-soft transition hover:bg-primary-600"
+          className="rounded-2xl bg-orange-500 px-4 py-3 font-semibold text-white shadow-soft transition hover:bg-orange-600"
         >
           + Ajouter un item
         </button>
@@ -298,7 +298,7 @@ function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleImageUpload(e.target.files?.[0])}
-                className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-secondary-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-secondary-800 hover:file:bg-secondary-200 dark:file:bg-secondary-900/30 dark:file:text-secondary-200"
+                className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-red-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-red-800 hover:file:bg-red-200 dark:file:bg-red-900/30 dark:file:text-red-200"
               />
 
               {uploading && (
@@ -319,7 +319,7 @@ function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }
                     available: e.target.checked,
                   }))
                 }
-                className="rounded border-neutral-300 text-primary-600 focus:ring-primary-200 dark:border-neutral-600 dark:bg-neutral-800"
+                className="rounded border-neutral-300 text-orange-600 focus:ring-orange-200 dark:border-neutral-600 dark:bg-neutral-800"
               />
               Disponible à la commande
             </label>
@@ -336,7 +336,7 @@ function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }
               <button
                 onClick={selectedItem ? handleUpdateItem : handleAddItem}
                 disabled={uploading}
-                className="flex-1 rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex-1 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {selectedItem ? "Modifier" : "Ajouter"}
               </button>
@@ -357,7 +357,7 @@ function CategoryButton({ label, active, onClick }) {
       className={[
         "rounded-full px-3 py-1.5 text-sm font-medium transition",
         active
-          ? "bg-primary-500 text-white shadow-soft"
+          ? "bg-orange-500 text-white shadow-soft"
           : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700",
       ].join(" ")}
     >
@@ -387,14 +387,14 @@ function MenuItemCard({ item, onEdit, onDelete, onToggle }) {
           </p>
         </div>
 
-        <span className="rounded-full bg-secondary-100 px-2.5 py-1 text-xs font-semibold text-secondary-800 dark:bg-secondary-900/30 dark:text-secondary-200">
+        <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800 dark:bg-red-900/30 dark:text-red-200">
           {item.category}
         </span>
       </div>
 
       <div className="mt-3 flex items-center justify-between">
         <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
-          {formatPrice(item.price)} MATIC
+          {formatPrice(item.price, 'MATIC', 5)}
         </p>
 
         <label className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200">
@@ -402,7 +402,7 @@ function MenuItemCard({ item, onEdit, onDelete, onToggle }) {
             type="checkbox"
             checked={Boolean(item.available)}
             onChange={onToggle}
-            className="rounded border-neutral-300 text-primary-600 focus:ring-primary-200 dark:border-neutral-600 dark:bg-neutral-800"
+            className="rounded border-neutral-300 text-orange-600 focus:ring-orange-200 dark:border-neutral-600 dark:bg-neutral-800"
           />
           Disponible
         </label>
@@ -452,7 +452,7 @@ function Input({ label, type = "text", value, onChange, ...props }) {
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 dark:focus:border-primary-500 dark:focus:ring-primary-900"
+        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 dark:focus:border-orange-500 dark:focus:ring-orange-900"
         {...props}
       />
     </div>
@@ -469,7 +469,7 @@ function Textarea({ label, value, onChange, ...props }) {
         rows={3}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 dark:focus:border-primary-500 dark:focus:ring-primary-900"
+        className="w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 dark:focus:border-orange-500 dark:focus:ring-orange-900"
         {...props}
       />
     </div>
@@ -485,7 +485,7 @@ function Select({ label, value, onChange, options }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 dark:focus:border-primary-500 dark:focus:ring-primary-900"
+        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 dark:focus:border-orange-500 dark:focus:ring-orange-900"
       >
         {options.map((o) => (
           <option key={o} value={o}>

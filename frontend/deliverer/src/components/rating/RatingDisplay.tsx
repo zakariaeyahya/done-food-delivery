@@ -201,7 +201,7 @@ export function RatingDisplay({ address }: RatingDisplayProps) {
                 <div className="mt-2">
                   <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                     <motion.div
-                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500"
+                      className="h-full bg-gradient-to-r from-orange-500 via-red-500 to-pink-600"
                       initial={{ width: 0 }}
                       animate={{ width: `${item.progress * 100}%` }}
                       transition={{ duration: 0.5, delay: i * 0.1 }}

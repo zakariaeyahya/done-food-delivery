@@ -151,7 +151,7 @@ function Analytics({
             tension: 0.35,
             fill: true,
             borderWidth: 2,
-            borderColor: "rgb(34, 197, 94)", // primary-500
+            borderColor: "rgb(249, 115, 22)", // orange-500
             backgroundColor: "rgba(34, 197, 94, 0.12)",
             pointRadius: 3,
             pointHoverRadius: 5,
@@ -192,7 +192,7 @@ function Analytics({
         {
           label: "Commandes",
           data: dishes.map((d) => d.orderCount ?? 0),
-          backgroundColor: "rgba(249, 115, 22, 0.85)", // secondary-500
+          backgroundColor: "rgba(236, 72, 153, 0.85)", // pink-500
           borderRadius: 8,
           barThickness: 22,
         },
@@ -266,7 +266,7 @@ function Analytics({
           <select
             value={currentPeriod}
             onChange={(e) => handlePeriodChange(e.target.value)}
-            className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm shadow-soft outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-800 dark:focus:border-primary-500 dark:focus:ring-primary-900"
+            className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm shadow-soft outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-800 dark:focus:border-orange-500 dark:focus:ring-orange-900"
           >
             <option value="day">Aujourd&apos;hui</option>
             <option value="week">Cette semaine</option>
@@ -301,7 +301,7 @@ function Analytics({
           />
           <StatCard
             title="Revenus"
-            value={`${formatPrice(analytics.revenue)} MATIC`}
+            value={formatPrice(analytics.revenue, 'MATIC', 5)}
             className="lg:col-span-3"
           />
           <StatCard
@@ -380,7 +380,7 @@ function Analytics({
                           {d.orderCount ?? 0}
                         </td>
                         <td className="py-2 text-neutral-700 dark:text-neutral-200">
-                          {formatPrice(d.revenue ?? 0)} MATIC
+                          {formatPrice(d.revenue ?? 0, 'MATIC', 5)}
                         </td>
                         <td className="py-2 text-neutral-700 dark:text-neutral-200">
                           {(d.rating ?? 0).toFixed?.(1) ?? d.rating ?? 0}
@@ -418,8 +418,8 @@ function StatCard({ title, value, className = "" }) {
 function Badge({ children, tone = "primary" }) {
   const styles =
     tone === "secondary"
-      ? "bg-secondary-100 text-secondary-800 dark:bg-secondary-900/30 dark:text-secondary-200"
-      : "bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-200";
+      ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200"
+      : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200";
 
   return (
     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${styles}`}>

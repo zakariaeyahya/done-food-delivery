@@ -59,7 +59,7 @@
   }
 
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-800;
+    @apply bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-500 active:bg-orange-700;
   }
 
   .btn-secondary {
@@ -75,7 +75,7 @@
   }
 
   .btn-outline {
-    @apply border-2 border-primary-600 text-primary-600 hover:bg-primary-50 focus:ring-primary-500;
+    @apply border-2 border-orange-500 text-orange-600 hover:bg-orange-50 focus:ring-orange-500;
   }
 
   .btn-ghost {
@@ -105,7 +105,7 @@
 
   /* TODO: Inputs */
   .input {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all;
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all;
   }
 
   .input-error {
@@ -127,7 +127,7 @@
   }
 
   .badge-primary {
-    @apply bg-primary-100 text-primary-800;
+    @apply bg-orange-100 text-orange-800;
   }
 
   .badge-success {
@@ -176,11 +176,11 @@
   }
 
   .dashboard-sidebar {
-    @apply fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-primary-900 to-primary-800 shadow-xl z-30;
+    @apply fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-orange-600 via-red-500 to-pink-600 shadow-xl z-30;
   }
 
   .sidebar-header {
-    @apply px-6 py-6 border-b border-primary-700;
+    @apply px-6 py-6 border-b border-orange-700;
   }
 
   .sidebar-header h2 {
@@ -192,15 +192,15 @@
   }
 
   .sidebar-nav a {
-    @apply flex items-center px-6 py-3 text-primary-100 hover:bg-primary-700/50 hover:text-white transition-all duration-200;
+    @apply flex items-center px-6 py-3 text-orange-100 hover:bg-orange-700/50 hover:text-white transition-all duration-200;
   }
 
   .sidebar-nav a.active {
-    @apply bg-primary-700 text-white border-r-4 border-secondary-400 font-semibold;
+    @apply bg-orange-700 text-white border-r-4 border-yellow-400 font-semibold;
   }
 
   .sidebar-footer {
-    @apply absolute bottom-0 left-0 right-0 border-t border-primary-700;
+    @apply absolute bottom-0 left-0 right-0 border-t border-orange-700;
   }
 
   .dashboard-header {
@@ -241,7 +241,7 @@
 
   /* TODO: Gradient text */
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-orange-500 via-red-500 to-pink-600;
   }
 
   /* TODO: Truncate with ellipsis */
@@ -360,12 +360,12 @@
 }
 
 .notification-info {
-  @apply bg-primary-500 text-white;
+  @apply bg-orange-500 text-white;
 }
 
 /* TODO: Styles pour la page d'inscription */
 .register-page {
-  @apply min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 py-12 px-4;
+  @apply min-h-screen bg-gradient-to-br from-orange-50 via-white to-pink-50 py-12 px-4;
 }
 
 .register-container {
@@ -373,7 +373,7 @@
 }
 
 .register-page h1 {
-  @apply text-4xl font-display font-bold text-primary-900 mb-2;
+  @apply text-4xl font-display font-bold text-orange-900 mb-2;
 }
 
 .register-page .subtitle {
@@ -414,11 +414,11 @@
 .form-group input[type="number"],
 .form-group textarea,
 .form-group select {
-  @apply w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition;
+  @apply w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition;
 }
 
 .form-group input[type="file"] {
-  @apply w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 cursor-pointer;
+  @apply w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer;
 }
 
 .form-group .input-disabled {
@@ -451,11 +451,11 @@
 }
 
 .btn-add-menu-item {
-  @apply w-full py-3 px-4 border-2 border-dashed border-primary-300 text-primary-700 font-medium rounded-xl hover:bg-primary-50 hover:border-primary-400 transition;
+  @apply w-full py-3 px-4 border-2 border-dashed border-orange-300 text-orange-700 font-medium rounded-xl hover:bg-orange-50 hover:border-orange-400 transition;
 }
 
 .btn-submit {
-  @apply w-full py-4 px-6 bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-bold rounded-xl shadow-strong hover:shadow-xl hover:from-primary-700 hover:to-secondary-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-strong;
+  @apply w-full py-4 px-6 bg-gradient-to-r from-orange-500 via-red-500 to-pink-600 text-white font-bold rounded-xl shadow-strong hover:shadow-xl hover:from-orange-600 hover:via-red-600 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-strong;
 }
 
 /* Alerts */

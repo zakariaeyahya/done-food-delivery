@@ -7,6 +7,7 @@ import api from "../services/api";
 import geolocation from "../services/geolocation";
 import blockchain from "../services/blockchain";
 import io from "socket.io-client";
+import { formatPrice } from "../utils/formatters";
 
 function AvailableOrders({ limit = null }) {
   const [orders, setOrders] = useState([]);
@@ -41,11 +42,25 @@ function AvailableOrders({ limit = null }) {
         });
 
         socketRef.current.on("connect", () => {
-          console.log("✅ Order notifications enabled");
+          console.log("[Livreur] ✅ Socket.io connecté - Notifications de commandes activées");
         });
 
         socketRef.current.on("orderReady", (order) => {
-          setOrders((prev) => [order, ...prev]);
+          console.log("[Livreur] 🔔 Nouvelle commande reçue via Socket.io:", {
+            orderId: order.orderId,
+            restaurant: order.restaurant?.name || 'Restaurant',
+            totalAmount: order.totalAmount,
+            deliveryAddress: order.deliveryAddress
+          });
+          setOrders((prev) => {
+            const exists = prev.find(o => o.orderId === order.orderId);
+            if (exists) {
+              console.log(`[Livreur] ⚠️ Commande #${order.orderId} déjà dans la liste, ignorée`);
+              return prev;
+            }
+            console.log(`[Livreur] ✅ Commande #${order.orderId} ajoutée à la liste (total: ${prev.length + 1})`);
+            return [order, ...prev];
+          });
           playNotificationSound();
         });
 
@@ -96,11 +111,16 @@ function AvailableOrders({ limit = null }) {
 
   /** Récupérer commandes disponibles */
   async function fetchAvailableOrders() {
-    if (!currentLocation) return;
+    if (!currentLocation) {
+      console.log("[Livreur] ⚠️ Position GPS non disponible, impossible de charger les commandes");
+      return;
+    }
     setLoading(true);
 
     try {
+      console.log(`[Livreur] 📡 Récupération commandes disponibles depuis API (lat: ${currentLocation.lat}, lng: ${currentLocation.lng})...`);
       const availableOrders = await api.getAvailableOrders(currentLocation);
+      console.log(`[Livreur] ✅ ${availableOrders.length} commande(s) disponible(s) reçue(s) de l'API`);
 
       // Trier par distance
       const sortedOrders = availableOrders.sort((a, b) => {
@@ -111,11 +131,13 @@ function AvailableOrders({ limit = null }) {
 
       if (limit) {
         setOrders(sortedOrders.slice(0, limit));
+        console.log(`[Livreur] 📋 Affichage des ${limit} premières commandes (triées par distance)`);
       } else {
         setOrders(sortedOrders);
+        console.log(`[Livreur] 📋 ${sortedOrders.length} commande(s) affichée(s)`);
       }
     } catch (error) {
-      console.error("Erreur chargement commandes :", error);
+      console.error("[Livreur] ❌ Erreur chargement commandes :", error);
     } finally {
       setLoading(false);
     }
@@ -133,7 +155,8 @@ function AvailableOrders({ limit = null }) {
 
   /** Gains = 20% */
   function calculateEarnings(order) {
-    return order.totalAmount * 0.2;
+    const totalAmountNumber = parseFloat(formatPrice(order.totalAmount, 'POL', 5).replace(' POL', ''));
+    return totalAmountNumber * 0.2;
   }
 
   /** Icône couleur selon distance */
@@ -146,29 +169,43 @@ function AvailableOrders({ limit = null }) {
   /** Accepter une commande */
   async function handleAcceptOrder(orderId) {
     try {
+      console.log(`[Livreur] 🚚 Acceptation commande #${orderId}...`);
       const signer = await blockchain.getSigner();
       const address = await signer.getAddress();
+      console.log(`[Livreur] 👤 Adresse livreur: ${address}`);
 
       const isStaked = await blockchain.isStaked(address);
       if (!isStaked) {
+        console.log(`[Livreur] ❌ Livreur non staké, impossible d'accepter la commande`);
         alert("Vous devez staker minimum 0.1 POL pour accepter une commande.");
         return;
       }
+      console.log(`[Livreur] ✅ Livreur staké, continuation...`);
 
       setAccepting(orderId);
 
       // On-chain
+      console.log(`[Livreur] ⛓️ Acceptation on-chain commande #${orderId}...`);
       await blockchain.acceptOrderOnChain(orderId);
+      console.log(`[Livreur] ✅ Acceptation on-chain réussie pour commande #${orderId}`);
 
       // Back-end
+      console.log(`[Livreur] 📡 Notification backend acceptation commande #${orderId}...`);
       await api.acceptOrder(orderId, address);
+      console.log(`[Livreur] ✅ Backend notifié pour commande #${orderId}`);
 
       // Supprimer de la liste
-      setOrders((prev) => prev.filter((o) => o.orderId !== orderId));
+      setOrders((prev) => {
+        const filtered = prev.filter((o) => o.orderId !== orderId);
+        console.log(`[Livreur] 📋 Commande #${orderId} retirée de la liste (reste ${filtered.length} commande(s))`);
+        return filtered;
+      });
 
       // Redirection
+      console.log(`[Livreur] 🔄 Redirection vers page livraison pour commande #${orderId}`);
       window.location.href = `/deliveries?orderId=${orderId}`;
     } catch (err) {
+      console.error(`[Livreur] ❌ Erreur acceptation commande #${orderId}:`, err);
       alert("Erreur: " + err.message);
     } finally {
       setAccepting(null);
@@ -211,9 +248,9 @@ function AvailableOrders({ limit = null }) {
                 </div>
 
                 <div className="order-details">
-                  <p>Total: {order.totalAmount} POL</p>
+                  <p>Total: {formatPrice(order.totalAmount, 'POL', 5)}</p>
                   <p className="earnings">
-                    Gains estimés: {earnings.toFixed(3)} POL
+                    Gains estimés: {formatPrice(earnings.toString(), 'POL', 5)}
                   </p>
                 </div>
 

@@ -86,17 +86,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Join deliverer room
   useEffect(() => {
     if (socket && address) {
+      console.log(`[Livreur] 🏠 Rejoindre room Socket.io pour livreur ${address}`);
       socket.emit("join-deliverer-room", address);
+      console.log(`[Livreur] ✅ Room rejointe pour livreur ${address}`);
     }
   }, [socket, address]);
 
   // Load GPS
   useEffect(() => {
+    console.log("[Livreur] 📍 Chargement position GPS...");
     geolocation
       .getCurrentPosition()
-      .then(setCurrentLocation)
+      .then((location) => {
+        console.log(`[Livreur] ✅ Position GPS chargée: lat=${location.lat}, lng=${location.lng}`);
+        setCurrentLocation(location);
+      })
       .catch((error) => {
-        console.warn("⚠️ Géolocalisation indisponible:", error.message);
+        console.warn("[Livreur] ⚠️ Géolocalisation indisponible:", error.message);
       });
   }, []);
 

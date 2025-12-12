@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/Badge";
 import NavigationMap from "@/components/maps/NavigationMap";
 import api from "@/services/api";
 import blockchain from "@/services/blockchain";
+import { formatPrice } from "@/utils/formatters";
 import geolocation from "@/services/geolocation";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -174,13 +175,16 @@ export function ActiveDeliveryCard({ order }: ActiveDeliveryCardProps) {
         <div>
           <Badge variant="info" pulse>Livraison en cours</Badge>
           <h2 className="text-xl font-bold text-white mt-2">
-            Commande #{order.orderId.slice(0, 8)}
+            Commande #{String(order.orderId).slice(0, 8)}
           </h2>
         </div>
         <div className="text-right">
           <p className="text-sm text-slate-400">Gains estimés</p>
-          <p className="text-2xl font-bold text-emerald-400">
-            {(order.totalAmount * 0.2).toFixed(3)} POL
+          <p className="text-2xl font-bold text-orange-400">
+            {(() => {
+              const totalAmountNumber = parseFloat(formatPrice(order.totalAmount, 'POL', 5).replace(' POL', ''));
+              return formatPrice((totalAmountNumber * 0.2).toString(), 'POL', 5);
+            })()}
           </p>
         </div>
       </div>
@@ -192,7 +196,7 @@ export function ActiveDeliveryCard({ order }: ActiveDeliveryCardProps) {
               className={cn(
                 "flex items-center justify-center w-10 h-10 rounded-xl",
                 step === s.id
-                  ? "bg-indigo-500 text-white"
+                  ? "bg-orange-500 text-white"
                   : s.id === "pickup" && step === "delivery"
                     ? "bg-emerald-500/20 text-emerald-400"
                     : "bg-white/5 text-slate-500"

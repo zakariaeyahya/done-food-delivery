@@ -163,6 +163,24 @@ const orderSchema = new mongoose.Schema({
   completedAt: {
     type: Date,
     default: null
+  },
+
+  // review - Avis du client sur la commande (optionnel)
+  review: {
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5
+    },
+    comment: {
+      type: String,
+      trim: true,
+      maxlength: 500
+    },
+    createdAt: {
+      type: Date,
+      default: null
+    }
   }
 }, {
   // Options du schéma

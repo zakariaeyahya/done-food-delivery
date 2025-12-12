@@ -15,7 +15,7 @@ export function Badge({ variant = "default", pulse, children }: BadgeProps) {
     success: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
     warning: "bg-amber-500/20 text-amber-400 border-amber-500/30",
     danger: "bg-red-500/20 text-red-400 border-red-500/30",
-    info: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
+    info: "bg-orange-500/20 text-orange-400 border-orange-500/30",
   };
 
   return (
@@ -32,7 +32,7 @@ export function Badge({ variant = "default", pulse, children }: BadgeProps) {
             variant === "success" && "bg-emerald-400",
             variant === "warning" && "bg-amber-400",
             variant === "danger" && "bg-red-400",
-            variant === "info" && "bg-indigo-400"
+            variant === "info" && "bg-orange-400"
           )}
         />
       )}

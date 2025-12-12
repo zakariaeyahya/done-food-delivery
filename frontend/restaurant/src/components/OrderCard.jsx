@@ -131,13 +131,13 @@ function OrderCard({ order, onConfirmPreparation }) {
                       {item.quantity}x {item.name}
                     </p>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                      {formatPrice?.(item.price) ?? item.price} MATIC / unité
+                      {formatPrice?.(item.price, 'MATIC', 5) ?? `${item.price} MATIC`} / unité
                     </p>
                   </div>
                 </div>
 
                 <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
-                  {formatPrice?.(lineTotal) ?? lineTotal} MATIC
+                  {formatPrice?.(lineTotal, 'MATIC', 5) ?? `${lineTotal} MATIC`}
                 </div>
               </div>
             );
@@ -183,19 +183,19 @@ function OrderCard({ order, onConfirmPreparation }) {
         <div className="text-sm text-neutral-500 dark:text-neutral-400">
           Total items:{" "}
           <span className="font-semibold text-neutral-900 dark:text-neutral-50">
-            {formatPrice?.(itemsTotal) ?? itemsTotal} MATIC
+            {formatPrice?.(itemsTotal, 'MATIC', 5) ?? `${itemsTotal} MATIC`}
           </span>
         </div>
 
         <div className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
           Total:{" "}
-          {formatPrice?.(order.totalAmount) ?? order.totalAmount} MATIC
+          {formatPrice?.(order.totalAmount, 'MATIC', 5) ?? `${order.totalAmount} MATIC`}
         </div>
 
         {order.status === "CREATED" && onConfirmPreparation && (
           <button
             onClick={() => onConfirmPreparation(order.orderId)}
-            className="rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-primary-600"
+            className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-orange-600"
           >
             Confirmer préparation
           </button>
@@ -212,7 +212,7 @@ function StatusBadge({ tone = "neutral", children }) {
     warning:
       "bg-warning-100 text-warning-800 dark:bg-warning-900/30 dark:text-warning-200",
     secondary:
-      "bg-secondary-100 text-secondary-800 dark:bg-secondary-900/30 dark:text-secondary-200",
+      "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200",
     info:
       "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200",
     success:

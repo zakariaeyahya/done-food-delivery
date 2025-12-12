@@ -57,7 +57,7 @@ function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <div className="px-6 py-4 text-xs text-primary-300">
+        <div className="px-6 py-4 text-xs text-orange-200">
           © 2025 DONE Platform
         </div>
       </div>

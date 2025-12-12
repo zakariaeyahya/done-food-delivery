@@ -512,6 +512,11 @@ async function confirmPreparation(req, res) {
     // Mettre à jour dans MongoDB
     await Order.updateStatus(orderId, 'PREPARING');
     
+    // Récupérer la commande mise à jour avec toutes les relations
+    const updatedOrder = await Order.findOne({ orderId })
+      .populate('restaurant', 'address name location')
+      .populate('client', 'address');
+    
     // Notifier le client
     try {
       const clientAddr = order.client?.address || order.client;
@@ -522,7 +527,68 @@ async function confirmPreparation(req, res) {
         { message: "Your order is being prepared" }
       );
     } catch (notifError) {
-      console.warn("Error sending notification:", notifError);
+      console.warn("Error sending notification to client:", notifError);
+    }
+    
+    // Notifier les livreurs disponibles qu'une nouvelle commande est prête
+    try {
+      // Préparer les données de la commande pour les livreurs
+      const orderData = {
+        orderId: updatedOrder.orderId,
+        restaurant: {
+          name: updatedOrder.restaurant?.name || 'Restaurant',
+          address: updatedOrder.restaurant?.address || order.restaurant,
+          location: updatedOrder.restaurant?.location || null
+        },
+        totalAmount: updatedOrder.totalAmount,
+        deliveryAddress: updatedOrder.deliveryAddress,
+        items: updatedOrder.items
+      };
+      
+      // Récupérer tous les livreurs disponibles et stakés pour les notifications ciblées
+      const availableDeliverers = await Deliverer.find({ 
+        isAvailable: true,
+        isStaked: true 
+      }).select('address name isAvailable isStaked');
+      
+      console.log(`[Backend] 📋 Recherche livreurs disponibles pour commande #${orderId}:`);
+      console.log(`[Backend]   - Total livreurs en DB: ${await Deliverer.countDocuments()}`);
+      console.log(`[Backend]   - Livreurs disponibles (isAvailable=true): ${await Deliverer.countDocuments({ isAvailable: true })}`);
+      console.log(`[Backend]   - Livreurs stakés (isStaked=true): ${await Deliverer.countDocuments({ isStaked: true })}`);
+      console.log(`[Backend]   - Livreurs disponibles ET stakés: ${availableDeliverers.length}`);
+      
+      if (availableDeliverers.length > 0) {
+        console.log(`[Backend]   - Livreurs trouvés:`, availableDeliverers.map(d => ({
+          address: d.address,
+          name: d.name,
+          isAvailable: d.isAvailable,
+          isStaked: d.isStaked
+        })));
+      } else {
+        console.log(`[Backend]   ⚠️ Aucun livreur disponible ET staké trouvé dans la DB`);
+        console.log(`[Backend]   💡 Vérifiez que le livreur est:`);
+        console.log(`[Backend]      1. Enregistré dans la base de données`);
+        console.log(`[Backend]      2. Disponible (isAvailable: true) - via updateStatus`);
+        console.log(`[Backend]      3. Staké (isStaked: true) - synchronisé depuis la blockchain via getDeliverer`);
+      }
+      
+      const delivererAddresses = availableDeliverers && availableDeliverers.length > 0 
+        ? availableDeliverers.map(d => d.address)
+        : [];
+      
+      // Toujours notifier via Socket.io (même si aucun livreur n'est marqué disponible)
+      // Car un livreur peut être connecté mais pas encore marqué comme disponible dans la DB
+      console.log(`[Backend] 📢 Envoi notification Socket.io pour commande #${orderId} (${delivererAddresses.length} livreur(s) ciblé(s))`);
+      await notificationService.notifyDeliverersAvailable(
+        orderId,
+        delivererAddresses,
+        orderData
+      );
+      console.log(`[Backend] ✅ Notification envoyée pour commande #${orderId}`);
+    } catch (notifError) {
+      console.error("Error notifying deliverers:", notifError);
+      console.error("Stack trace:", notifError.stack);
+      // Ne pas faire échouer la requête si la notification échoue
     }
     
     return res.status(200).json({
@@ -806,20 +872,31 @@ async function confirmDelivery(req, res) {
     const orderId = req.orderId || parseInt(req.params.id);
     const clientAddress = req.userAddress;
     
+    console.log(`[Backend] 📦 Confirmation livraison commande #${orderId} par client ${clientAddress}...`);
+    
     // Vérifier que la commande existe
     const order = await Order.findOne({ orderId })
       .populate('client', 'address name')
       .populate('deliverer', 'address name');
     if (!order) {
+      console.log(`[Backend] ❌ Commande #${orderId} non trouvée`);
       return res.status(404).json({
         error: "Not Found",
         message: `Order with id ${orderId} not found`
       });
     }
     
+    console.log(`[Backend] ✅ Commande trouvée:`, {
+      orderId: order.orderId,
+      status: order.status,
+      clientAddress: order.client?.address || order.client,
+      delivererAddress: order.deliverer?.address || order.deliverer
+    });
+    
     // Vérifier que le client est le propriétaire
     const orderClientAddress = order.client?.address || order.client;
     if (!orderClientAddress || orderClientAddress.toString().toLowerCase() !== clientAddress.toLowerCase()) {
+      console.log(`[Backend] ❌ Client ${clientAddress} n'est pas le propriétaire (propriétaire: ${orderClientAddress})`);
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this order"
@@ -828,6 +905,7 @@ async function confirmDelivery(req, res) {
     
     // Vérifier le statut
     if (order.status !== 'IN_DELIVERY') {
+      console.log(`[Backend] ❌ Statut invalide: ${order.status} (attendu: IN_DELIVERY)`);
       return res.status(400).json({
         error: "Bad Request",
         message: `Order status must be IN_DELIVERY, current status: ${order.status}`
@@ -844,25 +922,44 @@ async function confirmDelivery(req, res) {
       );
     } catch (blockchainError) {
       console.error("Error confirming delivery on blockchain:", blockchainError);
-      return res.status(500).json({
-        error: "Internal Server Error",
-        message: "Failed to confirm delivery on blockchain",
-        details: blockchainError.message
-      });
+      console.error("Stack trace:", blockchainError.stack);
+      
+      // En mode dev, permettre de continuer même si la blockchain échoue
+      if (process.env.NODE_ENV === 'development' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
+        console.warn('⚠️ Blockchain error in dev mode, continuing with mock data');
+        blockchainResult = {
+          txHash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''),
+          tokensEarned: "0"
+        };
+      } else {
+        return res.status(500).json({
+          error: "Internal Server Error",
+          message: "Failed to confirm delivery on blockchain",
+          details: blockchainError.message
+        });
+      }
     }
     
     // Mettre à jour dans MongoDB
+    console.log(`[Backend] 💾 Mise à jour statut commande #${orderId} à DELIVERED...`);
     await Order.updateStatus(orderId, 'DELIVERED');
+    console.log(`[Backend] ✅ Statut mis à jour dans MongoDB`);
     
     // Incrémenter les compteurs
-    if (order.restaurant && order.restaurant._id) {
-      await Restaurant.incrementOrderCount(order.restaurant._id);
-    }
-    if (order.deliverer && order.deliverer._id) {
-      const delivererAddr = order.deliverer?.address || order.deliverer;
-      if (delivererAddr) {
-        await Deliverer.incrementDeliveryCount(delivererAddr.toString());
+    try {
+      if (order.restaurant && order.restaurant._id) {
+        await Restaurant.incrementOrderCount(order.restaurant._id);
+        console.log(`[Backend] ✅ Compteur restaurant incrémenté`);
       }
+      if (order.deliverer && order.deliverer._id) {
+        const delivererAddr = order.deliverer?.address || order.deliverer;
+        if (delivererAddr) {
+          await Deliverer.incrementDeliveryCount(delivererAddr.toString());
+          console.log(`[Backend] ✅ Compteur livreur incrémenté`);
+        }
+      }
+    } catch (counterError) {
+      console.warn(`[Backend] ⚠️ Erreur incrémentation compteurs:`, counterError.message);
     }
     
     // Notifier le client
@@ -876,9 +973,12 @@ async function confirmDelivery(req, res) {
           tokensEarned: blockchainResult.tokensEarned || "0"
         }
       );
+      console.log(`[Backend] ✅ Notification envoyée au client`);
     } catch (notifError) {
-      console.warn("Error sending notification:", notifError);
+      console.warn("[Backend] ⚠️ Erreur envoi notification:", notifError.message);
     }
+    
+    console.log(`[Backend] ✅ Livraison confirmée avec succès pour commande #${orderId}`);
     
     return res.status(200).json({
       success: true,
@@ -1143,16 +1243,23 @@ async function submitReview(req, res) {
       });
     }
     
-    // Ajouter la review à la commande (si le modèle Order supporte les reviews)
-    // Pour l'instant, on peut stocker dans un champ personnalisé ou créer un modèle Review séparé
-    // Ici, on suppose qu'on peut ajouter un champ review au modèle Order
+    // Ajouter la review à la commande
+    order.review = {
+      rating,
+      comment: comment || '',
+      createdAt: new Date()
+    };
+    await order.save();
+    
+    console.log(`[Backend] ✅ Review soumise pour commande #${orderId} par ${clientAddress} (rating: ${rating})`);
     
     return res.status(200).json({
       success: true,
       message: "Review submitted successfully",
       review: {
         rating,
-        comment
+        comment: comment || '',
+        createdAt: order.review.createdAt
       }
     });
   } catch (error) {
@@ -1161,6 +1268,133 @@ async function submitReview(req, res) {
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to submit review",
+      details: error.message
+    });
+  }
+}
+
+/**
+ * Generates a receipt for an order
+ * @dev Returns receipt data for PDF generation
+ *
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
+ */
+async function getOrderReceipt(req, res) {
+  try {
+    const orderId = req.orderId || parseInt(req.params.id);
+
+    // Récupérer la commande avec toutes les relations
+    const order = await Order.findOne({ orderId })
+      .populate('client', 'address name email phone')
+      .populate('restaurant', 'address name location cuisine')
+      .populate('deliverer', 'address name');
+
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `Order with id ${orderId} not found`
+      });
+    }
+
+    // Vérifier que la commande est livrée (reçu seulement pour commandes complétées)
+    if (order.status !== 'DELIVERED') {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Le reçu n'est disponible que pour les commandes livrées"
+      });
+    }
+
+    // Calculer les montants en format lisible
+    const formatAmount = (weiAmount) => {
+      if (!weiAmount) return '0.00';
+      try {
+        return ethers.formatEther(weiAmount.toString());
+      } catch {
+        return weiAmount.toString();
+      }
+    };
+
+    // Construire les données du reçu
+    const receipt = {
+      // Informations générales
+      receiptNumber: `DONE-${orderId}-${Date.now().toString(36).toUpperCase()}`,
+      orderId: order.orderId,
+      txHash: order.txHash,
+      date: order.createdAt,
+      deliveredAt: order.completedAt || order.updatedAt,
+
+      // Client
+      client: {
+        name: order.client?.name || 'Client',
+        address: order.client?.address || 'N/A',
+        email: order.client?.email || null,
+        phone: order.client?.phone || null
+      },
+
+      // Restaurant
+      restaurant: {
+        name: order.restaurant?.name || 'Restaurant',
+        address: order.restaurant?.address || 'N/A',
+        location: order.restaurant?.location?.address || null,
+        cuisine: order.restaurant?.cuisine || null
+      },
+
+      // Livreur
+      deliverer: order.deliverer ? {
+        name: order.deliverer.name || 'Livreur',
+        address: order.deliverer.address || 'N/A'
+      } : null,
+
+      // Adresse de livraison
+      deliveryAddress: order.deliveryAddress,
+
+      // Articles commandés
+      items: order.items.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        totalPrice: (item.price * item.quantity).toFixed(4)
+      })),
+
+      // Montants
+      subtotal: formatAmount(order.foodPrice),
+      deliveryFee: formatAmount(order.deliveryFee),
+      platformFee: formatAmount(order.platformFee),
+      total: formatAmount(order.totalAmount),
+
+      // Monnaie
+      currency: 'MATIC',
+
+      // Review si disponible
+      review: order.review ? {
+        rating: order.review.rating,
+        comment: order.review.comment,
+        date: order.review.createdAt
+      } : null,
+
+      // Métadonnées
+      ipfsHash: order.ipfsHash,
+      blockchainVerified: !!order.txHash,
+
+      // Informations de la plateforme
+      platform: {
+        name: 'DoneFood',
+        website: 'https://donefood.io',
+        support: 'support@donefood.io'
+      }
+    };
+
+    return res.status(200).json({
+      success: true,
+      receipt
+    });
+  } catch (error) {
+    console.error("Error generating receipt:", error);
+
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to generate receipt",
       details: error.message
     });
   }
@@ -1177,6 +1411,7 @@ module.exports = {
   confirmDelivery,
   openDispute,
   getOrderHistory,
-  submitReview
+  submitReview,
+  getOrderReceipt
 };
 

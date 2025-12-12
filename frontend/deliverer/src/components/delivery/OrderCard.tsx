@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import geolocation from "@/services/geolocation";
+import { formatPrice } from "@/utils/formatters";
 
 interface OrderCardProps {
   order: any;
@@ -15,35 +16,39 @@ interface OrderCardProps {
 }
 
 export function OrderCard({ order, currentLocation, onAccept, accepting }: OrderCardProps) {
-  if (!currentLocation) {
-    return (
-      <Card>
-        <p className="text-slate-400">Chargement de la position GPS...</p>
-      </Card>
+  // Convertir totalAmount de wei à POL si nécessaire et calculer les gains
+  const totalAmountFormatted = formatPrice(order.totalAmount, 'POL', 5);
+  const totalAmountNumber = parseFloat(totalAmountFormatted.replace(' POL', ''));
+  const earnings = totalAmountNumber * 0.2;
+  
+  // Calculer la distance si GPS disponible
+  let distanceMeters: number | null = null;
+  let distanceFormatted: string = "N/A";
+  let distanceKm: number = 0;
+  let badge: { variant: "success" | "warning" | "danger"; label: string } = { variant: "warning", label: "GPS requis" };
+
+  if (currentLocation && order.restaurant?.location) {
+    distanceMeters = geolocation.getDistance(
+      currentLocation,
+      order.restaurant.location
     );
+    distanceFormatted = geolocation.formatDistance(distanceMeters);
+    distanceKm = distanceMeters / 1000;
+
+    const getDistanceBadge = () => {
+      if (distanceKm < 2) return { variant: "success" as const, label: "Proche" };
+      if (distanceKm < 5) return { variant: "warning" as const, label: "Moyen" };
+      return { variant: "danger" as const, label: "Loin" };
+    };
+
+    badge = getDistanceBadge();
   }
-
-  const distanceMeters = geolocation.getDistance(
-    currentLocation,
-    order.restaurant.location
-  );
-  const distanceFormatted = geolocation.formatDistance(distanceMeters);
-  const distanceKm = distanceMeters / 1000;
-  const earnings = order.totalAmount * 0.2;
-
-  const getDistanceBadge = () => {
-    if (distanceKm < 2) return { variant: "success" as const, label: "Proche" };
-    if (distanceKm < 5) return { variant: "warning" as const, label: "Moyen" };
-    return { variant: "danger" as const, label: "Loin" };
-  };
-
-  const badge = getDistanceBadge();
 
   return (
     <Card className="group" glow>
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-white group-hover:text-indigo-400 transition-colors">
+          <h3 className="text-lg font-semibold text-white group-hover:text-orange-400 transition-colors">
             {order.restaurant.name}
           </h3>
           <p className="text-sm text-slate-400 mt-0.5">{order.restaurant.address}</p>
@@ -60,18 +65,20 @@ export function OrderCard({ order, currentLocation, onAccept, accepting }: Order
         </div>
         <div className="flex items-center gap-2 text-slate-300">
           <Clock className="w-4 h-4 text-slate-500" />
-          <span className="text-sm">~{Math.ceil(distanceKm * 3)} min</span>
+          <span className="text-sm">
+            {distanceKm > 0 ? `~${Math.ceil(distanceKm * 3)} min` : "N/A"}
+          </span>
         </div>
-        <div className="flex items-center gap-2 text-emerald-400">
+        <div className="flex items-center gap-2 text-orange-400">
           <Wallet className="w-4 h-4" />
-          <span className="text-sm font-medium">{earnings.toFixed(3)} POL</span>
+          <span className="text-sm font-medium">{earnings.toFixed(5)} POL</span>
         </div>
       </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-white/5">
         <div>
           <p className="text-xs text-slate-500">Total commande</p>
-          <p className="text-white font-semibold">{order.totalAmount} POL</p>
+          <p className="text-white font-semibold">{totalAmountFormatted}</p>
         </div>
         <Button
           onClick={() => onAccept(order.orderId)}

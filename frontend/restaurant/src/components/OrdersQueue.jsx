@@ -126,16 +126,37 @@ function OrdersQueue({
 
   async function handleConfirmPreparation(orderId) {
     try {
+      console.log(`[Restaurant] 🍽️ Confirmation préparation commande #${orderId}`);
       setLoading(true);
 
       // 1) confirmer via API backend
+      console.log(`[Restaurant] 📡 Envoi requête API pour commande #${orderId}...`);
       await api.confirmPreparation(orderId, restaurantAddress, {
         preparationTime,
       });
+      console.log(`[Restaurant] ✅ API confirmée pour commande #${orderId}`);
+      console.log(`[Restaurant] 📢 Notification envoyée aux livreurs pour commande #${orderId}`);
 
-      // 2) confirmer on-chain
-      // si ta fonction ne prend pas preparationTime => elle ignorera
-      await blockchain.confirmPreparationOnChain(orderId, preparationTime);
+      // 2) confirmer on-chain (optionnel en dev mode)
+      const isDevMode = !import.meta.env.VITE_ORDER_MANAGER_ADDRESS || 
+                        import.meta.env.VITE_ORDER_MANAGER_ADDRESS === '0x0000000000000000000000000000000000000000' ||
+                        import.meta.env.MODE === 'development';
+      
+      if (!isDevMode) {
+        // En production, vérifier que le wallet est connecté avant d'appeler la blockchain
+        try {
+          // Essayer de se connecter si pas déjà connecté
+          await blockchain.connectWallet();
+          console.log(`[Restaurant] ⛓️ Appel blockchain pour commande #${orderId}...`);
+          await blockchain.confirmPreparationOnChain(orderId, preparationTime);
+          console.log(`[Restaurant] ✅ Blockchain confirmée pour commande #${orderId}`);
+        } catch (blockchainError) {
+          console.warn(`[Restaurant] ⚠️ Erreur blockchain (mais API réussie):`, blockchainError.message);
+          // Ne pas faire échouer si l'API a réussi
+        }
+      } else {
+        console.log(`[Restaurant] ⚠️  Dev mode: Skipping blockchain call, backend handles mock mode`);
+      }
 
       // 3) update local optimiste
       setOrders((prev) =>
@@ -146,9 +167,11 @@ function OrdersQueue({
         )
       );
 
+      console.log(`[Restaurant] ✅ Commande #${orderId} mise à jour en statut PREPARING`);
       showSuccess?.("Préparation confirmée avec succès");
+      showNotification?.(`Commande #${orderId} en préparation`);
     } catch (e) {
-      console.error("Error confirming preparation:", e);
+      console.error(`[Restaurant] ❌ Erreur confirmation préparation commande #${orderId}:`, e);
       showError?.(`Erreur: ${e.message}`);
     } finally {
       setLoading(false);
@@ -213,7 +236,7 @@ function OrdersQueue({
             max="180"
             value={preparationTime}
             onChange={(e) => setPreparationTime(Number(e.target.value || 0))}
-            className="w-20 rounded-lg border border-neutral-200 bg-white px-2 py-1 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-800"
+            className="w-20 rounded-lg border border-neutral-200 bg-white px-2 py-1 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-800"
           />
           <span className="text-sm text-neutral-500 dark:text-neutral-400">
             min
@@ -273,7 +296,7 @@ function OrdersQueue({
               className={[
                 "transition",
                 selectedOrder?.orderId === order.orderId
-                  ? "ring-2 ring-primary-200 dark:ring-primary-900/60 rounded-2xl"
+                  ? "ring-2 ring-orange-200 dark:ring-orange-900/60 rounded-2xl"
                   : "",
               ].join(" ")}
             >
@@ -297,7 +320,7 @@ function FilterChip({ active, children, onClick }) {
       className={[
         "rounded-full px-3 py-1.5 text-sm font-medium transition",
         active
-          ? "bg-primary-500 text-white shadow-soft"
+          ? "bg-orange-500 text-white shadow-soft"
           : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700",
       ].join(" ")}
     >

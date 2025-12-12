@@ -37,23 +37,24 @@ export function formatDate(date) {
  * Formater un prix avec devise
  * @param {string|number} amount - Montant à formater
  * @param {string} currency - Devise (défaut: 'MATIC')
+ * @param {number} decimals - Nombre de décimales (défaut: 5)
  * @returns {string} Prix formaté
  */
-export function formatPrice(amount, currency = 'MATIC') {
+export function formatPrice(amount, currency = 'MATIC', decimals = 5) {
   try {
     if (!amount && amount !== 0) {
-      return `0.00 ${currency}`;
+      return `0.${'0'.repeat(decimals)} ${currency}`;
     }
     
     const amountNumber = typeof amount === 'string' ? parseFloat(amount) : Number(amount);
     
     if (isNaN(amountNumber)) {
-      return `0.00 ${currency}`;
+      return `0.${'0'.repeat(decimals)} ${currency}`;
     }
     
-    return `${amountNumber.toFixed(2)} ${currency}`;
+    return `${amountNumber.toFixed(decimals)} ${currency}`;
   } catch (error) {
     console.error('Error formatting price:', error);
-    return `0.00 ${currency}`;
+    return `0.${'0'.repeat(decimals)} ${currency}`;
   }
 }

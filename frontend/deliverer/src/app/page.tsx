@@ -27,6 +27,7 @@ export default function HomePage() {
   });
   const [loading, setLoading] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const [isStaked, setIsStaked] = useState(false);
   const [registerForm, setRegisterForm] = useState({
     name: "",
     phone: "",
@@ -45,8 +46,10 @@ export default function HomePage() {
   async function loadData() {
     setCheckingRegistration(true);
     try {
+      console.log(`[Livreur] 🔍 Vérification enregistrement livreur ${address}...`);
       const delivererData = await api.getDeliverer(address).catch((err: any) => {
         if (err.response?.status === 404) {
+          console.log(`[Livreur] ⚠️ Livreur ${address} non enregistré dans la base de données`);
           setIsRegistered(false);
           setCheckingRegistration(false);
           return null;
@@ -60,8 +63,46 @@ export default function HomePage() {
         return;
       }
 
+      console.log(`[Livreur] ✅ Livreur enregistré:`, {
+        address: delivererData.deliverer?.address,
+        name: delivererData.deliverer?.name,
+        isAvailable: delivererData.deliverer?.isAvailable,
+        isStaked: delivererData.deliverer?.isStaked,
+        stakedAmount: delivererData.deliverer?.stakedAmount
+      });
+
       setIsRegistered(true);
       setCheckingRegistration(false);
+
+      // Vérifier les conditions pour recevoir des commandes
+      const isAvailable = delivererData.deliverer?.isAvailable || false;
+      const isStaked = delivererData.deliverer?.isStaked || false;
+      
+      if (!isStaked) {
+        console.warn(`[Livreur] ⚠️ ATTENTION: Vous n'êtes pas staké sur la blockchain !`);
+        console.warn(`[Livreur] 💡 Pour recevoir des commandes, vous devez:`);
+        console.warn(`[Livreur]    1. Staker minimum 0.1 POL sur la blockchain`);
+        console.warn(`[Livreur]    2. Mettre votre statut à "disponible"`);
+        console.warn(`[Livreur]    → Le backend synchronisera automatiquement votre statut de staking`);
+      } else if (!isAvailable) {
+        console.log(`[Livreur] 💡 Vous êtes staké mais pas disponible. Cliquez sur "Passer en ligne" pour recevoir des commandes.`);
+      } else {
+        console.log(`[Livreur] ✅ Vous êtes prêt à recevoir des commandes (staké + disponible)`);
+      }
+
+      // Synchroniser la disponibilité si le livreur est staké mais pas disponible
+      if (isStaked && !isAvailable) {
+        console.log(`[Livreur] 💡 Livreur staké mais pas disponible. Mise à jour automatique...`);
+        try {
+          await api.updateStatus(address, true);
+          setIsOnline(true);
+          console.log(`[Livreur] ✅ Statut mis à jour: disponible`);
+        } catch (statusError) {
+          console.warn(`[Livreur] ⚠️ Erreur mise à jour statut:`, statusError);
+        }
+      } else if (isAvailable) {
+        setIsOnline(true);
+      }
 
       const active = await api.getActiveDelivery(address).catch(() => null);
       setActiveDelivery(active);
@@ -72,15 +113,22 @@ export default function HomePage() {
       }));
 
       const stakeInfo = await blockchain.getStakeInfo(address).catch((err: any) => {
-        console.warn("Blockchain stake info not available:", err.message);
+        // Ne pas logger les erreurs RPC communes (trop verbeuses)
+        if (!err.message?.includes('RPC endpoint') && !err.message?.includes('too many errors')) {
+          console.warn("Blockchain stake info not available:", err.message);
+        }
         return { amount: 0, isStaked: false };
       });
 
+      const stakedAmount = stakeInfo.amount || 0;
+      const staked = stakedAmount > 0 || delivererData.deliverer?.isStaked || false;
+      setIsStaked(staked);
+      
       setStats({
         todayDeliveries: earnings.completedDeliveries || 0,
         todayEarnings: earnings.totalEarnings || 0,
         rating: 0,
-        stakedAmount: stakeInfo.amount || 0,
+        stakedAmount: stakedAmount,
       });
     } catch (err) {
       console.error("Erreur chargement:", err);
@@ -126,9 +174,33 @@ export default function HomePage() {
   async function toggleStatus() {
     setLoading(true);
     try {
-      await api.updateStatus(address!, !isOnline);
-      setIsOnline(!isOnline);
+      const newStatus = !isOnline;
+      console.log(`[Livreur] 🔄 Changement statut disponibilité: ${isOnline ? 'disponible' : 'indisponible'} → ${newStatus ? 'disponible' : 'indisponible'}`);
+      
+      // Avertir si le livreur n'est pas staké mais veut devenir disponible
+      if (newStatus && !isStaked) {
+        const confirmMessage = "⚠️ Vous n'êtes pas staké sur la blockchain.\n\n" +
+          "Pour recevoir des commandes, vous devez staker minimum 0.1 POL.\n\n" +
+          "Voulez-vous quand même passer en ligne ? (Vous ne recevrez pas de commandes tant que vous n'êtes pas staké)";
+        
+        if (!window.confirm(confirmMessage)) {
+          setLoading(false);
+          return;
+        }
+        console.warn(`[Livreur] ⚠️ Livreur passe en ligne SANS être staké - il ne recevra pas de commandes`);
+      }
+      
+      await api.updateStatus(address!, newStatus);
+      setIsOnline(newStatus);
+      console.log(`[Livreur] ✅ Statut mis à jour dans la base de données: ${newStatus ? 'disponible' : 'indisponible'}`);
+      
+      // Recharger les données pour synchroniser le statut de staking
+      if (newStatus) {
+        console.log(`[Livreur] 🔄 Rechargement données pour synchroniser statut de staking...`);
+        await loadData();
+      }
     } catch (err: any) {
+      console.error(`[Livreur] ❌ Erreur mise à jour statut:`, err);
       alert("Erreur: " + err.message);
     } finally {
       setLoading(false);
@@ -164,7 +236,7 @@ export default function HomePage() {
             </h2>
             <p className="text-slate-400 mb-6">Vérification de votre statut d'inscription</p>
             <div className="flex justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
             </div>
           </Card>
         </div>
@@ -191,7 +263,7 @@ export default function HomePage() {
                 setRegisterForm({ ...registerForm, name: e.target.value })
               }
               required
-              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
             />
 
             <input
@@ -202,7 +274,7 @@ export default function HomePage() {
                 setRegisterForm({ ...registerForm, phone: e.target.value })
               }
               required
-              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
             />
 
             <select
@@ -210,7 +282,7 @@ export default function HomePage() {
               onChange={(e) =>
                 setRegisterForm({ ...registerForm, vehicleType: e.target.value })
               }
-              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-indigo-500"
+              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-orange-500"
             >
               <option value="bike">Vélo</option>
               <option value="scooter">Scooter</option>
@@ -246,6 +318,39 @@ export default function HomePage() {
           </div>
         </div>
 
+        {!isStaked && (
+          <Card className="bg-amber-500/10 border-amber-500/50">
+            <div className="flex items-start gap-3">
+              <Lock className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="text-amber-400 font-semibold mb-1">
+                  ⚠️ Vous n'êtes pas staké
+                </h3>
+                <p className="text-amber-300/80 text-sm">
+                  Pour recevoir des commandes, vous devez staker minimum <strong>0.1 POL</strong> sur la blockchain.
+                  {!isOnline && " Une fois staké, passez en ligne pour recevoir des commandes."}
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {isStaked && !isOnline && (
+          <Card className="bg-orange-500/10 border-orange-500/50">
+            <div className="flex items-start gap-3">
+              <Package className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="text-orange-400 font-semibold mb-1">
+                  💡 Passez en ligne
+                </h3>
+                <p className="text-orange-300/80 text-sm">
+                  Vous êtes staké et prêt à recevoir des commandes. Cliquez sur "Passer en ligne" pour commencer.
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {activeDelivery ? (
           <ActiveDeliveryCard order={activeDelivery} />
         ) : (
@@ -257,7 +362,7 @@ export default function HomePage() {
                 transition={{ delay: 0.1 }}
               >
                 <Card className="text-center">
-                  <Package className="w-8 h-8 text-indigo-400 mx-auto mb-2" />
+                  <Package className="w-8 h-8 text-orange-400 mx-auto mb-2" />
                   <h3 className="text-sm text-slate-400 mb-1">Livraisons</h3>
                   <p className="text-3xl font-bold text-white">{stats.todayDeliveries}</p>
                 </Card>
@@ -269,10 +374,10 @@ export default function HomePage() {
                 transition={{ delay: 0.2 }}
               >
                 <Card className="text-center">
-                  <DollarSign className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                  <DollarSign className="w-8 h-8 text-orange-400 mx-auto mb-2" />
                   <h3 className="text-sm text-slate-400 mb-1">Gains</h3>
                   <p className="text-3xl font-bold text-white">
-                    {stats.todayEarnings.toFixed(2)} POL
+                    {stats.todayEarnings.toFixed(5)} POL
                   </p>
                 </Card>
               </motion.div>
@@ -297,7 +402,7 @@ export default function HomePage() {
                 transition={{ delay: 0.4 }}
               >
                 <Card className="text-center">
-                  <Lock className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+                  <Lock className="w-8 h-8 text-pink-400 mx-auto mb-2" />
                   <h3 className="text-sm text-slate-400 mb-1">Staké</h3>
                   <p className="text-3xl font-bold text-white">
                     {stats.stakedAmount.toFixed(2)} POL

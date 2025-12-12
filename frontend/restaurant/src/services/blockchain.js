@@ -18,7 +18,7 @@ const DoneOrderManagerABI = [
 const DonePaymentSplitterABI = [
   "function balances(address) external view returns (uint256)",
   "function withdraw() external",
-  "event PaymentSplit(uint256 indexed orderId, address indexed restaurant, address indexed deliverer, address platform, uint256 restaurantAmount, uint256 delivererAmount, uint256 platformAmount)"
+  "event PaymentSplit(uint256 indexed orderId, address indexed restaurant, address indexed deliverer, address indexed platform, uint256 restaurantAmount, uint256 delivererAmount, uint256 platformAmount)"
 ];
 
 /**
@@ -567,6 +567,108 @@ export async function getBalance(address) {
   } catch (error) {
     throw new Error(`Failed to get balance: ${error.message}`);
   }
+}
+
+/**
+ * 8. Récupérer l'historique des transactions pour un restaurant
+ * @param {string} restaurantAddress - Adresse wallet du restaurant
+ * @param {number} limit - Nombre maximum de transactions à récupérer (défaut: 50)
+ * @returns {Promise<Array>} Array d'objets avec { type, orderId, txHash, blockNumber, timestamp, amount, status }
+ * 
+ * @example
+ * const history = await getTransactionHistory('0x...', 100);
+ */
+export async function getTransactionHistory(restaurantAddress, limit = 50) {
+  try {
+    if (!restaurantAddress) {
+      throw new Error('Restaurant address is required');
+    }
+    
+    const provider = getProvider();
+    const history = [];
+    
+    // 1. Récupérer les événements OrderCreated depuis OrderManager
+    if (ORDER_MANAGER_ADDRESS) {
+      try {
+        const orderManager = new ethers.Contract(ORDER_MANAGER_ADDRESS, DoneOrderManagerABI, provider);
+        const orderCreatedFilter = orderManager.filters.OrderCreated(null, null, restaurantAddress);
+        const orderCreatedEvents = await orderManager.queryFilter(orderCreatedFilter);
+        
+        for (const event of orderCreatedEvents.slice(-limit)) {
+          const block = await provider.getBlock(event.blockNumber);
+          history.push({
+            type: 'OrderCreated',
+            orderId: Number(event.args.orderId),
+            txHash: event.transactionHash,
+            blockNumber: event.blockNumber,
+            timestamp: block.timestamp,
+            amount: ethers.formatEther(event.args.foodPrice + event.args.deliveryFee),
+            client: event.args.client,
+            status: 'CREATED'
+          });
+        }
+      } catch (error) {
+        console.warn('Could not fetch OrderCreated events:', error.message);
+      }
+    }
+    
+    // 2. Récupérer les événements PaymentSplit depuis PaymentSplitter
+    if (PAYMENT_SPLITTER_ADDRESS) {
+      try {
+        const paymentSplitter = new ethers.Contract(PAYMENT_SPLITTER_ADDRESS, DonePaymentSplitterABI, provider);
+        const paymentSplitFilter = paymentSplitter.filters.PaymentSplit(null, restaurantAddress);
+        const paymentSplitEvents = await paymentSplitter.queryFilter(paymentSplitFilter);
+        
+        for (const event of paymentSplitEvents.slice(-limit)) {
+          const block = await provider.getBlock(event.blockNumber);
+          history.push({
+            type: 'PaymentSplit',
+            orderId: Number(event.args.orderId || event.args[0]),
+            txHash: event.transactionHash,
+            blockNumber: event.blockNumber,
+            timestamp: block.timestamp,
+            amount: ethers.formatEther(event.args.restaurantAmount || event.args[4]),
+            status: 'PAID'
+          });
+        }
+      } catch (error) {
+        console.warn('Could not fetch PaymentSplit events:', error.message);
+      }
+    }
+    
+    // 3. Récupérer les transactions directes depuis le wallet (si possible)
+    try {
+      // Note: Cette partie nécessite un indexeur de blockchain ou une API tierce
+      // Pour l'instant, on se limite aux événements des contrats
+    } catch (error) {
+      console.warn('Could not fetch direct transactions:', error.message);
+    }
+    
+    // Trier par timestamp (plus récent en premier) et limiter
+    history.sort((a, b) => b.timestamp - a.timestamp);
+    return history.slice(0, limit);
+    
+  } catch (error) {
+    throw new Error(`Failed to get transaction history: ${error.message}`);
+  }
+}
+
+/**
+ * 9. Récupérer le lien PolygonScan pour une transaction
+ * @param {string} txHash - Hash de la transaction
+ * @returns {string} URL vers PolygonScan Amoy
+ */
+export function getPolygonScanUrl(txHash) {
+  return `https://amoy.polygonscan.com/tx/${txHash}`;
+}
+
+/**
+ * 10. Récupérer le lien PolygonScan pour une adresse
+ * @param {string} address - Adresse du wallet ou contrat
+ * @returns {string} URL vers PolygonScan Amoy
+ */
+export function getPolygonScanAddressUrl(address) {
+  return `https://amoy.polygonscan.com/address/${address}`;
 }
 
 /**

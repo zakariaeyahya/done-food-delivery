@@ -69,10 +69,14 @@ function OrdersPage({ showSuccess, showError, showNotification }) {
   // Action: confirmer préparation (si commandes CREATED)
   async function handleConfirmPreparation(orderId) {
     try {
+      console.log(`[Restaurant] 🍽️ Confirmation préparation commande #${orderId}`);
       setLoading(true);
 
       // Confirmer via l'API (le backend gère le mode mock automatiquement)
-      await api.confirmPreparation(orderId, restaurantAddress);
+      console.log(`[Restaurant] 📡 Envoi requête API pour commande #${orderId}...`);
+      const apiResponse = await api.confirmPreparation(orderId, restaurantAddress);
+      console.log(`[Restaurant] ✅ API confirmée pour commande #${orderId}:`, apiResponse);
+      console.log(`[Restaurant] 📢 Notification envoyée aux livreurs pour commande #${orderId}`);
       
       // En mode développement ou si les contrats ne sont pas configurés, 
       // on peut ignorer l'appel blockchain car le backend gère déjà le mode mock
@@ -94,13 +98,15 @@ function OrdersPage({ showSuccess, showError, showNotification }) {
         
         // Appeler la blockchain seulement si le wallet est connecté
         try {
+          console.log(`[Restaurant] ⛓️ Appel blockchain pour commande #${orderId}...`);
           await blockchain.confirmPreparationOnChain(orderId);
+          console.log(`[Restaurant] ✅ Blockchain confirmée pour commande #${orderId}`);
         } catch (blockchainError) {
           console.warn('Blockchain confirmation failed, but API confirmation succeeded:', blockchainError);
           // Ne pas échouer complètement si l'API a réussi
         }
       } else {
-        console.log('⚠️  Dev mode: Skipping blockchain call, backend handles mock mode');
+        console.log(`[Restaurant] ⚠️  Dev mode: Skipping blockchain call, backend handles mock mode`);
       }
 
       setOrders((prev) =>
@@ -109,10 +115,11 @@ function OrdersPage({ showSuccess, showError, showNotification }) {
         )
       );
 
+      console.log(`[Restaurant] ✅ Commande #${orderId} mise à jour en statut PREPARING`);
       showSuccess?.("Préparation confirmée avec succès");
       showNotification?.(`Commande #${orderId} en préparation`);
     } catch (e) {
-      console.error("Error confirming preparation:", e);
+      console.error(`[Restaurant] ❌ Erreur confirmation préparation commande #${orderId}:`, e);
       showError?.(`Erreur: ${e.message}`);
     } finally {
       setLoading(false);
@@ -198,14 +205,14 @@ function OrdersPage({ showSuccess, showError, showNotification }) {
                 placeholder="Rechercher par #commande ou client..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50"
               />
 
               {/* Status select */}
               <select
                 value={filter.status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 sm:w-56"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 sm:w-56"
               >
                 <option value="all">Toutes ({counts.all})</option>
                 <option value="CREATED">Nouvelles ({counts.CREATED})</option>
@@ -280,7 +287,7 @@ function OrdersPage({ showSuccess, showError, showNotification }) {
                   className={[
                     "transition",
                     selectedOrder?.orderId === order.orderId
-                      ? "ring-2 ring-primary-200 dark:ring-primary-900/60 rounded-2xl"
+                      ? "ring-2 ring-orange-200 dark:ring-orange-900/60 rounded-2xl"
                       : "",
                   ].join(" ")}
                 >

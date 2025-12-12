@@ -29,6 +29,32 @@ router.get(
   delivererController.getAvailableDeliverers
 );
 
+// Route POST /api/deliverers/orders/:orderId/accept - Accepter une commande (livreur)
+// IMPORTANT: Cette route doit être AVANT /:address pour éviter que "orders" soit interprété comme une adresse
+router.post(
+  "/orders/:orderId/accept",
+  (req, res, next) => {
+    console.log(`[Backend] 🔐 Middleware auth - Route accept order #${req.params.orderId}`);
+    console.log(`[Backend]   - Headers:`, {
+      authorization: req.headers.authorization ? 'present' : 'missing',
+      'x-wallet-address': req.headers['x-wallet-address'],
+      'x-message': req.headers['x-message']
+    });
+    next();
+  },
+  auth.verifySignature,                    // Vérifier signature
+  (req, res, next) => {
+    console.log(`[Backend] ✅ verifySignature passé, req.userAddress: ${req.userAddress}`);
+    next();
+  },
+  auth.requireRole("DELIVERER_ROLE"),      // Vérifier rôle livreur
+  (req, res, next) => {
+    console.log(`[Backend] ✅ requireRole passé, req.userRole: ${req.userRole}`);
+    next();
+  },
+  delivererController.acceptOrder
+);
+
 // Route GET /api/deliverers/:address - Récupérer les détails d'un livreur
 router.get(
   "/:address",
@@ -75,6 +101,20 @@ router.get(
   auth.requireRole("DELIVERER_ROLE"),      // Vérifier rôle livreur
   validation.validateAddress,              // Valider address dans params
   delivererController.getDelivererEarnings
+);
+
+// Route GET /api/deliverers/:address/rating - Récupérer le rating et les avis d'un livreur
+router.get(
+  "/:address/rating",
+  validation.validateAddress,              // Valider address dans params
+  delivererController.getDelivererRating
+);
+
+// Route GET /api/deliverers/:address/active-delivery - Récupérer la livraison active d'un livreur
+router.get(
+  "/:address/active-delivery",
+  validation.validateAddress,              // Valider address dans params
+  delivererController.getActiveDelivery
 );
 
 // Exporter le router
