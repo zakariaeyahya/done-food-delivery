@@ -336,14 +336,14 @@ export default function HomePage() {
         )}
 
         {isStaked && !isOnline && (
-          <Card className="bg-blue-500/10 border-blue-500/50">
+          <Card className="bg-orange-500/10 border-orange-500/50">
             <div className="flex items-start gap-3">
-              <Package className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+              <Package className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
               <div>
-                <h3 className="text-blue-400 font-semibold mb-1">
+                <h3 className="text-orange-400 font-semibold mb-1">
                   💡 Passez en ligne
                 </h3>
-                <p className="text-blue-300/80 text-sm">
+                <p className="text-orange-300/80 text-sm">
                   Vous êtes staké et prêt à recevoir des commandes. Cliquez sur "Passer en ligne" pour commencer.
                 </p>
               </div>
@@ -374,10 +374,10 @@ export default function HomePage() {
                 transition={{ delay: 0.2 }}
               >
                 <Card className="text-center">
-                  <DollarSign className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                  <DollarSign className="w-8 h-8 text-orange-400 mx-auto mb-2" />
                   <h3 className="text-sm text-slate-400 mb-1">Gains</h3>
                   <p className="text-3xl font-bold text-white">
-                    {stats.todayEarnings.toFixed(2)} POL
+                    {stats.todayEarnings.toFixed(5)} POL
                   </p>
                 </Card>
               </motion.div>

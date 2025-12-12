@@ -7,6 +7,7 @@ import api from "../services/api";
 import blockchain from "../services/blockchain";
 import geolocation from "../services/geolocation";
 import NavigationMap from "./NavigationMap";
+import { formatPrice } from "../utils/formatters";
 
 /**
  * Composant ActiveDelivery
@@ -177,8 +178,11 @@ function ActiveDelivery({ order }) {
       <div className="order-details">
         <p><strong>Order ID:</strong> {order.orderId}</p>
         <p><strong>Client:</strong> {order.client.name}</p>
-        <p><strong>Total:</strong> {order.totalAmount} MATIC</p>
-        <p><strong>Frais (20%):</strong> {order.totalAmount * 0.2} MATIC</p>
+        <p><strong>Total:</strong> {formatPrice(order.totalAmount, 'POL', 5)}</p>
+        <p><strong>Frais (20%):</strong> {(() => {
+          const totalAmountNumber = parseFloat(formatPrice(order.totalAmount, 'POL', 5).replace(' POL', ''));
+          return formatPrice((totalAmountNumber * 0.2).toString(), 'POL', 5);
+        })()}</p>
       </div>
 
       {/* Restaurant */}

@@ -7,6 +7,7 @@ import api from "../services/api";
 import geolocation from "../services/geolocation";
 import blockchain from "../services/blockchain";
 import io from "socket.io-client";
+import { formatPrice } from "../utils/formatters";
 
 function AvailableOrders({ limit = null }) {
   const [orders, setOrders] = useState([]);
@@ -154,7 +155,8 @@ function AvailableOrders({ limit = null }) {
 
   /** Gains = 20% */
   function calculateEarnings(order) {
-    return order.totalAmount * 0.2;
+    const totalAmountNumber = parseFloat(formatPrice(order.totalAmount, 'POL', 5).replace(' POL', ''));
+    return totalAmountNumber * 0.2;
   }
 
   /** Icône couleur selon distance */
@@ -246,9 +248,9 @@ function AvailableOrders({ limit = null }) {
                 </div>
 
                 <div className="order-details">
-                  <p>Total: {order.totalAmount} POL</p>
+                  <p>Total: {formatPrice(order.totalAmount, 'POL', 5)}</p>
                   <p className="earnings">
-                    Gains estimés: {earnings.toFixed(3)} POL
+                    Gains estimés: {formatPrice(earnings.toString(), 'POL', 5)}
                   </p>
                 </div>
 

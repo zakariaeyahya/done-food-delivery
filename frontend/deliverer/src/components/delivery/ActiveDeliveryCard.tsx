@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/Badge";
 import NavigationMap from "@/components/maps/NavigationMap";
 import api from "@/services/api";
 import blockchain from "@/services/blockchain";
+import { formatPrice } from "@/utils/formatters";
 import geolocation from "@/services/geolocation";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -179,8 +180,11 @@ export function ActiveDeliveryCard({ order }: ActiveDeliveryCardProps) {
         </div>
         <div className="text-right">
           <p className="text-sm text-slate-400">Gains estimés</p>
-          <p className="text-2xl font-bold text-emerald-400">
-            {(order.totalAmount * 0.2).toFixed(3)} POL
+          <p className="text-2xl font-bold text-orange-400">
+            {(() => {
+              const totalAmountNumber = parseFloat(formatPrice(order.totalAmount, 'POL', 5).replace(' POL', ''));
+              return formatPrice((totalAmountNumber * 0.2).toString(), 'POL', 5);
+            })()}
           </p>
         </div>
       </div>

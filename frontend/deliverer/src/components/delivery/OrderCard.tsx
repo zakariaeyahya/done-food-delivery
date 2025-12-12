@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import geolocation from "@/services/geolocation";
+import { formatPrice } from "@/utils/formatters";
 
 interface OrderCardProps {
   order: any;
@@ -15,7 +16,10 @@ interface OrderCardProps {
 }
 
 export function OrderCard({ order, currentLocation, onAccept, accepting }: OrderCardProps) {
-  const earnings = order.totalAmount * 0.2;
+  // Convertir totalAmount de wei à POL si nécessaire et calculer les gains
+  const totalAmountFormatted = formatPrice(order.totalAmount, 'POL', 5);
+  const totalAmountNumber = parseFloat(totalAmountFormatted.replace(' POL', ''));
+  const earnings = totalAmountNumber * 0.2;
   
   // Calculer la distance si GPS disponible
   let distanceMeters: number | null = null;
@@ -65,16 +69,16 @@ export function OrderCard({ order, currentLocation, onAccept, accepting }: Order
             {distanceKm > 0 ? `~${Math.ceil(distanceKm * 3)} min` : "N/A"}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-emerald-400">
+        <div className="flex items-center gap-2 text-orange-400">
           <Wallet className="w-4 h-4" />
-          <span className="text-sm font-medium">{earnings.toFixed(3)} POL</span>
+          <span className="text-sm font-medium">{earnings.toFixed(5)} POL</span>
         </div>
       </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-white/5">
         <div>
           <p className="text-xs text-slate-500">Total commande</p>
-          <p className="text-white font-semibold">{order.totalAmount} POL</p>
+          <p className="text-white font-semibold">{totalAmountFormatted}</p>
         </div>
         <Button
           onClick={() => onAccept(order.orderId)}
