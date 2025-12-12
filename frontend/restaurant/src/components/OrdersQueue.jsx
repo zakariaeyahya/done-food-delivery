@@ -236,7 +236,7 @@ function OrdersQueue({
             max="180"
             value={preparationTime}
             onChange={(e) => setPreparationTime(Number(e.target.value || 0))}
-            className="w-20 rounded-lg border border-neutral-200 bg-white px-2 py-1 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-800"
+            className="w-20 rounded-lg border border-neutral-200 bg-white px-2 py-1 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-800"
           />
           <span className="text-sm text-neutral-500 dark:text-neutral-400">
             min
@@ -296,7 +296,7 @@ function OrdersQueue({
               className={[
                 "transition",
                 selectedOrder?.orderId === order.orderId
-                  ? "ring-2 ring-primary-200 dark:ring-primary-900/60 rounded-2xl"
+                  ? "ring-2 ring-orange-200 dark:ring-orange-900/60 rounded-2xl"
                   : "",
               ].join(" ")}
             >
@@ -320,7 +320,7 @@ function FilterChip({ active, children, onClick }) {
       className={[
         "rounded-full px-3 py-1.5 text-sm font-medium transition",
         active
-          ? "bg-primary-500 text-white shadow-soft"
+          ? "bg-orange-500 text-white shadow-soft"
           : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700",
       ].join(" ")}
     >

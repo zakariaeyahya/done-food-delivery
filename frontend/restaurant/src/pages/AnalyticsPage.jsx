@@ -209,7 +209,7 @@ function AnalyticsPage({ showSuccess, showError }) {
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm shadow-soft outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-800 dark:focus:border-primary-500 dark:focus:ring-primary-900"
+            className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm shadow-soft outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-800 dark:focus:border-orange-500 dark:focus:ring-orange-900"
           >
             <option value="day">Aujourd&apos;hui</option>
             <option value="week">Cette semaine</option>
@@ -219,7 +219,7 @@ function AnalyticsPage({ showSuccess, showError }) {
           <button
             onClick={handleExportCSV}
             disabled={exporting || !restaurantId}
-            className="rounded-xl bg-secondary-500 px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-secondary-600 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {exporting ? "Export..." : "Export CSV"}
           </button>

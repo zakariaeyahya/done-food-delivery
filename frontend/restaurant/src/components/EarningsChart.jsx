@@ -157,8 +157,8 @@ function EarningsChart({
           tension: 0.35,
           fill: true,
           borderWidth: 2,
-          borderColor: "rgb(34, 197, 94)", // primary-500
-          backgroundColor: "rgba(34, 197, 94, 0.12)",
+          borderColor: "rgb(249, 115, 22)", // orange-500
+          backgroundColor: "rgba(249, 115, 22, 0.12)",
           pointRadius: values.some(v => v > 0) ? 3 : 0, // Masquer les points si tous à zéro
           pointHoverRadius: 5,
         },
@@ -220,7 +220,7 @@ function EarningsChart({
           <button
             onClick={handleWithdraw}
             disabled={withdrawing || Number(earnings.pending) <= 0}
-            className="rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {withdrawing ? "Retrait..." : "Retirer"}
           </button>
@@ -250,7 +250,7 @@ function EarningsChart({
               <h3 className="font-display text-lg text-neutral-900 dark:text-neutral-50">
                 Évolution des revenus
               </h3>
-              <span className="rounded-full bg-primary-100 px-2.5 py-1 text-xs font-medium text-primary-800 dark:bg-primary-900/30 dark:text-primary-200">
+              <span className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-medium text-orange-800 dark:bg-orange-900/30 dark:text-orange-200">
                 {period === "day"
                   ? "Aujourd’hui"
                   : period === "week"
@@ -316,7 +316,7 @@ function EarningsChart({
                               href={`${explorerBaseUrl}/tx/${tx.txHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="font-medium text-primary-600 hover:underline dark:text-primary-300"
+                              className="font-medium text-orange-600 hover:underline dark:text-orange-300"
                             >
                               Voir
                             </a>

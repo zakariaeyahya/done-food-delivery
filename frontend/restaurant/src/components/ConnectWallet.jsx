@@ -106,7 +106,7 @@ function ConnectWallet() {
             href="https://metamask.io/download/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-primary-600 hover:underline"
+            className="text-sm text-orange-600 hover:underline"
           >
             Installer MetaMask
           </a>

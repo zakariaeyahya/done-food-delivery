@@ -203,9 +203,9 @@ function DashboardPage({ showSuccess, showError, showNotification }) {
 function KpiCard({ title, value, tone = "primary", loading }) {
   const tones = {
     primary:
-      "bg-primary-50 text-primary-800 dark:bg-primary-900/25 dark:text-primary-200",
+      "bg-orange-50 text-orange-800 dark:bg-orange-900/25 dark:text-orange-200",
     secondary:
-      "bg-secondary-50 text-secondary-800 dark:bg-secondary-900/25 dark:text-secondary-200",
+      "bg-red-50 text-red-800 dark:bg-red-900/25 dark:text-red-200",
     success:
       "bg-success-50 text-success-800 dark:bg-success-900/25 dark:text-success-200",
     warning:

@@ -205,14 +205,14 @@ function OrdersPage({ showSuccess, showError, showNotification }) {
                 placeholder="Rechercher par #commande ou client..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50"
               />
 
               {/* Status select */}
               <select
                 value={filter.status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 sm:w-56"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 sm:w-56"
               >
                 <option value="all">Toutes ({counts.all})</option>
                 <option value="CREATED">Nouvelles ({counts.CREATED})</option>
@@ -287,7 +287,7 @@ function OrdersPage({ showSuccess, showError, showNotification }) {
                   className={[
                     "transition",
                     selectedOrder?.orderId === order.orderId
-                      ? "ring-2 ring-primary-200 dark:ring-primary-900/60 rounded-2xl"
+                      ? "ring-2 ring-orange-200 dark:ring-orange-900/60 rounded-2xl"
                       : "",
                   ].join(" ")}
                 >
