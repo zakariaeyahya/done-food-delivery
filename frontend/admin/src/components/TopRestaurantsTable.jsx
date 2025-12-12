@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from "react";
 import { getTopRestaurants } from "../services/api";
-import { formatCrypto, formatNumber } from "../services/formatters";
+import { formatCrypto, formatNumber, weiToPol } from "../services/formatters";
 
 export default function TopRestaurantsTable() {
   const [restaurants, setRestaurants] = useState([]);
@@ -52,7 +52,7 @@ export default function TopRestaurantsTable() {
                 <tr key={i} className="border-b hover:bg-gray-50">
                   <td className="p-3 font-medium">{r.name}</td>
                   <td className="p-3">{formatNumber(r.totalOrders)}</td>
-                  <td className="p-3">{formatCrypto(r.revenue, "MATIC")}</td>
+                  <td className="p-3">{formatCrypto(weiToPol(r.revenue), "POL")}</td>
                   <td className="p-3">{r.rating?.toFixed(2)} ★</td>
                 </tr>
               ))}

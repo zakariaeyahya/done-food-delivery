@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getOrders } from "../services/api";
-import { formatCrypto, formatDate } from "../services/formatters";
+import { formatCrypto, formatDate, weiToPol } from "../services/formatters";
 
 export default function RecentOrdersTable() {
   const [orders, setOrders] = useState([]);
@@ -59,7 +59,7 @@ export default function RecentOrdersTable() {
                   <td className="p-3 font-medium">#{o.orderId}</td>
                   <td className="p-3">{o.client?.name || o.customerName || "—"}</td>
                   <td className="p-3">{o.restaurant?.name || o.restaurantName || "—"}</td>
-                  <td className="p-3">{formatCrypto(o.totalAmount || o.total || 0)}</td>
+                  <td className="p-3">{formatCrypto(weiToPol(o.totalAmount || o.total || 0))}</td>
                   <td className="p-3">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                       o.status === "DELIVERED" ? "bg-green-100 text-green-800" :

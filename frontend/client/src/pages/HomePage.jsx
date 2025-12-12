@@ -42,7 +42,7 @@ const HomePage = () => {
                   </svg>
                 </div>
                 <h3 className="font-semibold mb-1">Paiement Crypto</h3>
-                <p className="text-sm text-white/70">ETH, MATIC & tokens DONE</p>
+                <p className="text-sm text-white/70">ETH, POL & tokens DONE</p>
               </div>
 
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white">

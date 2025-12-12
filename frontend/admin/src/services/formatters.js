@@ -3,6 +3,26 @@
  * @notice Formatage des montants, dates, adresses, pourcentages, variations
  */
 
+import { ethers } from "ethers";
+
+/**
+ * Convertit wei en POL (ether)
+ * @param {string|number|bigint} weiValue - Valeur en wei
+ * @returns {number} Valeur en POL
+ */
+export function weiToPol(weiValue) {
+  try {
+    if (!weiValue && weiValue !== 0) return 0;
+    const numValue = Number(weiValue);
+    // Si la valeur est < 1e12 (1 trillion), elle est probablement déjà en POL
+    // Les valeurs en wei sont généralement >= 1e15 pour des montants significatifs
+    if (numValue < 1e12) return numValue;
+    return parseFloat(ethers.formatEther(weiValue.toString()));
+  } catch {
+    return 0;
+  }
+}
+
 /* ============================================================
    FORMATAGE ADRESSES ETHEREUM
    ============================================================ */
@@ -25,7 +45,7 @@ export function formatCurrency(value, currency = "EUR", decimals = 2) {
 
 
 /* ============================================================
-   FORMATAGE MONTANTS (MATIC / ETH / DONE / USD)
+   FORMATAGE MONTANTS (POL / ETH / DONE / USD)
    ============================================================ */
 
 export function formatNumber(n, decimals = 2) {
@@ -34,9 +54,9 @@ export function formatNumber(n, decimals = 2) {
 }
 
 /**
- * Format ETH / MATIC (float ou valeur BigNumber déjà convertie)
+ * Format ETH / POL (float ou valeur BigNumber déjà convertie)
  */
-export function formatCrypto(value, symbol = "MATIC", decimals = 4) {
+export function formatCrypto(value, symbol = "POL", decimals = 4) {
   if (!value && value !== 0) return `0 ${symbol}`;
   return `${Number(value).toFixed(decimals)} ${symbol}`;
 }
@@ -168,12 +188,13 @@ export function formatCompactNumber(n) {
    ============================================================ */
 
 export default {
+  weiToPol,
   formatAddress,
   formatNumber,
   formatCrypto,
   formatToken,
   formatUSD,
-  formatCurrency,  // <-- AJOUT IMPORTANT
+  formatCurrency,
   formatDate,
   formatDateTime,
   formatDuration,

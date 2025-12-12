@@ -19,6 +19,9 @@ import { formatPrice, formatDate } from "../utils/formatters";
 function weiToPol(weiValue) {
   try {
     if (!weiValue && weiValue !== 0) return 0;
+    const numValue = Number(weiValue);
+    // Si la valeur est < 1e12, elle est probablement déjà en POL
+    if (numValue < 1e12) return numValue;
     return parseFloat(ethers.formatEther(weiValue.toString()));
   } catch {
     return 0;

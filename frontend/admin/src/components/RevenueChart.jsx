@@ -19,6 +19,7 @@ import {
   formatCrypto,
   formatCompactNumber,
   formatDateShort,
+  weiToPol,
 } from "../services/formatters";
 
 // Register Chart.js modules
@@ -60,11 +61,11 @@ export default function RevenueChart() {
         return;
       }
 
-      // Extraire les données
+      // Extraire les données et convertir wei → POL
       const labels = response.data.map((item) => formatDateShort(item.date));
-      const datasetPlatform = response.data.map((item) => item.platform);
-      const datasetRestaurants = response.data.map((item) => item.restaurant);
-      const datasetDeliverers = response.data.map((item) => item.deliverer);
+      const datasetPlatform = response.data.map((item) => weiToPol(item.platform));
+      const datasetRestaurants = response.data.map((item) => weiToPol(item.restaurant));
+      const datasetDeliverers = response.data.map((item) => weiToPol(item.deliverer));
 
       console.log("📈 Revenue Labels:", labels);
       console.log("📈 Platform:", datasetPlatform);
@@ -133,7 +134,7 @@ export default function RevenueChart() {
       tooltip: {
         callbacks: {
           label: (context) =>
-            `${context.dataset.label}: ${formatCrypto(context.raw, "MATIC")}`,
+            `${context.dataset.label}: ${formatCrypto(context.raw, "POL", 6)}`,
         },
       },
     },
@@ -141,7 +142,7 @@ export default function RevenueChart() {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: (v) => formatCrypto(v, "MATIC"),
+          callback: (v) => formatCrypto(v, "POL", 6),
         },
       },
     },

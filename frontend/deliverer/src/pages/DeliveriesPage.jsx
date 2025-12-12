@@ -104,7 +104,7 @@ function DeliveriesPage() {
                       {d.status}
                     </span>
                   </td>
-                  <td>{d.earnings || 0} MATIC</td>
+                  <td>{d.earnings || 0} POL</td>
                   <td>{d.createdAt ? new Date(d.createdAt).toLocaleDateString() : ""}</td>
                 </tr>
               ))}

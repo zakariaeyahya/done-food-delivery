@@ -3,6 +3,7 @@ import {
   formatAddress,
   formatCrypto,
   formatDate,
+  weiToPol,
 } from "../services/formatters";
 
 import * as api from "../services/api";
@@ -102,7 +103,7 @@ export default function DisputeViewer({ dispute, onClose, onResolved }) {
 
               <div>
                 <span className="font-medium">Montant :</span>{" "}
-                {formatCrypto(dispute.total, "MATIC", 3)}
+                {formatCrypto(weiToPol(dispute.total), "POL", 3)}
               </div>
 
               <div>

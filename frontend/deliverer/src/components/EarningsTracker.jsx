@@ -94,7 +94,7 @@ function EarningsTracker({ address }) {
         labels,
         datasets: [
           {
-            label: "Gains (MATIC)",
+            label: "Gains (POL)",
             data: values,
             borderColor: "rgb(75, 192, 192)",
             backgroundColor: "rgba(75, 192, 192, 0.2)",
@@ -144,7 +144,7 @@ function EarningsTracker({ address }) {
       {/* Affichage gains */}
       <div className="earnings-display">
         <div className="earnings-value">
-          {earnings[period]} MATIC
+          {earnings[period]} POL
         </div>
 
         <p>Livraisons: {deliveriesCount}</p>
@@ -160,7 +160,7 @@ function EarningsTracker({ address }) {
       {/* Paiements en attente */}
       {earnings.pending > 0 && (
         <div className="pending-payments">
-          <p>En attente : {earnings.pending} MATIC</p>
+          <p>En attente : {earnings.pending} POL</p>
           <button onClick={handleWithdraw}>Retirer</button>
         </div>
       )}

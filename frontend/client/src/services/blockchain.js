@@ -7,8 +7,8 @@ const AMOY_CHAIN_PARAMS = {
   chainId: '0x13882',
   chainName: 'Polygon Amoy Testnet',
   nativeCurrency: {
-    name: 'MATIC',
-    symbol: 'MATIC',
+    name: 'POL',
+    symbol: 'POL',
     decimals: 18
   },
   rpcUrls: [AMOY_RPC_URL],

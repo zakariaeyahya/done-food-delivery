@@ -19,21 +19,21 @@ export const formatPriceInEUR = (amount) => {
 };
 
 /**
- * Formats a BigNumberish value (e.g., wei) into a human-readable MATIC string.
+ * Formats a BigNumberish value (e.g., wei) into a human-readable POL string.
  * @param {ethers.BigNumberish} amount - The amount in wei or other units.
- * @returns {string} The formatted balance in MATIC.
+ * @returns {string} The formatted balance in POL.
  */
 export const formatPriceInMATIC = (amount) => {
   if (amount === null || amount === undefined) {
-    return '0.0000 MATIC';
+    return '0.000000 POL';
   }
   // If it's already a simple number (not wei), just format it
   if (typeof amount === 'number') {
-    return `${amount.toFixed(4)} MATIC`;
+    return `${amount.toFixed(6)} POL`;
   }
-  // Assuming 'amount' is in wei, format it to ether (MATIC)
-  const maticAmount = ethers.formatEther(amount);
-  return `${parseFloat(maticAmount).toFixed(4)} MATIC`;
+  // Assuming 'amount' is in wei, format it to ether (POL)
+  const polAmount = ethers.formatEther(amount);
+  return `${parseFloat(polAmount).toFixed(6)} POL`;
 };
 
 /**

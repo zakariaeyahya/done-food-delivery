@@ -6,14 +6,30 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Line } from "react-chartjs-2";
+import { ethers } from "ethers";
 
 import * as api from "../services/api";
 import * as blockchain from "../services/blockchain";
 
+/**
+ * Convertit wei en POL (ether)
+ */
+function weiToPol(weiValue) {
+  try {
+    if (!weiValue && weiValue !== 0) return 0;
+    const numValue = Number(weiValue);
+    // Si la valeur est < 1e12, elle est probablement déjà en POL
+    if (numValue < 1e12) return numValue;
+    return parseFloat(ethers.formatEther(weiValue.toString()));
+  } catch {
+    return 0;
+  }
+}
+
 // Si tu as déjà des helpers dans utils, remplace ceux-ci
 function formatPrice(v) {
-  if (v == null || Number.isNaN(Number(v))) return "0.00000";
-  return Number(v).toFixed(5);
+  if (v == null || Number.isNaN(Number(v))) return "0.000000";
+  return Number(weiToPol(v)).toFixed(6);
 }
 function formatDate(d) {
   const date = new Date(d);

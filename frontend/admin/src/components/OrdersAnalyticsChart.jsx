@@ -19,6 +19,8 @@ import {
   formatPercentage,
   formatCurrency,
   formatNumber,
+  formatCrypto,
+  weiToPol,
 } from "../services/formatters";
 
 ChartJS.register(
@@ -152,7 +154,7 @@ export default function OrdersAnalyticsChart() {
         </div>
         <div className="p-3 bg-yellow-50 rounded">
           <div className="text-sm text-gray-600">Panier moyen</div>
-          <div className="text-xl font-bold">{(summary?.avgBasket || 0).toFixed(0)}€</div>
+          <div className="text-xl font-bold">{formatCrypto(weiToPol(summary?.avgBasket || 0), "POL", 6)}</div>
         </div>
         <div className="p-3 bg-purple-50 rounded">
           <div className="text-sm text-gray-600">Période</div>

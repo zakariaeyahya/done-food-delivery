@@ -27,7 +27,7 @@ function EarningsPage() {
   function exportCSV() {
     if (transactions.length === 0) return;
     const rows = [
-      ["Date", "Order ID", "Montant (MATIC)", "Transaction Hash", "Status"].join(","),
+      ["Date", "Order ID", "Montant (POL)", "Transaction Hash", "Status"].join(","),
       ...transactions.map((tx) =>
         [
           new Date(tx.timestamp * 1000).toLocaleDateString(),
@@ -84,7 +84,7 @@ function EarningsPage() {
                 <tr key={i}>
                   <td>{new Date(tx.timestamp * 1000).toLocaleDateString()}</td>
                   <td>{tx.orderId}</td>
-                  <td>{tx.delivererAmount} MATIC</td>
+                  <td>{tx.delivererAmount} POL</td>
                   <td>
                     <a href={`https://mumbai.polygonscan.com/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer">
                       {tx.txHash.slice(0, 12)}...

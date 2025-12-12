@@ -22,7 +22,7 @@ const AMOY_PARAMS = {
   chainId: AMOY_HEX,
   chainName: "Polygon Amoy Testnet",
   rpcUrls: ["https://rpc-amoy.polygon.technology"],
-  nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+  nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
   blockExplorerUrls: ["https://amoy.polygonscan.com"],
 };
 

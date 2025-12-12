@@ -122,6 +122,7 @@ export const confirmDelivery = (orderId) => {
  * @returns {Promise<AxiosResponse<any>>}
  */
 export const openDispute = (orderId, disputeData) => {
+  console.log('[API] Opening dispute:', { orderId, disputeData });
   return apiClient.post(`/orders/${orderId}/dispute`, disputeData);
 };
 

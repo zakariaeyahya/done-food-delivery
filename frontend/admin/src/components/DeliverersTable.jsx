@@ -3,6 +3,7 @@ import {
   formatAddress,
   formatCrypto,
   formatCompactNumber,
+  weiToPol,
 } from "../services/formatters";
 
 import { getDeliverers } from "../services/api";
@@ -175,7 +176,7 @@ export default function DeliverersTable() {
                   <td className="p-3">
                     {d.stakedAmount > 0 ? (
                       <span className="text-green-700 font-medium">
-                        {formatCrypto(d.stakedAmount, "MATIC", 3)}
+                        {formatCrypto(weiToPol(d.stakedAmount), "POL", 3)}
                       </span>
                     ) : (
                       <span className="text-red-600 font-semibold">
@@ -189,7 +190,7 @@ export default function DeliverersTable() {
                   </td>
 
                   <td className="p-3 text-gray-800">
-                    {formatCrypto(d.earnings, "MATIC", 3)}
+                    {formatCrypto(weiToPol(d.earnings), "POL", 3)}
                   </td>
 
                   <td className="p-3">

@@ -50,7 +50,7 @@ const handleConnect = async () => {
           </div>
           <div className="px-3 py-1 bg-gray-100 rounded-lg">
             <p className="text-xs text-gray-500">Balance</p>
-            <p className="font-mono text-sm">{parseFloat(balance).toFixed(4)} MATIC</p>
+            <p className="font-mono text-sm">{parseFloat(balance).toFixed(6)} POL</p>
           </div>
           <button
             onClick={disconnect}

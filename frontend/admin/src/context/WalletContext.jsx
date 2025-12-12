@@ -11,8 +11,8 @@ const AMOY_PARAMS = {
   chainName: "Polygon Amoy Testnet",
   rpcUrls: ["https://rpc-amoy.polygon.technology"],
   nativeCurrency: {
-    name: "MATIC",
-    symbol: "MATIC",
+    name: "POL",
+    symbol: "POL",
     decimals: 18,
   },
   blockExplorerUrls: ["https://amoy.polygonscan.com"],

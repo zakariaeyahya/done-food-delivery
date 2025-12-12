@@ -3,6 +3,7 @@ import { getOrdersByClient, submitReview, getOrderReceipt } from '../services/ap
 import { formatDateTime, formatPriceInMATIC } from '../utils/formatters';
 import { useWallet } from '../contexts/WalletContext';
 import { useNavigate } from 'react-router-dom';
+import DisputeModal from './DisputeModal';
 
 const ORDERS_PER_PAGE = 5;
 
@@ -48,6 +49,7 @@ const OrderHistory = ({ clientAddress }) => {
   const [submittedReviews, setSubmittedReviews] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
   const [downloadingReceipt, setDownloadingReceipt] = useState(null);
+  const [disputeModal, setDisputeModal] = useState({ open: false, orderId: null });
 
   const fetchOrders = useCallback(async () => {
     if (!clientAddress) return;
@@ -88,6 +90,23 @@ const OrderHistory = ({ clientAddress }) => {
   const openReviewModal = (orderId) => {
     setReviewModal({ open: true, orderId });
     setReviewData({ rating: 5, comment: '' });
+  };
+
+  const openDisputeModal = (orderId) => {
+    setDisputeModal({ open: true, orderId });
+  };
+
+  const handleDisputeSuccess = () => {
+    setSuccessMessage('Litige ouvert avec succès ! Les arbitres vont examiner votre demande.');
+    setTimeout(() => setSuccessMessage(''), 5000);
+    // Rafraîchir la liste des commandes
+    fetchOrders();
+  };
+
+  // Vérifier si une commande peut être disputée
+  const canDispute = (order) => {
+    const disputableStatuses = ['IN_DELIVERY', 'DELIVERED'];
+    return disputableStatuses.includes(order.status) && order.status !== 'DISPUTED';
   };
 
   const handleSubmitReview = async () => {
@@ -508,6 +527,29 @@ const OrderHistory = ({ clientAddress }) => {
                   </div>
                 )}
 
+                {/* Open Dispute Button - For disputable orders */}
+                {canDispute(order) && (
+                  <button
+                    onClick={() => openDisputeModal(orderId)}
+                    className="flex items-center gap-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Ouvrir un litige
+                  </button>
+                )}
+
+                {/* Show dispute status if already disputed */}
+                {order.status === 'DISPUTED' && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg">
+                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span className="text-sm text-red-700 font-medium">Litige en cours</span>
+                  </div>
+                )}
+
                 {/* Download Receipt Button - Only for delivered orders */}
                 {order.status === 'DELIVERED' && (
                   <button
@@ -651,6 +693,14 @@ const OrderHistory = ({ clientAddress }) => {
           </div>
         </div>
       )}
+
+      {/* Dispute Modal */}
+      <DisputeModal
+        isOpen={disputeModal.open}
+        onClose={() => setDisputeModal({ open: false, orderId: null })}
+        orderId={disputeModal.orderId}
+        onSuccess={handleDisputeSuccess}
+      />
     </div>
   );
 };

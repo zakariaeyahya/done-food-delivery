@@ -4,6 +4,7 @@ import {
   formatCrypto,
   formatDateTime,
   formatCompactNumber,
+  weiToPol,
 } from "../services/formatters";
 
 import { getUsers } from "../services/api";
@@ -176,7 +177,7 @@ export default function UsersTable() {
                   </td>
 
                   <td className="p-3 text-gray-800">
-                    {formatCrypto(user.totalSpent, "MATIC", 3)}
+                    {formatCrypto(weiToPol(user.totalSpent), "POL", 3)}
                   </td>
 
                   <td className="p-3 text-gray-600">

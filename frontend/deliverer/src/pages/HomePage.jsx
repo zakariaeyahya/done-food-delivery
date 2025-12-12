@@ -283,7 +283,7 @@ function HomePage() {
             </div>
             <div className="card">
               <h3>Gains</h3>
-              <p className="big">{stats.todayEarnings} MATIC</p>
+              <p className="big">{stats.todayEarnings} POL</p>
             </div>
             <div className="card">
               <h3>Rating</h3>
@@ -291,7 +291,7 @@ function HomePage() {
             </div>
             <div className="card">
               <h3>Staké</h3>
-              <p className="big">{stats.stakedAmount} MATIC</p>
+              <p className="big">{stats.stakedAmount} POL</p>
             </div>
           </div>
 

@@ -151,7 +151,7 @@ function ActiveDelivery({ order }) {
 
       stopGPSTracking();
 
-      alert(`Livraison confirmée ! Vous gagnez ${earnings} MATIC`);
+      alert(`Livraison confirmée ! Vous gagnez ${earnings} POL`);
       window.location.href = "/";
     } catch (error) {
       alert(`Erreur : ${error.message}`);

@@ -8,7 +8,7 @@
 
 import React, { useEffect, useState } from "react";
 import { getTopDeliverers } from "../services/api";
-import { formatCrypto, formatNumber } from "../services/formatters";
+import { formatCrypto, formatNumber, weiToPol } from "../services/formatters";
 
 export default function TopDeliverersTable() {
   const [deliverers, setDeliverers] = useState([]);
@@ -55,7 +55,7 @@ export default function TopDeliverersTable() {
                 <tr key={i} className="border-b hover:bg-gray-50">
                   <td className="p-3 font-medium">{d.name || d.address}</td>
                   <td className="p-3">{formatNumber(d.totalDeliveries)}</td>
-                  <td className="p-3">{formatCrypto(d.earnings, "MATIC")}</td>
+                  <td className="p-3">{formatCrypto(weiToPol(d.earnings), "POL")}</td>
                   <td className="p-3">{d.rating?.toFixed(2)} ★</td>
                 </tr>
               ))}

@@ -3,6 +3,7 @@ import {
   formatAddress,
   formatCrypto,
   formatDate,
+  weiToPol,
 } from "../services/formatters";
 
 import { getOrders } from "../services/api";
@@ -206,7 +207,7 @@ export default function OrdersTable({ filters, onViewDetails }) {
                   </td>
 
                   <td className="p-3 text-gray-800">
-                    {formatCrypto(o.total, "MATIC", 3)}
+                    {formatCrypto(weiToPol(o.total), "POL", 3)}
                   </td>
 
                   <td className="p-3">

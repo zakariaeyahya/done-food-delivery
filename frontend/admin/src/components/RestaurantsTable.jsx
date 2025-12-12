@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   formatCompactNumber,
   formatCrypto,
+  weiToPol,
 } from "../services/formatters";
 
 import { getRestaurants } from "../services/api";
@@ -197,7 +198,7 @@ export default function RestaurantsTable() {
                   </td>
 
                   <td className="p-3 text-gray-800">
-                    {formatCrypto(resto.revenue, "MATIC", 3)}
+                    {formatCrypto(weiToPol(resto.revenue), "POL", 3)}
                   </td>
 
                   <td className="p-3 text-gray-800">

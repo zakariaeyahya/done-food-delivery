@@ -291,7 +291,7 @@ const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal })
                     <span className="text-white text-xl">Ξ</span>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-800">MATIC (Polygon)</p>
+                    <p className="font-semibold text-gray-800">POL (Polygon)</p>
                     <p className="text-sm text-gray-500">Paiement via votre wallet</p>
                   </div>
                   <svg className="w-5 h-5 text-green-500 ml-auto" fill="currentColor" viewBox="0 0 20 20">

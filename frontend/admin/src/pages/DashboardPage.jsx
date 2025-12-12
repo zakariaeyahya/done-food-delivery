@@ -19,6 +19,7 @@ import RecentOrdersTable from "../components/RecentOrdersTable";
 import RecentDisputesTable from "../components/RecentDisputesTable";
 
 import { getDashboardStats } from "../services/api";
+import { weiToPol } from "../services/formatters";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
@@ -51,8 +52,9 @@ export default function DashboardPage() {
 
           setStats({
             totalOrders: data.totalOrders || 0,
-            totalGMV: data.gmv || data.totalGMV || 0,
-            platformRevenue: data.platformRevenue || 0,
+            // Convertir de wei en POL
+            totalGMV: weiToPol(data.gmv || data.totalGMV || 0),
+            platformRevenue: weiToPol(data.platformRevenue || 0),
             avgDeliveryTime: data.avgDeliveryTime || 0,
             activeUsers: totalActiveUsers || data.activeUsers || 0,
           });
