@@ -44,7 +44,7 @@ export function OrderCard({ order, currentLocation, onAccept, accepting }: Order
     <Card className="group" glow>
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-white group-hover:text-indigo-400 transition-colors">
+          <h3 className="text-lg font-semibold text-white group-hover:text-orange-400 transition-colors">
             {order.restaurant.name}
           </h3>
           <p className="text-sm text-slate-400 mt-0.5">{order.restaurant.address}</p>

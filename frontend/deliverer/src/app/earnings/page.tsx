@@ -220,7 +220,7 @@ export default function EarningsPage() {
                             href={`https://mumbai.polygonscan.com/tx/${tx.txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-indigo-400 hover:text-indigo-300 text-sm"
+                            className="text-orange-400 hover:text-orange-300 text-sm"
                           >
                             {tx.txHash.slice(0, 12)}...
                           </a>

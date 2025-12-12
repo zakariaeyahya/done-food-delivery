@@ -192,7 +192,7 @@ export function ActiveDeliveryCard({ order }: ActiveDeliveryCardProps) {
               className={cn(
                 "flex items-center justify-center w-10 h-10 rounded-xl",
                 step === s.id
-                  ? "bg-indigo-500 text-white"
+                  ? "bg-orange-500 text-white"
                   : s.id === "pickup" && step === "delivery"
                     ? "bg-emerald-500/20 text-emerald-400"
                     : "bg-white/5 text-slate-500"

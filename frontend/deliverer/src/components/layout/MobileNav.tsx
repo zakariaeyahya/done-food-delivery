@@ -27,13 +27,13 @@ export function MobileNav() {
               href={item.href}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
-                isActive ? "text-indigo-400" : "text-slate-400"
+                isActive ? "text-orange-400" : "text-slate-400"
               )}
             >
               {isActive && (
                 <motion.div
                   layoutId="mobile-nav-indicator"
-                  className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500"
+                  className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 via-red-500 to-pink-600"
                   transition={{ type: "spring", duration: 0.5 }}
                 />
               )}

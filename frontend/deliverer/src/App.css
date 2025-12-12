@@ -21,7 +21,7 @@ body {
 
 /* Header */
 .header {
-  background: #16a34a;
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 50%, #ec4899 100%);
   color: white;
   padding: 1rem 2rem;
   display: flex;
@@ -103,7 +103,7 @@ main {
 .card h2,
 .card h3 {
   margin-bottom: 1rem;
-  color: #16a34a;
+  color: #f97316;
 }
 
 .card.center {
@@ -126,7 +126,7 @@ main {
 .stats-grid .big {
   font-size: 2rem;
   font-weight: 700;
-  color: #16a34a;
+  color: #f97316;
   margin-top: 0.5rem;
 }
 
@@ -142,12 +142,12 @@ button {
 }
 
 .btn-primary {
-  background: #16a34a;
+  background: #f97316;
   color: white;
 }
 
 .btn-primary:hover {
-  background: #15803d;
+  background: #ea580c;
 }
 
 .btn-secondary {
@@ -208,7 +208,7 @@ select {
 input:focus,
 select:focus {
   outline: none;
-  border-color: #16a34a;
+  border-color: #f97316;
 }
 
 /* Filters */
@@ -227,9 +227,9 @@ select:focus {
 }
 
 .filters button.active {
-  background: #16a34a;
+  background: #f97316;
   color: white;
-  border-color: #16a34a;
+  border-color: #f97316;
 }
 
 /* Tables */

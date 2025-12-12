@@ -236,7 +236,7 @@ export default function HomePage() {
             </h2>
             <p className="text-slate-400 mb-6">Vérification de votre statut d'inscription</p>
             <div className="flex justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
             </div>
           </Card>
         </div>
@@ -263,7 +263,7 @@ export default function HomePage() {
                 setRegisterForm({ ...registerForm, name: e.target.value })
               }
               required
-              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
             />
 
             <input
@@ -274,7 +274,7 @@ export default function HomePage() {
                 setRegisterForm({ ...registerForm, phone: e.target.value })
               }
               required
-              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
             />
 
             <select
@@ -282,7 +282,7 @@ export default function HomePage() {
               onChange={(e) =>
                 setRegisterForm({ ...registerForm, vehicleType: e.target.value })
               }
-              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-indigo-500"
+              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-orange-500"
             >
               <option value="bike">Vélo</option>
               <option value="scooter">Scooter</option>
@@ -362,7 +362,7 @@ export default function HomePage() {
                 transition={{ delay: 0.1 }}
               >
                 <Card className="text-center">
-                  <Package className="w-8 h-8 text-indigo-400 mx-auto mb-2" />
+                  <Package className="w-8 h-8 text-orange-400 mx-auto mb-2" />
                   <h3 className="text-sm text-slate-400 mb-1">Livraisons</h3>
                   <p className="text-3xl font-bold text-white">{stats.todayDeliveries}</p>
                 </Card>
@@ -402,7 +402,7 @@ export default function HomePage() {
                 transition={{ delay: 0.4 }}
               >
                 <Card className="text-center">
-                  <Lock className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+                  <Lock className="w-8 h-8 text-pink-400 mx-auto mb-2" />
                   <h3 className="text-sm text-slate-400 mb-1">Staké</h3>
                   <p className="text-3xl font-bold text-white">
                     {stats.stakedAmount.toFixed(2)} POL

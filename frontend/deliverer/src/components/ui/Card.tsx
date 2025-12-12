@@ -25,7 +25,7 @@ export function Card({ children, className, hover = true, glow = false }: CardPr
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
     >
       {glow && (
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-orange-500/10 via-transparent to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
       )}
       <div className="relative z-10">{children}</div>
     </motion.div>
