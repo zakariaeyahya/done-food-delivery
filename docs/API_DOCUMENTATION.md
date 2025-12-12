@@ -54,7 +54,7 @@ Content-Type: application/json
 | Orders | 13 | Partial |
 | Admin | 20 | Yes (PLATFORM) |
 | Analytics | 5 | Yes (PLATFORM) |
-| Oracles | 5 | Partial |
+| Oracles | 11 | Partial |
 | Disputes | 5 | Partial |
 | Tokens | 3 | Partial |
 | Payments | 2 | Yes |
@@ -62,7 +62,7 @@ Content-Type: application/json
 | Upload | 1 | No |
 | Cart | 5 | No |
 
-**Total: 96 endpoints**
+**Total: 102 endpoints**
 
 ---
 
@@ -1147,20 +1147,35 @@ User growth analytics.
 
 ---
 
-## Oracles (Optional - Sprint 6)
+## Oracles (Sprint 6)
 
-### `GET /api/oracles/price`
+### Prix Oracles
 
-Get crypto prices.
+#### `GET /api/oracles/price`
+
+Get crypto prices from Chainlink Oracle.
 
 **Query params:**
-- `pair` - `MATIC/USD`, `ETH/USD`
+- `pair` - `MATIC/USD`, `ETH/USD` (default: `MATIC/USD`)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "pair": "MATIC/USD",
+    "price": "0.85",
+    "timestamp": "2025-01-15T10:00:00Z",
+    "source": "chainlink"
+  }
+}
+```
 
 ---
 
-### `POST /api/oracles/convert`
+#### `POST /api/oracles/convert`
 
-Convert fiat to crypto.
+Convert fiat to crypto using real-time exchange rate.
 
 ```json
 {
@@ -1170,11 +1185,101 @@ Convert fiat to crypto.
 }
 ```
 
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "from": "USD",
+    "to": "MATIC",
+    "amount": 15.50,
+    "converted": "18.24",
+    "rate": "0.85",
+    "timestamp": "2025-01-15T10:00:00Z"
+  }
+}
+```
+
 ---
 
-### `POST /api/oracles/gps/verify` (Auth Required)
+#### `GET /api/oracles/price/latest`
 
-Verify delivery location.
+Get latest cached price.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "price": "0.85",
+    "timestamp": "2025-01-15T10:00:00Z",
+    "source": "cache"
+  }
+}
+```
+
+---
+
+#### `GET /api/oracles/price/metrics`
+
+Get price oracle performance metrics.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalFetches": 1000,
+    "failedFetches": 5,
+    "cacheHits": 750,
+    "cacheMisses": 250,
+    "cacheHitRate": 75.0,
+    "averageFetchTime": 450,
+    "lastFetchTime": "2025-01-15T10:00:00Z"
+  }
+}
+```
+
+---
+
+### GPS Oracles
+
+#### `POST /api/oracles/gps/update` (Auth: DELIVERER)
+
+Update deliverer GPS location.
+
+```json
+{
+  "orderId": 123,
+  "lat": 48.8566,
+  "lng": 2.3522
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "orderId": 123,
+    "location": {
+      "lat": 48.8566,
+      "lng": 2.3522,
+      "timestamp": "2025-01-15T10:00:00Z"
+    },
+    "storedOnChain": false,
+    "updateNumber": 3
+  }
+}
+```
+
+**Note:** Updates are stored off-chain (MongoDB) by default. Every 5th update is stored on-chain.
+
+---
+
+#### `POST /api/oracles/gps/verify` (Auth Required)
+
+Verify delivery location using GPS Oracle.
 
 ```json
 {
@@ -1186,22 +1291,117 @@ Verify delivery location.
 }
 ```
 
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "orderId": 123,
+    "verified": true,
+    "distance": 85.5,
+    "withinRadius": true,
+    "deliveryRadius": 100,
+    "txHash": "0xabc123..."
+  }
+}
+```
+
 ---
 
-### `GET /api/oracles/weather`
+#### `GET /api/oracles/gps/track/:orderId`
 
-Weather data for delivery fee adjustment.
+Track delivery in real-time.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "orderId": 123,
+    "route": [
+      {
+        "lat": 48.8566,
+        "lng": 2.3522,
+        "timestamp": "2025-01-15T10:00:00Z",
+        "onChain": false
+      }
+    ],
+    "totalDistance": 1250.5,
+    "startTime": "2025-01-15T10:00:00Z",
+    "currentLocation": {
+      "lat": 48.8606,
+      "lng": 2.3372
+    }
+  }
+}
+```
+
+---
+
+#### `GET /api/oracles/gps/metrics`
+
+Get GPS oracle performance metrics.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalUpdates": 5000,
+    "onChainUpdates": 1000,
+    "onChainRatio": 20.0,
+    "failedUpdates": 10,
+    "averageUpdateTime": 180,
+    "totalVerifications": 250,
+    "successfulVerifications": 240,
+    "successRate": 96.0,
+    "averageDistance": 95.5
+  }
+}
+```
+
+---
+
+### Weather Oracle
+
+#### `GET /api/oracles/weather`
+
+Get weather data for delivery fee adjustment.
 
 **Query params:**
-- `lat`, `lng`
+- `lat` - Latitude (required)
+- `lng` - Longitude (required)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "location": {
+      "lat": 48.8566,
+      "lng": 2.3522
+    },
+    "condition": "RAINY",
+    "temperature": 12,
+    "isExtreme": false,
+    "feeMultiplier": 1.2,
+    "canDeliver": true,
+    "timestamp": "2025-01-15T10:00:00Z"
+  }
+}
+```
+
+**Weather conditions:** `SUNNY`, `CLOUDY`, `RAINY`, `SNOWY`, `STORM`
 
 ---
 
-## Disputes (Optional - Sprint 6)
+## Disputes & Arbitration (Sprint 6)
 
-### `POST /api/disputes/:id/vote` (Auth Required)
+### Routes principales (sous `/api/disputes`)
 
-Vote on a dispute.
+#### `POST /api/disputes/:id/vote` (Auth Required)
+
+Vote on a dispute (decentralized arbitration).
 
 ```json
 {
@@ -1211,11 +1411,29 @@ Vote on a dispute.
 }
 ```
 
+**Valid winners:** `CLIENT`, `RESTAURANT`, `DELIVERER`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "disputeId": 123,
+    "voterAddress": "0x...",
+    "winner": "CLIENT",
+    "votingPower": "5000",
+    "txHash": "0xabc123..."
+  }
+}
+```
+
+**Note:** Voting power is calculated from DONE token balance (1 token = 1 vote).
+
 ---
 
-### `GET /api/disputes/:id/votes`
+#### `GET /api/disputes/:id/votes`
 
-Get dispute votes.
+Get all votes for a dispute.
 
 **Response:**
 ```json
@@ -1228,21 +1446,24 @@ Get dispute votes.
         "voterAddress": "0x...",
         "winner": "CLIENT",
         "reason": "Food was indeed cold",
+        "votingPower": "5000",
         "timestamp": "2025-01-15T10:00:00Z"
       }
     ],
     "summary": {
-      "CLIENT": 3,
-      "RESTAURANT": 1,
+      "CLIENT": 15000,
+      "RESTAURANT": 5000,
       "DELIVERER": 0
-    }
+    },
+    "totalVotingPower": 20000,
+    "leadingWinner": "CLIENT"
   }
 }
 ```
 
 ---
 
-### `GET /api/disputes/:id`
+#### `GET /api/disputes/:id`
 
 Get dispute details.
 
@@ -1257,6 +1478,7 @@ Get dispute details.
     "evidence": ["QmXxx..."],
     "status": "VOTING",
     "votes": [...],
+    "votingDeadline": "2025-01-17T10:00:00Z",
     "createdAt": "2025-01-15T10:00:00Z"
   }
 }
@@ -1264,9 +1486,9 @@ Get dispute details.
 
 ---
 
-### `POST /api/disputes/:id/resolve` (Auth: PLATFORM)
+#### `POST /api/disputes/:id/resolve` (Auth: PLATFORM)
 
-Force resolve a dispute (after voting).
+Force resolve a dispute (after voting period).
 
 **Response:**
 ```json
@@ -1275,14 +1497,15 @@ Force resolve a dispute (after voting).
   "data": {
     "disputeId": 123,
     "winner": "CLIENT",
-    "txHash": "0xabc123..."
+    "txHash": "0xabc123...",
+    "resolvedAt": "2025-01-15T10:00:00Z"
   }
 }
 ```
 
 ---
 
-### `GET /api/disputes/metrics`
+#### `GET /api/disputes/metrics`
 
 Get arbitration metrics.
 
@@ -1295,10 +1518,85 @@ Get arbitration metrics.
     "resolved": 95,
     "pending": 5,
     "averageResolutionTime": 3600,
-    "topArbitrators": [...]
+    "resolutionRate": 95.0,
+    "totalVotes": 500,
+    "averageVotingPower": 2500,
+    "topArbitrators": [
+      {
+        "address": "0x...",
+        "totalVotes": 50,
+        "totalVotingPower": 125000
+      }
+    ]
   }
 }
 ```
+
+---
+
+### Routes Arbitration (sous `/api/oracles/arbitration`)
+
+#### `POST /api/oracles/arbitration/dispute` (Auth Required)
+
+Create a new dispute (alternative route).
+
+```json
+{
+  "orderId": 123,
+  "reason": "Food was cold",
+  "evidence": "QmXxx..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "disputeId": 123,
+    "orderId": 123,
+    "status": "VOTING",
+    "votingDeadline": "2025-01-17T10:00:00Z",
+    "txHash": "0xabc123..."
+  }
+}
+```
+
+---
+
+#### `POST /api/oracles/arbitration/vote/:id` (Auth Required)
+
+Vote on a dispute (alternative route).
+
+```json
+{
+  "winner": "CLIENT"
+}
+```
+
+---
+
+#### `POST /api/oracles/arbitration/resolve/:disputeId` (Auth: PLATFORM)
+
+Resolve a dispute (alternative route).
+
+```json
+{
+  "winner": "CLIENT"
+}
+```
+
+---
+
+#### `GET /api/oracles/arbitration/dispute/:disputeId`
+
+Get dispute details (alternative route).
+
+---
+
+#### `GET /api/oracles/arbitration/metrics`
+
+Get arbitration metrics (alternative route).
 
 ---
 

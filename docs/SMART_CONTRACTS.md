@@ -9,12 +9,13 @@ Documentation technique complète des smart contracts de la plateforme DoneFood 
 1. [Vue d'ensemble](#vue-densemble)
 2. [Architecture](#architecture)
 3. [Contrats principaux](#contrats-principaux)
-4. [Interfaces et bibliothèques](#interfaces-et-bibliothèques)
-5. [Événements](#événements)
-6. [Sécurité](#sécurité)
-7. [Interactions entre contrats](#interactions-entre-contrats)
-8. [Exemples d'utilisation](#exemples-dutilisation)
-9. [Déploiement](#déploiement)
+4. [Oracles (Sprint 6)](#-oracles-sprint-6)
+5. [Interfaces et bibliothèques](#interfaces-et-bibliothèques)
+6. [Événements](#événements)
+7. [Sécurité](#sécurité)
+8. [Interactions entre contrats](#interactions-entre-contrats)
+9. [Exemples d'utilisation](#exemples-dutilisation)
+10. [Déploiement](#déploiement)
 
 ---
 
@@ -26,7 +27,8 @@ DoneFood utilise une architecture de smart contracts décentralisée sur Polygon
 - 💰 **Paiements** : Escrow et répartition automatique des fonds
 - 🎁 **Tokens de fidélité** : Système de récompenses DONE
 - 🔒 **Staking** : Garantie de fiabilité pour les livreurs
-- ⚖️ **Arbitrage** : Résolution des litiges
+- ⚖️ **Arbitrage** : Résolution des litiges décentralisée
+- 🔮 **Oracles** : Prix (Chainlink), GPS, Météo pour automatisation
 
 ### Technologies utilisées
 
@@ -46,7 +48,10 @@ DoneOrderManager (Contrat principal)
     ├── DonePaymentSplitter (Répartition des paiements)
     ├── DoneToken (Tokens de fidélité)
     ├── DoneStaking (Staking des livreurs)
-    └── Oracles (GPS, Prix, Météo)
+    ├── DonePriceOracle (Oracle prix MATIC/USD - Chainlink)
+    ├── DoneGPSOracle (Oracle GPS pour vérification livraison)
+    ├── DoneWeatherOracle (Oracle météo pour ajustement frais)
+    └── DoneArbitration (Arbitrage décentralisé tokenisé)
 ```
 
 ### Flux de données
@@ -586,6 +591,609 @@ function getStakedAmount(address deliverer) external view returns (uint256)
 
 ---
 
+## 🔮 Oracles (Sprint 6)
+
+Les oracles permettent d'intégrer des données externes (prix, GPS, météo) dans les smart contracts de manière décentralisée et fiable.
+
+### 4. DonePriceOracle.sol
+
+**Oracle de prix** utilisant Chainlink Price Feed pour obtenir le prix MATIC/USD en temps réel.
+
+#### Imports
+
+```solidity
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+```
+
+#### Variables
+
+```solidity
+AggregatorV3Interface internal priceFeed;  // Chainlink Price Feed
+uint8 public constant DECIMALS = 18;
+uint256 public constant PRECISION = 1e18;
+```
+
+#### Constructeur
+
+```solidity
+constructor(address _priceFeedAddress)
+```
+
+**Paramètres :**
+- `_priceFeedAddress` : Adresse du Chainlink Price Feed (Mumbai ou Mainnet)
+
+#### Fonctions principales
+
+##### `getLatestPrice()`
+
+Récupère le prix MATIC/USD depuis Chainlink.
+
+```solidity
+function getLatestPrice() public view returns (int256, uint8, uint256)
+```
+
+**Retourne :**
+- `price` : Prix MATIC/USD (int256)
+- `decimals` : Nombre de décimales (uint8)
+- `timestamp` : Timestamp de la donnée (uint256)
+
+**Gas estimé :** ~30,000
+
+---
+
+##### `convertUSDtoMATIC(uint256 usdAmount)`
+
+Convertit un montant USD en MATIC.
+
+```solidity
+function convertUSDtoMATIC(uint256 usdAmount) public returns (uint256)
+```
+
+**Formule :** `maticAmount = (usdAmount * 10^decimals) / price`
+
+**Gas estimé :** ~35,000
+
+---
+
+##### `convertMATICtoUSD(uint256 maticAmount)`
+
+Convertit un montant MATIC en USD.
+
+```solidity
+function convertMATICtoUSD(uint256 maticAmount) public returns (uint256)
+```
+
+**Formule :** `usdAmount = (maticAmount * price) / 10^decimals`
+
+**Gas estimé :** ~35,000
+
+---
+
+##### `getPriceWithAge()`
+
+Récupère le prix avec l'âge de la donnée.
+
+```solidity
+function getPriceWithAge() public view returns (int256, uint256)
+```
+
+**Retourne :** `(price, ageInSeconds)`
+
+---
+
+#### Événements
+
+```solidity
+event PriceUpdated(int256 price, uint256 timestamp);
+event ConversionRequested(uint256 usdAmount, uint256 maticAmount);
+```
+
+---
+
+### 5. DoneGPSOracle.sol
+
+**Oracle GPS** pour vérification de livraison on-chain avec preuve cryptographique.
+
+#### Imports
+
+```solidity
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+```
+
+#### Rôles
+
+```solidity
+bytes32 public constant DELIVERER_ROLE = keccak256("DELIVERER_ROLE");
+bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
+```
+
+#### Structures
+
+```solidity
+struct GPSLocation {
+    int256 latitude;
+    int256 longitude;
+    uint256 timestamp;
+    address deliverer;
+    bool verified;
+}
+
+struct DeliveryRoute {
+    uint256 orderId;
+    GPSLocation[] locations;
+    uint256 totalDistance;
+    uint256 startTime;
+    uint256 endTime;
+}
+```
+
+#### Constantes
+
+```solidity
+uint256 public constant DELIVERY_RADIUS = 100;  // 100 mètres
+uint256 public constant EARTH_RADIUS = 6371000; // Rayon de la Terre en mètres
+```
+
+#### Fonctions principales
+
+##### `updateLocation(uint256 orderId, int256 lat, int256 lng)`
+
+Met à jour la position GPS du livreur.
+
+```solidity
+function updateLocation(
+    uint256 orderId,
+    int256 lat,
+    int256 lng
+) external onlyRole(DELIVERER_ROLE) nonReentrant
+```
+
+**Contrôles :**
+- L'appelant doit avoir `DELIVERER_ROLE`
+- La commande doit exister
+- Les coordonnées doivent être valides (lat: -90 à 90, lng: -180 à 180)
+
+**Actions :**
+- Crée une nouvelle `GPSLocation`
+- Met à jour `currentLocations[orderId]`
+- Ajoute la position à `deliveryRoutes[orderId].locations`
+- Calcule la distance totale
+
+**Gas estimé :** ~80,000
+
+**Événement :** `LocationUpdated(uint256 indexed orderId, int256 lat, int256 lng, uint256 timestamp)`
+
+---
+
+##### `verifyDelivery(uint256 orderId, int256 clientLat, int256 clientLng)`
+
+Vérifie que la livraison a été effectuée (distance ≤ DELIVERY_RADIUS).
+
+```solidity
+function verifyDelivery(
+    uint256 orderId,
+    int256 clientLat,
+    int256 clientLng
+) external onlyRole(ORACLE_ROLE) returns (bool)
+```
+
+**Retourne :** `true` si la distance entre livreur et client ≤ 100 mètres
+
+**Gas estimé :** ~50,000
+
+**Événement :** `DeliveryVerified(uint256 indexed orderId, bool verified, uint256 distance)`
+
+---
+
+##### `calculateDistance(int256 lat1, int256 lng1, int256 lat2, int256 lng2)`
+
+Calcule la distance entre deux points GPS (formule Haversine).
+
+```solidity
+function calculateDistance(
+    int256 lat1,
+    int256 lng1,
+    int256 lat2,
+    int256 lng2
+) public pure returns (uint256)
+```
+
+**Retourne :** Distance en mètres (uint256)
+
+**Gas estimé :** ~30,000
+
+---
+
+##### `getDeliveryRoute(uint256 orderId)`
+
+Récupère l'historique complet du trajet de livraison.
+
+```solidity
+function getDeliveryRoute(uint256 orderId) external view returns (DeliveryRoute memory)
+```
+
+---
+
+##### `setDeliveryRadius(uint256 newRadius)`
+
+Modifie le rayon de livraison (onlyOwner).
+
+```solidity
+function setDeliveryRadius(uint256 newRadius) external onlyOwner
+```
+
+---
+
+#### Événements
+
+```solidity
+event LocationUpdated(uint256 indexed orderId, int256 lat, int256 lng, uint256 timestamp);
+event DeliveryVerified(uint256 indexed orderId, bool verified, uint256 distance);
+event RouteCompleted(uint256 indexed orderId, uint256 totalDistance);
+```
+
+---
+
+### 6. DoneWeatherOracle.sol
+
+**Oracle météo** pour adapter les conditions de livraison et ajuster les frais.
+
+#### Enum
+
+```solidity
+enum WeatherCondition {
+    SUNNY,    // 0 - Ensoleillé
+    CLOUDY,   // 1 - Nuageux
+    RAINY,    // 2 - Pluvieux
+    SNOWY,    // 3 - Neigeux
+    STORM     // 4 - Tempête
+}
+```
+
+#### Structure
+
+```solidity
+struct WeatherData {
+    WeatherCondition condition;
+    int256 temperature;
+    uint256 timestamp;
+    bool isExtreme;
+}
+```
+
+#### Constantes
+
+```solidity
+uint256 public constant UPDATE_INTERVAL = 1 hours;
+```
+
+#### Multiplicateurs de frais
+
+Par défaut dans le constructeur :
+- `SUNNY` : 100% (1.0x)
+- `CLOUDY` : 100% (1.0x)
+- `RAINY` : 120% (1.2x)
+- `SNOWY` : 150% (1.5x)
+- `STORM` : 200% (2.0x)
+
+#### Fonctions principales
+
+##### `updateWeather(int256 lat, int256 lng, WeatherCondition condition, int256 temperature)`
+
+Met à jour les données météo pour une localisation.
+
+```solidity
+function updateWeather(
+    int256 lat,
+    int256 lng,
+    WeatherCondition condition,
+    int256 temperature
+) external onlyOwner
+```
+
+**Contrôles :**
+- `UPDATE_INTERVAL` doit être respecté (1 heure minimum)
+- Les coordonnées doivent être valides
+
+**Actions :**
+- Détermine si les conditions sont extrêmes (STORM, SNOWY, ou températures extrêmes)
+- Stocke les données dans `weatherByLocation`
+
+**Gas estimé :** ~50,000
+
+**Événement :** `WeatherUpdated(bytes32 indexed locationHash, WeatherCondition condition, int256 temperature, bool isExtreme)`
+
+---
+
+##### `getWeather(int256 lat, int256 lng)`
+
+Récupère les données météo pour une localisation.
+
+```solidity
+function getWeather(int256 lat, int256 lng) external view returns (
+    WeatherCondition,
+    int256,
+    uint256,
+    bool
+)
+```
+
+**Retourne :** `(condition, temperature, timestamp, isExtreme)`
+
+**Vérifie :** Que les données sont fraîches (< 6 heures)
+
+**Gas estimé :** ~10,000
+
+---
+
+##### `adjustDeliveryFee(uint256 baseFee, WeatherCondition condition)`
+
+Ajuste les frais de livraison selon les conditions météo.
+
+```solidity
+function adjustDeliveryFee(
+    uint256 baseFee,
+    WeatherCondition condition
+) external view returns (uint256)
+```
+
+**Retourne :** `baseFee * multiplier / 10000`
+
+**Gas estimé :** ~5,000
+
+**Événement :** `DeliveryFeeAdjusted(uint256 baseFee, uint256 adjustedFee, WeatherCondition condition)`
+
+---
+
+##### `canDeliver(int256 lat, int256 lng)`
+
+Vérifie si la livraison est possible selon les conditions météo.
+
+```solidity
+function canDeliver(int256 lat, int256 lng) external view returns (bool)
+```
+
+**Retourne :** `false` si conditions extrêmes (STORM) ou données manquantes
+
+---
+
+##### `setFeeMultiplier(WeatherCondition condition, uint256 multiplier)`
+
+Modifie le multiplicateur de frais pour une condition (onlyOwner).
+
+```solidity
+function setFeeMultiplier(
+    WeatherCondition condition,
+    uint256 multiplier
+) external onlyOwner
+```
+
+**Format :** `multiplier` en basis points (10000 = 100%, 12000 = 120%)
+
+---
+
+#### Événements
+
+```solidity
+event WeatherUpdated(bytes32 indexed locationHash, WeatherCondition condition, int256 temperature, bool isExtreme);
+event DeliveryFeeAdjusted(uint256 baseFee, uint256 adjustedFee, WeatherCondition condition);
+event ExtremeWeatherAlert(bytes32 indexed locationHash, WeatherCondition condition);
+```
+
+---
+
+### 7. DoneArbitration.sol
+
+**Système d'arbitrage décentralisé** par vote communautaire tokenisé (Sprint 6).
+
+#### Imports
+
+```solidity
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "../DoneToken.sol";
+import "../DoneOrderManager.sol";
+```
+
+#### Enums
+
+```solidity
+enum Winner {
+    NONE,        // 0 - Pas encore décidé
+    CLIENT,      // 1 - Client gagne (remboursement)
+    RESTAURANT,  // 2 - Restaurant gagne (paiement normal)
+    DELIVERER    // 3 - Livreur gagne (si slashing contesté)
+}
+
+enum DisputeStatus {
+    OPEN,        // 0 - Litige ouvert, en attente de votes
+    VOTING,      // 1 - Phase de vote active
+    RESOLVED     // 2 - Litige résolu
+}
+```
+
+#### Rôles
+
+```solidity
+bytes32 public constant ARBITER_ROLE = keccak256("ARBITER_ROLE");
+```
+
+#### Structure
+
+```solidity
+struct Dispute {
+    uint256 orderId;
+    address client;
+    address restaurant;
+    address deliverer;
+    string reason;
+    string evidenceIPFS;
+    uint256 totalVotePower;
+    Winner leadingWinner;
+    DisputeStatus status;
+    uint256 createdAt;
+    uint256 resolvedAt;
+}
+```
+
+#### Paramètres configurables
+
+```solidity
+uint256 public constant MIN_VOTING_POWER_REQUIRED = 1000 * 1e18; // 1000 DONE tokens
+uint256 public constant VOTING_PERIOD = 48 hours;
+```
+
+#### Fonctions principales
+
+##### `createDispute(uint256 orderId, string reason, string evidenceIPFS)`
+
+Crée un nouveau litige pour une commande.
+
+```solidity
+function createDispute(
+    uint256 orderId,
+    string memory reason,
+    string memory evidenceIPFS
+) external nonReentrant returns (uint256)
+```
+
+**Contrôles :**
+- La commande doit exister
+- L'appelant doit être une partie prenante (client, restaurant ou livreur)
+- La commande ne doit pas être déjà en litige
+
+**Actions :**
+- Crée un nouveau `Dispute`
+- Incrémente `disputeCount`
+- Met à jour le statut de la commande à `DISPUTED`
+- Initialise la période de vote (48 heures)
+
+**Retourne :** `disputeId` (uint256)
+
+**Gas estimé :** ~150,000
+
+**Événement :** `DisputeCreated(uint256 indexed disputeId, uint256 indexed orderId, address opener)`
+
+---
+
+##### `voteDispute(uint256 disputeId, Winner winner)`
+
+Vote sur un litige avec pouvoir de vote basé sur les tokens DONE.
+
+```solidity
+function voteDispute(
+    uint256 disputeId,
+    Winner winner
+) external nonReentrant
+```
+
+**Contrôles :**
+- Le litige doit être en statut `VOTING`
+- L'appelant ne doit pas avoir déjà voté
+- `winner` doit être valide (CLIENT, RESTAURANT, ou DELIVERER)
+
+**Actions :**
+- Calcule le pouvoir de vote depuis la balance de tokens DONE
+- Enregistre le vote
+- Met à jour `leadingWinner` si nécessaire
+- Incrémente `totalVotePower`
+
+**Gas estimé :** ~80,000
+
+**Événement :** `VoteCast(uint256 indexed disputeId, address indexed voter, Winner winner, uint256 votingPower)`
+
+---
+
+##### `resolveDispute(uint256 disputeId)`
+
+Résout un litige après la période de vote (onlyRole(ARBITER_ROLE)).
+
+```solidity
+function resolveDispute(uint256 disputeId) external onlyRole(ARBITER_ROLE) nonReentrant
+```
+
+**Contrôles :**
+- Le litige doit être en statut `VOTING`
+- Le pouvoir de vote minimum doit être atteint (1000 DONE)
+- Un gagnant clair doit être déterminé
+
+**Actions :**
+- Marque le litige comme résolu
+- Transfère les fonds selon le gagnant :
+  - **CLIENT** : Remboursement complet
+  - **RESTAURANT** : Paiement normal
+  - **DELIVERER** : Annulation slashing + paiement
+
+**Gas estimé :** ~200,000
+
+**Événement :** `DisputeResolved(uint256 indexed disputeId, Winner winner, uint256 amount)`
+
+---
+
+##### `getDispute(uint256 disputeId)`
+
+Récupère les détails d'un litige.
+
+```solidity
+function getDispute(uint256 disputeId) external view returns (Dispute memory)
+```
+
+---
+
+##### `getVoteDistribution(uint256 disputeId)`
+
+Récupère la distribution des votes.
+
+```solidity
+function getVoteDistribution(uint256 disputeId) external view returns (
+    uint256 clientVotes,
+    uint256 restaurantVotes,
+    uint256 delivererVotes
+)
+```
+
+---
+
+##### `getUserVotingPower(address user)`
+
+Calcule le pouvoir de vote d'un utilisateur.
+
+```solidity
+function getUserVotingPower(address user) external view returns (uint256)
+```
+
+**Retourne :** Balance de tokens DONE de l'utilisateur (1 token = 1 vote)
+
+---
+
+#### Événements
+
+```solidity
+event DisputeCreated(uint256 indexed disputeId, uint256 indexed orderId, address opener);
+event VoteCast(uint256 indexed disputeId, address indexed voter, Winner winner, uint256 votingPower);
+event DisputeResolved(uint256 indexed disputeId, Winner winner, uint256 amount);
+```
+
+---
+
+#### Workflow d'arbitrage
+
+```
+1. Création litige → OPEN
+   ↓
+2. Période de vote (48h) → VOTING
+   ↓
+3. Vote communautaire (token-weighted)
+   ↓
+4. Résolution par arbitre → RESOLVED
+   ↓
+5. Transfert fonds selon gagnant
+```
+
+---
+
 ## 🔌 Interfaces et bibliothèques
 
 ### IOrderManager.sol
@@ -930,11 +1538,23 @@ paymentSplitter.withdraw();
    tokenContract.grantRole(MINTER_ROLE, orderManagerAddress);
    ```
 
-3. **Configurer les oracles** (optionnel) :
+3. **Configurer les oracles** (Sprint 6) :
    ```solidity
+   // Configurer Chainlink Price Feed dans DonePriceOracle
+   priceOracle = new DonePriceOracle(chainlinkPriceFeedAddress);
+   
+   // Configurer les oracles dans DoneOrderManager
    orderManager.setGPSOracle(gpsOracleAddress);
    orderManager.setPriceOracle(priceOracleAddress);
    orderManager.setWeatherOracle(weatherOracleAddress);
+   orderManager.setArbitrationContract(arbitrationAddress);
+   ```
+
+4. **Configurer les rôles pour les oracles** :
+   ```solidity
+   gpsOracle.grantRole(DELIVERER_ROLE, delivererAddress);
+   gpsOracle.grantRole(ORACLE_ROLE, backendServiceAddress);
+   arbitration.grantRole(ARBITER_ROLE, arbitratorAddress);
    ```
 
 ### Variables d'environnement
@@ -946,6 +1566,13 @@ ORDER_MANAGER_ADDRESS=0x...          # Adresse déployée
 PAYMENT_SPLITTER_ADDRESS=0x...       # Adresse déployée
 TOKEN_ADDRESS=0x...                  # Adresse déployée
 STAKING_ADDRESS=0x...                # Adresse déployée
+
+# Oracles (Sprint 6)
+PRICE_ORACLE_ADDRESS=0x...          # Adresse DonePriceOracle
+GPS_ORACLE_ADDRESS=0x...            # Adresse DoneGPSOracle
+WEATHER_ORACLE_ADDRESS=0x...        # Adresse DoneWeatherOracle
+ARBITRATION_ADDRESS=0x...           # Adresse DoneArbitration
+CHAINLINK_PRICE_FEED_ADDRESS=0x...   # Adresse Chainlink Price Feed (Mumbai/Mainnet)
 ```
 
 ---
@@ -953,6 +1580,8 @@ STAKING_ADDRESS=0x...                # Adresse déployée
 ## 📊 Statistiques et limites
 
 ### Limites de gas
+
+#### Contrats principaux
 
 | Fonction | Gas estimé |
 |----------|-----------|
@@ -963,6 +1592,23 @@ STAKING_ADDRESS=0x...                # Adresse déployée
 | `confirmDelivery()` | ~200,000 |
 | `openDispute()` | ~50,000 |
 | `resolveDispute()` | ~100,000 |
+
+#### Oracles (Sprint 6)
+
+| Fonction | Gas estimé |
+|----------|-----------|
+| `DonePriceOracle.getLatestPrice()` | ~30,000 |
+| `DonePriceOracle.convertUSDtoMATIC()` | ~35,000 |
+| `DonePriceOracle.convertMATICtoUSD()` | ~35,000 |
+| `DoneGPSOracle.updateLocation()` | ~80,000 |
+| `DoneGPSOracle.verifyDelivery()` | ~50,000 |
+| `DoneGPSOracle.calculateDistance()` | ~30,000 |
+| `DoneWeatherOracle.updateWeather()` | ~50,000 |
+| `DoneWeatherOracle.getWeather()` | ~10,000 |
+| `DoneWeatherOracle.adjustDeliveryFee()` | ~5,000 |
+| `DoneArbitration.createDispute()` | ~150,000 |
+| `DoneArbitration.voteDispute()` | ~80,000 |
+| `DoneArbitration.resolveDispute()` | ~200,000 |
 
 ### Limites de montants
 
@@ -990,7 +1636,10 @@ Pour vérifier les contrats sur Polygonscan :
 - ⚠️ **Les adresses doivent être valides** (non-nulles)
 - ⚠️ **Les transitions d'état sont strictes** (workflow défini)
 - ⚠️ **Les rôles doivent être configurés** avant utilisation
-- ⚠️ **Les oracles sont optionnels** mais recommandés pour la production
+- ⚠️ **Les oracles (Sprint 6) sont implémentés** et recommandés pour la production
+- ⚠️ **Chainlink Price Feed** doit être configuré (Mumbai ou Mainnet)
+- ⚠️ **Arbitrage décentralisé** utilise le pouvoir de vote basé sur les tokens DONE
+- ⚠️ **GPS Oracle** utilise un stockage hybride (off-chain fréquent, on-chain critique)
 
 ---
 
