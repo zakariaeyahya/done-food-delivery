@@ -62,7 +62,16 @@ export default function DisputeViewer({ dispute, onClose, onResolved }) {
       }
 
       setSuccess("Litige résolu avec succès.");
-      onResolved && onResolved();
+      
+      // Appeler le callback si fourni
+      if (onResolved) {
+        onResolved();
+      }
+      
+      // Fermer le modal après 1.5 secondes pour laisser le temps de voir le message de succès
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (err) {
       setError(err.message || "Erreur lors de la résolution.");
     } finally {

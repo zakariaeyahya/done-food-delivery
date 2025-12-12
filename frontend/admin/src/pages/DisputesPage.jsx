@@ -42,6 +42,13 @@ export default function DisputesPage() {
     setDetails(null);
   }
 
+  function handleResolved() {
+    // Rafraîchir la liste des litiges après résolution
+    // Le composant DisputesTable se rafraîchit automatiquement toutes les 10 secondes
+    // On peut aussi forcer un rafraîchissement immédiat si nécessaire
+    console.log("Litige résolu, la liste sera rafraîchie automatiquement");
+  }
+
   /* ============================================================
      RENDER PAGE
      ============================================================ */
@@ -90,6 +97,7 @@ export default function DisputesPage() {
           details={details}
           loading={loadingDetails}
           onClose={closeModal}
+          onResolved={handleResolved}
         />
       )}
     </div>
