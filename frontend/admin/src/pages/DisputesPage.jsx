@@ -26,10 +26,12 @@ export default function DisputesPage() {
     setLoadingDetails(true);
 
     try {
-      const res = await getDisputeDetails(dispute.disputeId);
-      setDetails(res);
+      const res = await getDisputeDetails(dispute.disputeId || dispute.orderId);
+      // Le backend retourne { success: true, data: {...} }
+      setDetails(res?.data || res);
     } catch (err) {
       console.error("Erreur chargement litige:", err);
+      setDetails(null);
     } finally {
       setLoadingDetails(false);
     }

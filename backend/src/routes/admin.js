@@ -32,7 +32,21 @@ router.get(
   adminController.getDisputes
 );
 
-// Route POST /api/admin/resolve-dispute/:id - Résolution manuelle litige
+// Route GET /api/admin/disputes/:id - Détails d'un litige
+router.get(
+  "/disputes/:id",
+  // verifyAdminRole, // ⏳ À activer après implémentation verifyAdminRole
+  adminController.getDisputeDetails
+);
+
+// Route POST /api/admin/disputes/:id/resolve - Résolution manuelle litige (nouvelle route cohérente)
+router.post(
+  "/disputes/:id/resolve",
+  // verifyAdminRole, // ⏳ À activer après implémentation verifyAdminRole
+  adminController.resolveDispute
+);
+
+// Route POST /api/admin/resolve-dispute/:id - Résolution manuelle litige (ancienne route pour compatibilité)
 router.post(
   "/resolve-dispute/:id",
   // verifyAdminRole, // ⏳ À activer après implémentation verifyAdminRole

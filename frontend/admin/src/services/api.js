@@ -188,13 +188,16 @@ export async function getDisputeDetails(disputeId) {
   }
 }
 
-export async function resolveDispute(disputeId, winner) {
+export async function resolveDispute(disputeId, data) {
   try {
     const address = localStorage.getItem("adminWalletAddress");
+    
+    // data peut être un objet { winner, reason } ou juste winner (string)
+    const body = typeof data === 'object' ? data : { winner: data };
 
     const res = await axios.post(
       `${API_BASE_URL}/api/admin/disputes/${disputeId}/resolve`,
-      { winner },
+      body,
       { headers: authHeaders(address) }
     );
 
