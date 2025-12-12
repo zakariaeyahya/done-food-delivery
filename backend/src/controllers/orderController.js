@@ -1273,6 +1273,133 @@ async function submitReview(req, res) {
   }
 }
 
+/**
+ * Generates a receipt for an order
+ * @dev Returns receipt data for PDF generation
+ *
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
+ */
+async function getOrderReceipt(req, res) {
+  try {
+    const orderId = req.orderId || parseInt(req.params.id);
+
+    // Récupérer la commande avec toutes les relations
+    const order = await Order.findOne({ orderId })
+      .populate('client', 'address name email phone')
+      .populate('restaurant', 'address name location cuisine')
+      .populate('deliverer', 'address name');
+
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `Order with id ${orderId} not found`
+      });
+    }
+
+    // Vérifier que la commande est livrée (reçu seulement pour commandes complétées)
+    if (order.status !== 'DELIVERED') {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Le reçu n'est disponible que pour les commandes livrées"
+      });
+    }
+
+    // Calculer les montants en format lisible
+    const formatAmount = (weiAmount) => {
+      if (!weiAmount) return '0.00';
+      try {
+        return ethers.formatEther(weiAmount.toString());
+      } catch {
+        return weiAmount.toString();
+      }
+    };
+
+    // Construire les données du reçu
+    const receipt = {
+      // Informations générales
+      receiptNumber: `DONE-${orderId}-${Date.now().toString(36).toUpperCase()}`,
+      orderId: order.orderId,
+      txHash: order.txHash,
+      date: order.createdAt,
+      deliveredAt: order.completedAt || order.updatedAt,
+
+      // Client
+      client: {
+        name: order.client?.name || 'Client',
+        address: order.client?.address || 'N/A',
+        email: order.client?.email || null,
+        phone: order.client?.phone || null
+      },
+
+      // Restaurant
+      restaurant: {
+        name: order.restaurant?.name || 'Restaurant',
+        address: order.restaurant?.address || 'N/A',
+        location: order.restaurant?.location?.address || null,
+        cuisine: order.restaurant?.cuisine || null
+      },
+
+      // Livreur
+      deliverer: order.deliverer ? {
+        name: order.deliverer.name || 'Livreur',
+        address: order.deliverer.address || 'N/A'
+      } : null,
+
+      // Adresse de livraison
+      deliveryAddress: order.deliveryAddress,
+
+      // Articles commandés
+      items: order.items.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        totalPrice: (item.price * item.quantity).toFixed(4)
+      })),
+
+      // Montants
+      subtotal: formatAmount(order.foodPrice),
+      deliveryFee: formatAmount(order.deliveryFee),
+      platformFee: formatAmount(order.platformFee),
+      total: formatAmount(order.totalAmount),
+
+      // Monnaie
+      currency: 'MATIC',
+
+      // Review si disponible
+      review: order.review ? {
+        rating: order.review.rating,
+        comment: order.review.comment,
+        date: order.review.createdAt
+      } : null,
+
+      // Métadonnées
+      ipfsHash: order.ipfsHash,
+      blockchainVerified: !!order.txHash,
+
+      // Informations de la plateforme
+      platform: {
+        name: 'DoneFood',
+        website: 'https://donefood.io',
+        support: 'support@donefood.io'
+      }
+    };
+
+    return res.status(200).json({
+      success: true,
+      receipt
+    });
+  } catch (error) {
+    console.error("Error generating receipt:", error);
+
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to generate receipt",
+      details: error.message
+    });
+  }
+}
+
 module.exports = {
   createOrder,
   getOrder,
@@ -1284,6 +1411,7 @@ module.exports = {
   confirmDelivery,
   openDispute,
   getOrderHistory,
-  submitReview
+  submitReview,
+  getOrderReceipt
 };
 

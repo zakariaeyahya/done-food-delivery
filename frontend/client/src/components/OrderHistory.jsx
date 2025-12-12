@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getOrdersByClient, submitReview } from '../services/api';
+import { getOrdersByClient, submitReview, getOrderReceipt } from '../services/api';
 import { formatDateTime, formatPriceInMATIC } from '../utils/formatters';
 import { useWallet } from '../contexts/WalletContext';
 import { useNavigate } from 'react-router-dom';
@@ -47,6 +47,7 @@ const OrderHistory = ({ clientAddress }) => {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [submittedReviews, setSubmittedReviews] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
+  const [downloadingReceipt, setDownloadingReceipt] = useState(null);
 
   const fetchOrders = useCallback(async () => {
     if (!clientAddress) return;
@@ -141,6 +142,172 @@ const OrderHistory = ({ clientAddress }) => {
 
   const getStatusInfo = (status) => {
     return statusConfig[status] || { label: status || 'Inconnu', color: 'bg-gray-100 text-gray-700', icon: '?' };
+  };
+
+  // Download receipt as HTML/PDF
+  const handleDownloadReceipt = async (orderId) => {
+    try {
+      setDownloadingReceipt(orderId);
+      const response = await getOrderReceipt(orderId);
+      const receipt = response.data.receipt;
+
+      // Generate HTML receipt
+      const receiptHTML = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Reçu - ${receipt.receiptNumber}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    .receipt { max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; }
+    .header { background: linear-gradient(135deg, #f97316, #ef4444, #ec4899); color: white; padding: 30px; text-align: center; }
+    .header h1 { font-size: 28px; margin-bottom: 5px; }
+    .header p { opacity: 0.9; font-size: 14px; }
+    .badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; margin-top: 10px; font-size: 12px; }
+    .content { padding: 30px; }
+    .section { margin-bottom: 25px; }
+    .section-title { font-size: 12px; text-transform: uppercase; color: #888; margin-bottom: 10px; letter-spacing: 1px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .info-item { background: #f9fafb; padding: 12px; border-radius: 8px; }
+    .info-item label { font-size: 11px; color: #888; display: block; margin-bottom: 3px; }
+    .info-item span { font-weight: 600; color: #333; }
+    .items-table { width: 100%; border-collapse: collapse; }
+    .items-table th { text-align: left; padding: 10px; background: #f9fafb; font-size: 12px; color: #888; text-transform: uppercase; }
+    .items-table td { padding: 12px 10px; border-bottom: 1px solid #eee; }
+    .items-table .qty { text-align: center; }
+    .items-table .price { text-align: right; font-weight: 600; }
+    .totals { background: #f9fafb; border-radius: 8px; padding: 15px; margin-top: 20px; }
+    .totals-row { display: flex; justify-content: space-between; padding: 8px 0; }
+    .totals-row.total { border-top: 2px solid #ddd; margin-top: 10px; padding-top: 15px; font-size: 18px; font-weight: 700; color: #f97316; }
+    .footer { text-align: center; padding: 20px; background: #f9fafb; border-top: 1px solid #eee; }
+    .footer p { font-size: 12px; color: #888; }
+    .tx-hash { font-family: monospace; font-size: 10px; word-break: break-all; background: #f0f0f0; padding: 8px; border-radius: 4px; margin-top: 10px; }
+    .verified { color: #22c55e; font-weight: 600; }
+    @media print { body { background: white; padding: 0; } .receipt { box-shadow: none; } }
+  </style>
+</head>
+<body>
+  <div class="receipt">
+    <div class="header">
+      <h1>🍕 DoneFood</h1>
+      <p>Reçu de commande</p>
+      <div class="badge">N° ${receipt.receiptNumber}</div>
+    </div>
+    <div class="content">
+      <div class="section">
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Date de commande</label>
+            <span>${new Date(receipt.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+          <div class="info-item">
+            <label>Date de livraison</label>
+            <span>${new Date(receipt.deliveredAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Restaurant</div>
+        <div class="info-item">
+          <label>Nom</label>
+          <span>${receipt.restaurant.name}</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Livraison</div>
+        <div class="info-item">
+          <label>Adresse</label>
+          <span>${receipt.deliveryAddress}</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Articles commandés</div>
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Article</th>
+              <th class="qty">Qté</th>
+              <th class="price">Prix</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${receipt.items.map(item => `
+              <tr>
+                <td>${item.name}</td>
+                <td class="qty">${item.quantity}</td>
+                <td class="price">${item.totalPrice} ${receipt.currency}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <div class="totals-row">
+            <span>Sous-total</span>
+            <span>${receipt.subtotal} ${receipt.currency}</span>
+          </div>
+          <div class="totals-row">
+            <span>Frais de livraison</span>
+            <span>${receipt.deliveryFee} ${receipt.currency}</span>
+          </div>
+          <div class="totals-row">
+            <span>Frais de plateforme</span>
+            <span>${receipt.platformFee} ${receipt.currency}</span>
+          </div>
+          <div class="totals-row total">
+            <span>Total</span>
+            <span>${receipt.total} ${receipt.currency}</span>
+          </div>
+        </div>
+      </div>
+
+      ${receipt.review ? `
+      <div class="section">
+        <div class="section-title">Votre avis</div>
+        <div class="info-item">
+          <label>Note</label>
+          <span>${'⭐'.repeat(receipt.review.rating)} (${receipt.review.rating}/5)</span>
+        </div>
+      </div>
+      ` : ''}
+
+      <div class="section">
+        <div class="section-title">Vérification Blockchain</div>
+        <p class="verified">✓ Transaction vérifiée sur la blockchain</p>
+        <div class="tx-hash">TX: ${receipt.txHash}</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p><strong>${receipt.platform.name}</strong></p>
+      <p>${receipt.platform.website}</p>
+      <p style="margin-top: 10px;">Merci pour votre commande !</p>
+    </div>
+  </div>
+  <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>
+      `;
+
+      // Open in new window for printing/saving
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(receiptHTML);
+      printWindow.document.close();
+
+      setSuccessMessage('Reçu généré avec succès !');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Error downloading receipt:', error);
+      setSuccessMessage('');
+      alert(error.response?.data?.message || 'Erreur lors de la génération du reçu');
+    } finally {
+      setDownloadingReceipt(null);
+    }
   };
 
   // Not connected state
@@ -339,6 +506,32 @@ const OrderHistory = ({ clientAddress }) => {
                     <StarRating rating={orderReview.rating} />
                     <span className="text-sm text-green-600">({orderReview.rating}/5)</span>
                   </div>
+                )}
+
+                {/* Download Receipt Button - Only for delivered orders */}
+                {order.status === 'DELIVERED' && (
+                  <button
+                    onClick={() => handleDownloadReceipt(orderId)}
+                    disabled={downloadingReceipt === orderId}
+                    className="flex items-center gap-1 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm font-medium disabled:opacity-50"
+                  >
+                    {downloadingReceipt === orderId ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Génération...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Télécharger le reçu
+                      </>
+                    )}
+                  </button>
                 )}
               </div>
             </div>

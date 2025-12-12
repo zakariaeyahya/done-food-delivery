@@ -108,6 +108,13 @@ router.get(
   orderController.getOrderHistory
 );
 
+// Route GET /api/orders/:id/receipt - Générer le reçu d'une commande
+router.get(
+  "/:id/receipt",
+  validation.validateOrderId,              // Valider orderId
+  orderController.getOrderReceipt
+);
+
 // Exporter le router
 module.exports = router;
 

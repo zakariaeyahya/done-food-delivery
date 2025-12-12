@@ -188,6 +188,15 @@ export const clearCart = (address) => {
   return apiClient.delete(`/cart/${address}/clear`);
 };
 
+/**
+ * Gets the receipt for an order
+ * @param {string|number} orderId - The order ID
+ * @returns {Promise<AxiosResponse<any>>}
+ */
+export const getOrderReceipt = (orderId) => {
+  return apiClient.get(`/orders/${orderId}/receipt`);
+};
+
 export default {
   getRestaurants,
   getRestaurantById,
@@ -197,6 +206,7 @@ export default {
   confirmDelivery,
   openDispute,
   submitReview,
+  getOrderReceipt,
   getCart,
   addToCart,
   updateCartItem,
