@@ -175,19 +175,19 @@ export default function OrdersTable({ filters, onViewDetails }) {
 
                   <td className="p-3">
                     <div className="text-sm font-semibold">
-                      {o.clientName || "—"}
+                      {o.client?.name || o.clientName || "—"}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {formatAddress(o.client)}
+                      {formatAddress(o.client?.address || o.client)}
                     </div>
                   </td>
 
                   <td className="p-3">
                     <div className="text-sm font-semibold">
-                      {o.restaurantName || "—"}
+                      {o.restaurant?.name || o.restaurantName || "—"}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {formatAddress(o.restaurant)}
+                      {formatAddress(o.restaurant?.address || o.restaurant)}
                     </div>
                   </td>
 
@@ -195,10 +195,10 @@ export default function OrdersTable({ filters, onViewDetails }) {
                     {o.deliverer ? (
                       <>
                         <div className="text-sm font-semibold">
-                          {o.delivererName || "Livreur"}
+                          {o.deliverer?.name || o.delivererName || "Livreur"}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {formatAddress(o.deliverer)}
+                          {formatAddress(o.deliverer?.address || o.deliverer)}
                         </div>
                       </>
                     ) : (
@@ -207,7 +207,7 @@ export default function OrdersTable({ filters, onViewDetails }) {
                   </td>
 
                   <td className="p-3 text-gray-800">
-                    {formatCrypto(weiToPol(o.total), "POL", 3)}
+                    {formatCrypto(weiToPol(o.totalAmount || o.total), "POL", 6)}
                   </td>
 
                   <td className="p-3">

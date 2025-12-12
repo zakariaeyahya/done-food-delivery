@@ -1,6 +1,6 @@
 import React from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { formatCrypto, formatNumber, formatDate } from "../services/formatters";
+import { formatCrypto, formatNumber, formatDate, weiToPol } from "../services/formatters";
 
 /**
  * Modal OrderDetailsModal
@@ -21,7 +21,7 @@ export default function OrderDetailsModal({ order, details, loading, onClose }) 
         {/* HEADER */}
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-xl font-semibold">
-            Commande #{order.id}
+            Commande #{order.orderId || order.id}
           </h2>
 
           <button onClick={onClose} className="p-1 rounded hover:bg-gray-200">
@@ -51,9 +51,9 @@ export default function OrderDetailsModal({ order, details, loading, onClose }) 
 
               {/* MONTANTS */}
               <div className="grid grid-cols-3 gap-4">
-                <Stat label="Montant Total" value={formatCrypto(details.total)} />
-                <Stat label="Commission Plateforme" value={formatCrypto(details.platformFee)} />
-                <Stat label="Restaurant Reçu" value={formatCrypto(details.restaurantAmount)} />
+                <Stat label="Montant Total" value={formatCrypto(weiToPol(details.totalAmount || details.total), "POL", 6)} />
+                <Stat label="Commission Plateforme" value={formatCrypto(weiToPol(details.platformFee), "POL", 6)} />
+                <Stat label="Restaurant Reçu" value={formatCrypto(weiToPol(details.restaurantAmount), "POL", 6)} />
               </div>
 
               {/* ITEMS */}

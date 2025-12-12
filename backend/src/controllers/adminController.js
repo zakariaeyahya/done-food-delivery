@@ -325,7 +325,9 @@ async function getAllDeliverers(req, res) {
 async function getOrders(req, res) {
   try {
     const { page = 1, limit = 10, sortField = 'createdAt', sortOrder = 'desc', status } = req.query;
-    const query = {}; if (status) query.status = status;
+    const query = {};
+    // Ignorer le filtre si status est "all" ou vide
+    if (status && status !== 'all') query.status = status;
     const sortOptions = {};
     sortOptions[sortField === 'date' ? 'createdAt' : sortField] = sortOrder === 'desc' ? -1 : 1;
     const total = await Order.countDocuments(query);
