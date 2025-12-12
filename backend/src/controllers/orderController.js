@@ -1243,16 +1243,23 @@ async function submitReview(req, res) {
       });
     }
     
-    // Ajouter la review à la commande (si le modèle Order supporte les reviews)
-    // Pour l'instant, on peut stocker dans un champ personnalisé ou créer un modèle Review séparé
-    // Ici, on suppose qu'on peut ajouter un champ review au modèle Order
+    // Ajouter la review à la commande
+    order.review = {
+      rating,
+      comment: comment || '',
+      createdAt: new Date()
+    };
+    await order.save();
+    
+    console.log(`[Backend] ✅ Review soumise pour commande #${orderId} par ${clientAddress} (rating: ${rating})`);
     
     return res.status(200).json({
       success: true,
       message: "Review submitted successfully",
       review: {
         rating,
-        comment
+        comment: comment || '',
+        createdAt: order.review.createdAt
       }
     });
   } catch (error) {
