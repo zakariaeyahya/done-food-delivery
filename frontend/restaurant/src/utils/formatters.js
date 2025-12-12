@@ -36,11 +36,11 @@ export function formatDate(date) {
 /**
  * Formater un prix avec devise
  * @param {string|number} amount - Montant à formater
- * @param {string} currency - Devise (défaut: 'MATIC')
+ * @param {string} currency - Devise (défaut: 'POL')
  * @param {number} decimals - Nombre de décimales (défaut: 5)
  * @returns {string} Prix formaté
  */
-export function formatPrice(amount, currency = 'MATIC', decimals = 5) {
+export function formatPrice(amount, currency = 'POL', decimals = 5) {
   try {
     if (!amount && amount !== 0) {
       return `0.${'0'.repeat(decimals)} ${currency}`;

@@ -80,11 +80,11 @@ function DashboardPage({ showSuccess, showError, showNotification }) {
       const todayRevenue = orders
         .filter((o) => o.status === "DELIVERED")
         .reduce((sum, o) => {
-          // totalAmount est en wei, convertir en MATIC
+          // totalAmount est en wei, convertir en POL
           const totalAmountWei = o.totalAmount || 0;
-          const totalAmountMATIC = parseFloat(ethers.formatEther(totalAmountWei.toString()));
+          const totalAmountPOL = parseFloat(ethers.formatEther(totalAmountWei.toString()));
           // Le restaurant reçoit 80% du montant total
-          const restaurantRevenue = totalAmountMATIC * 0.8;
+          const restaurantRevenue = totalAmountPOL * 0.8;
           return sum + restaurantRevenue;
         }, 0);
 
@@ -159,7 +159,7 @@ function DashboardPage({ showSuccess, showError, showNotification }) {
           />
           <KpiCard
             title="Revenus aujourd'hui"
-            value={safeFormatPrice(kpis.todayRevenue, 'MATIC', 5)}
+            value={safeFormatPrice(kpis.todayRevenue, 'POL', 5)}
             tone="primary"
             loading={loadingKpis}
           />

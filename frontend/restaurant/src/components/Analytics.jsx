@@ -146,7 +146,7 @@ function Analytics({
         labels: analytics.revenueSeries.map((p) => p.label ?? p.date ?? ""),
         datasets: [
           {
-            label: "Revenus (MATIC)",
+            label: "Revenus (POL)",
             data: analytics.revenueSeries.map((p) => p.value ?? 0),
             tension: 0.35,
             fill: true,
@@ -170,7 +170,7 @@ function Analytics({
       labels,
       datasets: [
         {
-          label: "Revenus (MATIC)",
+          label: "Revenus (POL)",
           data: labels.map(() => 0),
           tension: 0.35,
           fill: true,
@@ -301,7 +301,7 @@ function Analytics({
           />
           <StatCard
             title="Revenus"
-            value={formatPrice(analytics.revenue, 'MATIC', 5)}
+            value={formatPrice(analytics.revenue, 'POL', 5)}
             className="lg:col-span-3"
           />
           <StatCard
@@ -321,7 +321,7 @@ function Analytics({
               <h3 className="font-display text-lg text-neutral-900 dark:text-neutral-50">
                 Revenus dans le temps
               </h3>
-              <Badge tone="primary">MATIC</Badge>
+              <Badge tone="primary">POL</Badge>
             </div>
             <div className="h-72">
               <Line data={revenueChartData} options={lineOptions} />
@@ -380,7 +380,7 @@ function Analytics({
                           {d.orderCount ?? 0}
                         </td>
                         <td className="py-2 text-neutral-700 dark:text-neutral-200">
-                          {formatPrice(d.revenue ?? 0, 'MATIC', 5)}
+                          {formatPrice(d.revenue ?? 0, 'POL', 5)}
                         </td>
                         <td className="py-2 text-neutral-700 dark:text-neutral-200">
                           {(d.rating ?? 0).toFixed?.(1) ?? d.rating ?? 0}

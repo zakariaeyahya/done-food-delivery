@@ -113,7 +113,7 @@ function EarningsChart({
       await fetchEarnings();
 
       const amountMsg =
-        result?.amount != null ? formatPrice(result.amount, 'MATIC', 5) : "OK";
+        result?.amount != null ? formatPrice(result.amount, 'POL', 5) : "OK";
       showSuccess?.(`Retrait réussi: ${amountMsg}`);
     } catch (e) {
       console.error("Error withdrawing:", e);
@@ -152,7 +152,7 @@ function EarningsChart({
       labels,
       datasets: [
         {
-          label: "Revenus (MATIC)",
+          label: "Revenus (POL)",
           data: values,
           tension: 0.35,
           fill: true,
@@ -213,7 +213,7 @@ function EarningsChart({
               Solde en attente
             </p>
             <p className="font-semibold text-neutral-900 dark:text-neutral-50">
-              {formatPrice(earnings.pending, 'MATIC', 5)}
+              {formatPrice(earnings.pending, 'POL', 5)}
             </p>
           </div>
 
@@ -272,7 +272,7 @@ function EarningsChart({
               <div className="text-sm text-neutral-500 dark:text-neutral-400">
                 Retiré total:{" "}
                 <span className="font-semibold text-neutral-900 dark:text-neutral-50">
-                  {formatPrice(earnings.withdrawn, 'MATIC', 5)}
+                  {formatPrice(earnings.withdrawn, 'POL', 5)}
                 </span>
               </div>
             </div>
@@ -308,7 +308,7 @@ function EarningsChart({
                           #{tx.orderId ?? "—"}
                         </td>
                         <td className="py-2 pr-4 text-neutral-700 dark:text-neutral-200">
-                          {formatPrice(tx.amount, 'MATIC', 5)}
+                          {formatPrice(tx.amount, 'POL', 5)}
                         </td>
                         <td className="py-2 pr-4">
                           {tx.txHash ? (

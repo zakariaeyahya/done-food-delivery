@@ -5,10 +5,25 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { ethers } from "ethers";
 
 // Utils (remplace si tu as déjà)
 import { formatAddress } from "../utils/web3";
 import { formatPrice, formatDate } from "../utils/formatters";
+
+/**
+ * Convertit wei en POL (ether)
+ * @param {string|number|bigint} weiValue - Valeur en wei
+ * @returns {number} Valeur en POL
+ */
+function weiToPol(weiValue) {
+  try {
+    if (!weiValue && weiValue !== 0) return 0;
+    return parseFloat(ethers.formatEther(weiValue.toString()));
+  } catch {
+    return 0;
+  }
+}
 
 // Gateway IPFS
 const IPFS_GATEWAY =
@@ -131,13 +146,13 @@ function OrderCard({ order, onConfirmPreparation }) {
                       {item.quantity}x {item.name}
                     </p>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                      {formatPrice?.(item.price, 'MATIC', 5) ?? `${item.price} MATIC`} / unité
+                      {formatPrice?.(item.price, 'POL', 5) ?? `${item.price} POL`} / unité
                     </p>
                   </div>
                 </div>
 
                 <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
-                  {formatPrice?.(lineTotal, 'MATIC', 5) ?? `${lineTotal} MATIC`}
+                  {formatPrice?.(lineTotal, 'POL', 5) ?? `${lineTotal} POL`}
                 </div>
               </div>
             );
@@ -183,13 +198,13 @@ function OrderCard({ order, onConfirmPreparation }) {
         <div className="text-sm text-neutral-500 dark:text-neutral-400">
           Total items:{" "}
           <span className="font-semibold text-neutral-900 dark:text-neutral-50">
-            {formatPrice?.(itemsTotal, 'MATIC', 5) ?? `${itemsTotal} MATIC`}
+            {formatPrice?.(itemsTotal, 'POL', 5) ?? `${itemsTotal} POL`}
           </span>
         </div>
 
         <div className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
           Total:{" "}
-          {formatPrice?.(order.totalAmount, 'MATIC', 5) ?? `${order.totalAmount} MATIC`}
+          {formatPrice?.(weiToPol(order.totalAmount), 'POL', 5) ?? `${weiToPol(order.totalAmount)} POL`}
         </div>
 
         {order.status === "CREATED" && onConfirmPreparation && (

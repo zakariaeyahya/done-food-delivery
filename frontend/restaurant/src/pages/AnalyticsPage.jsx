@@ -86,7 +86,7 @@ function AnalyticsPage({ showSuccess, showError }) {
       // KPIs
       rows.push(["--- KPIs ---"]);
       rows.push(["Total Orders", analytics?.totalOrders ?? 0]);
-      rows.push(["Revenue (MATIC)", analytics?.revenue ?? 0]);
+      rows.push(["Revenue (POL)", analytics?.revenue ?? 0]);
       rows.push(["Average Rating", analytics?.averageRating ?? 0]);
       rows.push([
         "Average Preparation Time (min)",
@@ -97,7 +97,7 @@ function AnalyticsPage({ showSuccess, showError }) {
 
       // Série revenus
       rows.push(["--- Revenue Series ---"]);
-      rows.push(["Date/Label", "Amount (MATIC)"]);
+      rows.push(["Date/Label", "Amount (POL)"]);
       (analytics?.revenueSeries ?? []).forEach((p) => {
         rows.push([p.label ?? p.date ?? "", p.value ?? 0]);
       });
@@ -106,7 +106,7 @@ function AnalyticsPage({ showSuccess, showError }) {
 
       // Plats populaires
       rows.push(["--- Popular Dishes ---"]);
-      rows.push(["Dish", "Orders", "Revenue (MATIC)", "Rating"]);
+      rows.push(["Dish", "Orders", "Revenue (POL)", "Rating"]);
       (analytics?.popularDishes ?? []).forEach((d) => {
         rows.push([
           d.name ?? "",
@@ -120,10 +120,10 @@ function AnalyticsPage({ showSuccess, showError }) {
 
       // Earnings
       rows.push(["--- On-chain Earnings ---"]);
-      rows.push(["Pending (MATIC)", earnings?.pending ?? 0]);
-      rows.push(["Withdrawn (MATIC)", earnings?.withdrawn ?? 0]);
+      rows.push(["Pending (POL)", earnings?.pending ?? 0]);
+      rows.push(["Withdrawn (POL)", earnings?.withdrawn ?? 0]);
       rows.push([]);
-      rows.push(["Date/Label", "Amount (MATIC)"]);
+      rows.push(["Date/Label", "Amount (POL)"]);
 
       const series =
         period === "month"
@@ -138,7 +138,7 @@ function AnalyticsPage({ showSuccess, showError }) {
 
       // Transactions
       rows.push(["--- Transactions ---"]);
-      rows.push(["Date", "OrderId", "Amount (MATIC)", "TxHash"]);
+      rows.push(["Date", "OrderId", "Amount (POL)", "TxHash"]);
       (earnings?.transactions ?? []).forEach((tx) => {
         rows.push([
           tx.date ?? "",
