@@ -17,6 +17,24 @@ const statusConfig = {
   DISPUTED: { label: 'En litige', color: 'bg-red-100 text-red-700', icon: '⚠️' },
 };
 
+const StarRating = ({ rating, size = 'sm' }) => {
+  const sizeClass = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <svg
+          key={star}
+          className={`${sizeClass} ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+    </div>
+  );
+};
+
 const OrderHistory = ({ clientAddress }) => {
   const { address, isConnected } = useWallet();
   const navigate = useNavigate();
@@ -29,6 +47,8 @@ const OrderHistory = ({ clientAddress }) => {
   const [reviewModal, setReviewModal] = useState({ open: false, orderId: null });
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [submittedReviews, setSubmittedReviews] = useState({});
+  const [successMessage, setSuccessMessage] = useState('');
 
   const fetchOrders = useCallback(async () => {
     if (!clientAddress) return;
@@ -87,20 +107,49 @@ const OrderHistory = ({ clientAddress }) => {
 
     try {
       setSubmittingReview(true);
-      await submitReview({
+      const response = await submitReview({
         orderId: reviewModal.orderId,
         rating: reviewData.rating,
         comment: reviewData.comment,
         clientAddress: address,
       });
 
+      // Store the submitted review locally
+      setSubmittedReviews((prev) => ({
+        ...prev,
+        [reviewModal.orderId]: {
+          rating: reviewData.rating,
+          comment: reviewData.comment,
+          createdAt: response.data?.review?.createdAt || new Date().toISOString(),
+        },
+      }));
+
       setReviewModal({ open: false, orderId: null });
+      setSuccessMessage('Avis envoyé avec succès !');
+      setTimeout(() => setSuccessMessage(''), 3000);
       fetchOrders();
     } catch (error) {
       console.error('Failed to submit review:', error);
     } finally {
       setSubmittingReview(false);
     }
+  };
+
+  // Check if order has a review (from API or locally submitted)
+  const getOrderReview = (order) => {
+    const orderId = order.orderId || order.id || order._id;
+    // Check locally submitted reviews first
+    if (submittedReviews[orderId]) {
+      return submittedReviews[orderId];
+    }
+    // Check if order has review from API
+    if (order.review) {
+      return order.review;
+    }
+    if (order.hasReview && order.rating) {
+      return { rating: order.rating, comment: order.reviewComment };
+    }
+    return null;
   };
 
   const getStatusInfo = (status) => {
@@ -183,11 +232,24 @@ const OrderHistory = ({ clientAddress }) => {
 
   return (
     <div>
+      {/* Success Toast */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 animate-fadeIn">
+          <div className="bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            {successMessage}
+          </div>
+        </div>
+      )}
+
       {/* Orders List */}
       <div className="space-y-4">
         {currentOrders.map((order) => {
           const orderId = order.orderId || order.id || order._id;
           const statusInfo = getStatusInfo(order.status);
+          const orderReview = getOrderReview(order);
 
           return (
             <div
@@ -281,7 +343,7 @@ const OrderHistory = ({ clientAddress }) => {
                   Commander à nouveau
                 </button>
 
-                {order.status === 'DELIVERED' && !order.hasReview && (
+                {order.status === 'DELIVERED' && !orderReview && (
                   <button
                     onClick={() => openReviewModal(orderId)}
                     className="flex items-center gap-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-medium"
@@ -291,6 +353,15 @@ const OrderHistory = ({ clientAddress }) => {
                     </svg>
                     Laisser un avis
                   </button>
+                )}
+
+                {/* Display submitted review */}
+                {orderReview && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
+                    <span className="text-sm text-green-700 font-medium">Votre avis :</span>
+                    <StarRating rating={orderReview.rating} />
+                    <span className="text-sm text-green-600">({orderReview.rating}/5)</span>
+                  </div>
                 )}
               </div>
             </div>
