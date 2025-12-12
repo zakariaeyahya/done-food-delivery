@@ -146,6 +146,13 @@ const orderSchema = new mongoose.Schema({
     }
   }],
 
+  // disputed - Flag indiquant si la commande est en litige (utilisé pour les requêtes admin)
+  disputed: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+
   // disputeReason - Raison du litige (si status = DISPUTED)
   disputeReason: {
     type: String,

@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { getOrders } from "../services/api";
+import { getOrders, getOrderDetails } from "../services/api";
 import { formatCrypto, formatDate, weiToPol } from "../services/formatters";
+import OrderDetailsModal from "./OrderDetailsModal";
 
 export default function RecentOrdersTable() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // État pour le modal de détails
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orderDetails, setOrderDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   async function loadRecentOrders() {
     try {
@@ -25,6 +31,29 @@ export default function RecentOrdersTable() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Ouvrir le modal avec les détails de la commande
+  async function handleViewOrder(order) {
+    setSelectedOrder(order);
+    setLoadingDetails(true);
+
+    try {
+      const res = await getOrderDetails(order.orderId);
+      setOrderDetails(res?.data || res);
+    } catch (err) {
+      console.error("❌ Erreur chargement détails commande:", err);
+      // En cas d'erreur, utiliser les données de base de la commande
+      setOrderDetails(order);
+    } finally {
+      setLoadingDetails(false);
+    }
+  }
+
+  // Fermer le modal
+  function handleCloseModal() {
+    setSelectedOrder(null);
+    setOrderDetails(null);
   }
 
   useEffect(() => {
@@ -50,6 +79,7 @@ export default function RecentOrdersTable() {
                 <Th label="Total" />
                 <Th label="Statut" />
                 <Th label="Date" />
+                <Th label="Actions" />
               </tr>
             </thead>
 
@@ -71,11 +101,29 @@ export default function RecentOrdersTable() {
                     </span>
                   </td>
                   <td className="p-3">{formatDate(o.createdAt || o.date)}</td>
+                  <td className="p-3">
+                    <button
+                      onClick={() => handleViewOrder(o)}
+                      className="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-medium transition-colors"
+                    >
+                      Voir
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Modal détails commande */}
+      {selectedOrder && (
+        <OrderDetailsModal
+          order={selectedOrder}
+          details={orderDetails}
+          loading={loadingDetails}
+          onClose={handleCloseModal}
+        />
       )}
     </div>
   );

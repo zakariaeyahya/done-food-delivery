@@ -24,16 +24,59 @@ export const formatPriceInEUR = (amount) => {
  * @returns {string} The formatted balance in POL.
  */
 export const formatPriceInMATIC = (amount) => {
-  if (amount === null || amount === undefined) {
+  if (amount === null || amount === undefined || amount === 0 || amount === '0') {
     return '0.000000 POL';
   }
-  // If it's already a simple number (not wei), just format it
-  if (typeof amount === 'number') {
-    return `${amount.toFixed(6)} POL`;
+
+  try {
+    // Convertir en string pour l'analyse
+    const strValue = amount.toString();
+    
+    // Si c'est un nombre simple (pas un BigNumber), vérifier s'il est déjà en POL
+    if (typeof amount === 'number') {
+      // Si le nombre est petit (< 1 million), c'est probablement déjà en POL
+      if (amount < 1000000) {
+        return `${amount.toFixed(6)} POL`;
+      }
+      // Sinon, c'est probablement en wei, convertir
+      // Utiliser strValue (qui est amount.toString()) pour formatEther
+      const polAmountStr = ethers.formatEther(strValue);
+      // formatEther retourne toujours une string, convertir en nombre avant toFixed
+      const polAmount = parseFloat(polAmountStr);
+      if (isNaN(polAmount)) {
+        return '0.000000 POL';
+      }
+      return `${polAmount.toFixed(6)} POL`;
+    }
+
+    // Si c'est une string avec beaucoup de chiffres (>12), c'est probablement en wei
+    // Les valeurs en wei ont généralement 15+ chiffres pour des montants significatifs
+    // Exemple: 1770000000000000 (16 chiffres) = 0.00177 POL
+    const isWei = strValue.length > 12 && /^\d+$/.test(strValue);
+    
+    if (isWei) {
+      // Convertir de wei vers POL
+      // ethers.formatEther() retourne toujours une string
+      const polAmountStr = ethers.formatEther(strValue);
+      // S'assurer que c'est bien une string avant de parser
+      const polAmount = parseFloat(String(polAmountStr));
+      if (isNaN(polAmount)) {
+        console.warn('Failed to parse POL amount:', polAmountStr, 'from wei:', strValue);
+        return '0.000000 POL';
+      }
+      return `${polAmount.toFixed(6)} POL`;
+    } else {
+      // C'est probablement déjà en POL (format décimal ou petit nombre)
+      const numValue = parseFloat(strValue);
+      if (isNaN(numValue)) {
+        return '0.000000 POL';
+      }
+      return `${numValue.toFixed(6)} POL`;
+    }
+  } catch (error) {
+    console.error('Error formatting price:', error, 'amount:', amount, 'type:', typeof amount);
+    return '0.000000 POL';
   }
-  // Assuming 'amount' is in wei, format it to ether (POL)
-  const polAmount = ethers.formatEther(amount);
-  return `${parseFloat(polAmount).toFixed(6)} POL`;
 };
 
 /**

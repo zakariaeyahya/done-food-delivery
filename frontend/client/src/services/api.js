@@ -24,6 +24,18 @@ apiClient.interceptors.request.use((config) => {
     config.headers['Authorization'] = 'Bearer mock_signature_for_testing';
     config.headers['x-wallet-address'] = address;
     config.headers['x-message'] = 'auth';
+    
+    // Log pour déboguer (seulement en développement)
+    if (import.meta.env.DEV) {
+      console.log('[API] Headers d\'authentification ajoutés:', {
+        'Authorization': 'Bearer mock_signature_for_testing',
+        'x-wallet-address': address,
+        'x-message': 'auth',
+        'URL': config.url
+      });
+    }
+  } else {
+    console.warn('[API] Aucune adresse wallet trouvée pour l\'authentification');
   }
 
   return config;

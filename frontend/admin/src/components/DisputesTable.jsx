@@ -45,6 +45,13 @@ export default function DisputesTable({ onSelect }) {
 
   useEffect(() => {
     loadDisputes();
+    
+    // Rafraîchir automatiquement toutes les 10 secondes pour voir les nouveaux litiges
+    const interval = setInterval(() => {
+      loadDisputes();
+    }, 10000);
+    
+    return () => clearInterval(interval);
   }, [debouncedSearch, filterStatus]);
 
   return (

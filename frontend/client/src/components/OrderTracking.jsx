@@ -45,6 +45,8 @@ const OrderTracking = ({ order }) => {
   const [directions, setDirections] = useState(null);
   const [eta, setEta] = useState('');
   const [isConfirming, setIsConfirming] = useState(false);
+  const [tokensEarned, setTokensEarned] = useState(null);
+  const [showTokensNotification, setShowTokensNotification] = useState(false);
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -97,7 +99,23 @@ const OrderTracking = ({ order }) => {
       const response = await confirmDelivery(orderId);
       console.log(`[Client] Livraison confirmee pour commande #${orderId}:`, response.data);
 
+      // Récupérer les tokens gagnés depuis la réponse
+      const tokensEarnedValue = response.data?.tokensEarned || "0";
+      setTokensEarned(tokensEarnedValue);
+      
+      // Afficher la notification de tokens reçus
+      if (tokensEarnedValue && parseFloat(tokensEarnedValue) > 0) {
+        setShowTokensNotification(true);
+        // Masquer la notification après 10 secondes
+        setTimeout(() => setShowTokensNotification(false), 10000);
+      }
+
       setCurrentStatus('DELIVERED');
+      
+      // Émettre un événement pour rafraîchir le solde de tokens dans TokenBalance
+      window.dispatchEvent(new CustomEvent('tokensUpdated', { 
+        detail: { tokensEarned: tokensEarnedValue } 
+      }));
     } catch (error) {
       console.error(`[Client] Erreur confirmation livraison commande #${orderId}:`, error);
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Erreur inconnue';
@@ -447,16 +465,46 @@ const OrderTracking = ({ order }) => {
     if (currentStatus !== 'DELIVERED') return null;
 
     return (
-      <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl shadow-lg p-6 text-white">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-            <span className="text-4xl">🎉</span>
-          </div>
-          <div>
-            <h3 className="text-xl font-bold">Commande livree avec succes !</h3>
-            <p className="text-white/80 mt-1">Merci pour votre commande. Bon appetit !</p>
+      <div className="space-y-4">
+        <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl shadow-lg p-6 text-white">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+              <span className="text-4xl">🎉</span>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold">Commande livree avec succes !</h3>
+              <p className="text-white/80 mt-1">Merci pour votre commande. Bon appetit !</p>
+            </div>
           </div>
         </div>
+
+        {/* Notification des tokens reçus */}
+        {showTokensNotification && tokensEarned && parseFloat(tokensEarned) > 0 && (
+          <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl shadow-lg p-6 text-white animate-fadeIn">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                <span className="text-4xl">🎁</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold">Tokens DONE reçus !</h3>
+                <p className="text-white/90 mt-1">
+                  Vous avez reçu <strong className="text-2xl">{parseFloat(tokensEarned).toFixed(2)} DONE</strong> pour cette commande !
+                </p>
+                <p className="text-white/80 text-sm mt-2">
+                  Utilisez vos tokens DONE pour obtenir des réductions sur vos prochaines commandes.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowTokensNotification(false)}
+                className="text-white/80 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   };

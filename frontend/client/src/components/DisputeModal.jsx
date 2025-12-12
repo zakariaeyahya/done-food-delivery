@@ -148,9 +148,21 @@ const DisputeModal = ({ isOpen, onClose, orderId, onSuccess }) => {
       } else if (error.response?.status === 404) {
         errorMessage = 'Commande introuvable.';
       } else if (error.response?.status === 500) {
-        errorMessage = error.response?.data?.message || 
-                      error.response?.data?.details || 
-                      'Erreur serveur. Veuillez réessayer plus tard.';
+        // Afficher le message détaillé du backend
+        const backendMessage = error.response?.data?.message || '';
+        const backendDetails = error.response?.data?.details || '';
+        
+        if (backendMessage.includes('User address not found')) {
+          errorMessage = 'Erreur d\'authentification. Veuillez reconnecter votre wallet et réessayer.';
+        } else if (backendMessage.includes('Order data is incomplete')) {
+          errorMessage = 'Les données de la commande sont incomplètes. Veuillez contacter le support.';
+        } else if (backendMessage.includes('Failed to open dispute on blockchain')) {
+          errorMessage = `Erreur blockchain: ${backendDetails || 'Impossible d\'ouvrir le litige sur la blockchain'}. Veuillez réessayer.`;
+        } else if (backendMessage) {
+          errorMessage = backendMessage + (backendDetails ? ` (${backendDetails})` : '');
+        } else {
+          errorMessage = 'Erreur serveur. Veuillez réessayer plus tard.';
+        }
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {

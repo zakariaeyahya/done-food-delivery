@@ -76,12 +76,37 @@ async function getStats(req, res) {
  */
 async function getDisputes(req, res) {
   try {
-    const { status } = req.query;
+    const { status, search } = req.query;
     
-    const query = { disputed: true };
-    if (status) {
-      query.status = status;
+    // Construire la requête : chercher les commandes avec disputed = true OU status = 'DISPUTED'
+    // (pour compatibilité avec les anciennes commandes qui n'ont pas le champ disputed)
+    const query = {
+      $or: [
+        { disputed: true },
+        { status: 'DISPUTED' }
+      ]
+    };
+    
+    // Filtrer par statut si fourni
+    if (status && status !== 'all') {
+      // Mapper les statuts du frontend vers les statuts du backend
+      if (status === 'pending') {
+        query.status = 'DISPUTED';
+      } else if (status === 'resolved') {
+        query.status = { $in: ['DELIVERED', 'CANCELLED'] }; // Les litiges résolus peuvent avoir différents statuts
+        query.disputed = false; // Ou on peut ajouter un champ disputeResolved
+      }
     }
+    
+    // Recherche par orderId si fourni
+    if (search) {
+      const orderIdSearch = parseInt(search);
+      if (!isNaN(orderIdSearch)) {
+        query.orderId = orderIdSearch;
+      }
+    }
+    
+    console.log(`[Backend] 🔍 Recherche litiges avec query:`, JSON.stringify(query, null, 2));
     
     const disputes = await Order.find(query)
       .populate('client', 'address name')
@@ -90,20 +115,44 @@ async function getDisputes(req, res) {
       .sort({ createdAt: -1 })
       .lean();
     
-    const disputesWithVotes = disputes.map(dispute => ({
-      ...dispute,
+    console.log(`[Backend] ✅ ${disputes.length} litige(s) trouvé(s)`);
+    
+    // Formater les données pour le frontend
+    const disputesFormatted = disputes.map(dispute => ({
+      id: dispute._id?.toString() || dispute.orderId?.toString(),
+      disputeId: dispute.orderId, // Pour compatibilité
+      orderId: dispute.orderId,
+      client: dispute.client ? {
+        address: dispute.client.address || dispute.client,
+        name: dispute.client.name || 'N/A'
+      } : null,
+      restaurant: dispute.restaurant ? {
+        address: dispute.restaurant.address || dispute.restaurant,
+        name: dispute.restaurant.name || 'N/A'
+      } : null,
+      deliverer: dispute.deliverer ? {
+        address: dispute.deliverer.address || dispute.deliverer,
+        name: dispute.deliverer.name || 'N/A'
+      } : null,
+      status: dispute.status === 'DISPUTED' ? 'pending' : 
+              (dispute.disputed === false ? 'resolved' : 'pending'),
+      disputeReason: dispute.disputeReason || '',
+      disputeEvidence: dispute.disputeEvidence || null,
+      createdAt: dispute.createdAt,
+      updatedAt: dispute.updatedAt,
       votes: dispute.votes || { client: 0, restaurant: 0, deliverer: 0 }
     }));
     
     return res.status(200).json({
       success: true,
-      data: disputesWithVotes
+      data: disputesFormatted
     });
   } catch (error) {
     console.error("Error in getDisputes:", error);
     return res.status(500).json({
       error: "Internal Server Error",
-      message: "Failed to fetch disputes"
+      message: "Failed to fetch disputes",
+      details: error.message
     });
   }
 }
@@ -325,6 +374,9 @@ async function getAllDeliverers(req, res) {
 async function getOrders(req, res) {
   try {
     const { page = 1, limit = 10, sortField = 'createdAt', sortOrder = 'desc', status } = req.query;
+    // Ensure page is at least 1 to avoid negative skip
+    const safePage = Math.max(1, parseInt(page) || 1);
+    const safeLimit = Math.max(1, parseInt(limit) || 10);
     const query = {};
     // Ignorer le filtre si status est "all" ou vide
     if (status && status !== 'all') query.status = status;
@@ -333,11 +385,74 @@ async function getOrders(req, res) {
     const total = await Order.countDocuments(query);
     const orders = await Order.find(query)
       .populate('client', 'address name').populate('restaurant', 'address name').populate('deliverer', 'address name')
-      .sort(sortOptions).skip((page - 1) * limit).limit(parseInt(limit)).lean();
-    return res.status(200).json({ success: true, data: orders, pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) } });
+      .sort(sortOptions).skip((safePage - 1) * safeLimit).limit(safeLimit).lean();
+    return res.status(200).json({ success: true, data: orders, total, pagination: { page: safePage, limit: safeLimit, total, pages: Math.ceil(total / safeLimit) } });
   } catch (error) {
     console.error("Error in getOrders:", error);
     return res.status(500).json({ error: "Internal Server Error", message: "Failed to fetch orders" });
+  }
+}
+
+/**
+ * Gets details of a specific order
+ * @param {Object} req - Express Request with orderId param
+ * @param {Object} res - Express Response
+ */
+async function getOrderDetails(req, res) {
+  try {
+    const { orderId } = req.params;
+
+    const order = await Order.findOne({ orderId: parseInt(orderId) })
+      .populate('client', 'address name email phone')
+      .populate('restaurant', 'address name cuisine')
+      .populate('deliverer', 'address name vehicleType phone')
+      .lean();
+
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `Commande #${orderId} non trouvée`
+      });
+    }
+
+    // Construire la réponse avec tous les détails
+    const details = {
+      ...order,
+      // Informations client
+      client: order.client || { name: "N/A", address: null },
+      // Informations restaurant
+      restaurant: order.restaurant || { name: "N/A", address: null },
+      // Informations livreur
+      deliverer: order.deliverer || null,
+      // Montants
+      totalAmount: order.totalAmount || 0,
+      platformFee: order.platformFee || Math.round((order.totalAmount || 0) * 0.1),
+      restaurantAmount: order.restaurantAmount || Math.round((order.totalAmount || 0) * 0.7),
+      delivererAmount: order.delivererAmount || Math.round((order.totalAmount || 0) * 0.2),
+      // Items de la commande
+      items: order.items || [],
+      // Logs/historique
+      logs: order.logs || order.statusHistory || [],
+      // Dates
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      completedAt: order.completedAt,
+      // Statut
+      status: order.status,
+      // Adresse de livraison
+      deliveryAddress: order.deliveryAddress || order.address || "N/A"
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: details
+    });
+  } catch (error) {
+    console.error("Error in getOrderDetails:", error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to fetch order details"
+    });
   }
 }
 
@@ -548,6 +663,7 @@ module.exports = {
   getAllRestaurants,
   getAllDeliverers,
   getOrders,
+  getOrderDetails,
   getAnalyticsOrders,
   getAnalyticsRevenue,
   getTopDeliverers,

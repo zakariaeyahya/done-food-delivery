@@ -63,6 +63,9 @@ router.get(
 // Route GET /api/admin/orders - Liste toutes les commandes
 router.get("/orders", adminController.getOrders);
 
+// Route GET /api/admin/orders/:orderId - Détails d'une commande
+router.get("/orders/:orderId", adminController.getOrderDetails);
+
 // Route GET /api/admin/analytics/orders - Analytics commandes
 router.get("/analytics/orders", adminController.getAnalyticsOrders);
 

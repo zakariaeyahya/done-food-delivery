@@ -1010,6 +1010,17 @@ async function openDispute(req, res) {
     const { reason, evidence } = req.body;
     const openerAddress = req.userAddress;
     
+    // Vérifier que l'adresse de l'utilisateur est définie
+    if (!openerAddress) {
+      console.error(`[Backend] ❌ req.userAddress non défini pour commande #${orderId}`);
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "User address not found. Please ensure you are authenticated."
+      });
+    }
+    
+    console.log(`[Backend] 📝 Ouverture litige commande #${orderId} par ${openerAddress}...`);
+    
     // Vérifier que la commande existe
     const order = await Order.findOne({ orderId })
       .populate('client', 'address name')
@@ -1017,6 +1028,7 @@ async function openDispute(req, res) {
       .populate('deliverer', 'address name');
     
     if (!order) {
+      console.log(`[Backend] ❌ Commande #${orderId} non trouvée`);
       return res.status(404).json({
         error: "Not Found",
         message: `Order with id ${orderId} not found`
@@ -1027,6 +1039,7 @@ async function openDispute(req, res) {
     const orderClientAddress = order.client?.address || order.client;
     const orderRestaurantAddress = order.restaurant?.address || order.restaurant;
     if (!orderClientAddress || !orderRestaurantAddress) {
+      console.error(`[Backend] ❌ Données commande incomplètes pour #${orderId}`);
       return res.status(500).json({
         error: "Internal Server Error",
         message: "Order data is incomplete. Client or restaurant information missing."
@@ -1051,36 +1064,55 @@ async function openDispute(req, res) {
     let evidenceHash = null;
     if (evidence) {
       try {
+        console.log(`[Backend] 📤 Upload preuves IPFS pour litige #${orderId}...`);
         const ipfsResult = await ipfsService.uploadJSON(evidence);
         evidenceHash = ipfsResult.ipfsHash;
+        console.log(`[Backend] ✅ Preuves uploadées sur IPFS: ${evidenceHash}`);
       } catch (ipfsError) {
-        console.warn("Error uploading dispute evidence to IPFS:", ipfsError);
+        console.warn(`[Backend] ⚠️ Erreur upload IPFS pour litige #${orderId}:`, ipfsError.message);
+        // Continuer sans les preuves IPFS si l'upload échoue
       }
     }
     
     // Ouvrir le litige sur la blockchain
     let blockchainResult;
     try {
+      console.log(`[Backend] ⛓️ Ouverture litige sur blockchain pour commande #${orderId}...`);
       blockchainResult = await blockchainService.openDispute(
         orderId,
         openerAddress,
         reason || "",
         req.body.openerPrivateKey || process.env.PRIVATE_KEY
       );
+      console.log(`[Backend] ✅ Litige ouvert sur blockchain: ${blockchainResult.txHash}`);
     } catch (blockchainError) {
-      console.error("Error opening dispute on blockchain:", blockchainError);
-      return res.status(500).json({
-        error: "Internal Server Error",
-        message: "Failed to open dispute on blockchain",
-        details: blockchainError.message
-      });
+      console.error(`[Backend] ❌ Erreur ouverture litige sur blockchain pour #${orderId}:`, blockchainError);
+      console.error(`[Backend] Stack trace:`, blockchainError.stack);
+      
+      // En mode développement/test, permettre de continuer même si la blockchain échoue
+      if (process.env.NODE_ENV === 'development' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
+        console.warn('⚠️ Erreur blockchain en mode dev, continuation avec mock data');
+        blockchainResult = {
+          txHash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''),
+          blockNumber: 12345678
+        };
+      } else {
+        return res.status(500).json({
+          error: "Internal Server Error",
+          message: "Failed to open dispute on blockchain",
+          details: blockchainError.message
+        });
+      }
     }
     
     // Mettre à jour dans MongoDB
     order.status = 'DISPUTED';
+    order.disputed = true; // Important: ce champ est utilisé par getDisputes() dans adminController
     order.disputeReason = reason || "";
     order.disputeEvidence = evidenceHash;
     await order.save();
+    
+    console.log(`[Backend] ✅ Litige #${orderId} enregistré dans MongoDB avec disputed=true`);
     
     // Notifier les arbitres
     try {
