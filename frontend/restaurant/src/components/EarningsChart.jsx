@@ -17,10 +17,13 @@ import * as blockchain from "../services/blockchain";
 function weiToPol(weiValue) {
   try {
     if (!weiValue && weiValue !== 0) return 0;
-    const numValue = Number(weiValue);
-    // Si la valeur est < 1e12, elle est probablement déjà en POL
-    if (numValue < 1e12) return numValue;
-    return parseFloat(ethers.formatEther(weiValue.toString()));
+    const strValue = weiValue.toString();
+    // Si c'est une string avec beaucoup de chiffres (>12), c'est en wei
+    const isWei = strValue.length > 12 && /^\d+$/.test(strValue);
+    if (isWei) {
+      return parseFloat(ethers.formatEther(strValue));
+    }
+    return parseFloat(strValue) || 0;
   } catch {
     return 0;
   }

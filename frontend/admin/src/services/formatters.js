@@ -13,12 +13,21 @@ import { ethers } from "ethers";
 export function weiToPol(weiValue) {
   try {
     if (!weiValue && weiValue !== 0) return 0;
-    const numValue = Number(weiValue);
-    // Si la valeur est < 1e12 (1 trillion), elle est probablement déjà en POL
-    // Les valeurs en wei sont généralement >= 1e15 pour des montants significatifs
-    if (numValue < 1e12) return numValue;
-    return parseFloat(ethers.formatEther(weiValue.toString()));
-  } catch {
+
+    const strValue = weiValue.toString();
+
+    // Si c'est une string avec beaucoup de chiffres (>12), c'est en wei
+    // Les valeurs en wei ont généralement 15+ chiffres pour des montants significatifs
+    const isWei = strValue.length > 12 && /^\d+$/.test(strValue);
+
+    if (isWei) {
+      return parseFloat(ethers.formatEther(strValue));
+    }
+
+    // Sinon c'est probablement déjà en POL
+    return parseFloat(strValue) || 0;
+  } catch (err) {
+    console.error("weiToPol error:", err, "value:", weiValue);
     return 0;
   }
 }
