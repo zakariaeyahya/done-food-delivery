@@ -188,38 +188,32 @@ async function getEarnings(address, period = "week") {
     // 403 = User doesn't have DELIVERER_ROLE - needs to register first
     if (error.response?.status === 403) {
       console.warn("User not registered as deliverer yet");
-      return { completedDeliveries: 0, totalEarnings: 0 };
+      return { earnings: { completedDeliveries: 0, totalEarnings: 0 } };
     }
     console.error("Error fetching earnings:", error);
-    return { completedDeliveries: 0, totalEarnings: 0 };
+    return { earnings: { completedDeliveries: 0, totalEarnings: 0 } };
   }
 }
 
 /* -------------------------------------------------------------------------- */
 /* 7. Récupérer la note + avis                                                */
 /* -------------------------------------------------------------------------- */
-// Track if warning has been shown
-let ratingWarningShown = false;
-
 async function getRating(address) {
   try {
     if (!address) throw new Error("Address is required");
 
-    // TODO: Backend route doesn't exist yet - return mock data
-    if (!ratingWarningShown) {
-      console.info("ℹ️ Using mock rating data (backend endpoint not implemented)");
-      ratingWarningShown = true;
-    }
+    const response = await apiClient.get(`/deliverers/${address}/rating`);
+    // Le backend retourne { success, rating, totalDeliveries, reviews }
+    // On retourne directement les données sans le wrapper success
+    const data = response.data;
     return {
-      rating: 4.5,
-      totalDeliveries: 0,
-      reviews: []
+      rating: data.rating || 0,
+      totalDeliveries: data.totalDeliveries || 0,
+      reviews: data.reviews || []
     };
-
-    // const response = await apiClient.get(`/deliverers/${address}/rating`);
-    // return response.data;
   } catch (error) {
     console.error("Error fetching rating:", error);
+    // En cas d'erreur, retourner des valeurs par défaut
     return { rating: 0, totalDeliveries: 0, reviews: [] };
   }
 }
@@ -271,14 +265,11 @@ async function getActiveDelivery(address) {
   try {
     if (!address) throw new Error("Address is required");
 
-    // TODO: Backend route doesn't exist yet - return null
-    // This is normal - no active delivery is expected most of the time
-    return null;
-
-    // const response = await apiClient.get(`/deliverers/${address}/active-delivery`);
-    // return response.data || null;
+    const response = await apiClient.get(`/deliverers/${address}/active-delivery`);
+    // Le backend retourne null si pas de livraison active
+    return response.data || null;
   } catch (error) {
-    // 404 is normal - no active delivery
+    // 404 est normal - pas de livraison active
     if (error.response?.status === 404) {
       return null;
     }

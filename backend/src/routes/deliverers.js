@@ -103,5 +103,19 @@ router.get(
   delivererController.getDelivererEarnings
 );
 
+// Route GET /api/deliverers/:address/rating - Récupérer le rating et les avis d'un livreur
+router.get(
+  "/:address/rating",
+  validation.validateAddress,              // Valider address dans params
+  delivererController.getDelivererRating
+);
+
+// Route GET /api/deliverers/:address/active-delivery - Récupérer la livraison active d'un livreur
+router.get(
+  "/:address/active-delivery",
+  validation.validateAddress,              // Valider address dans params
+  delivererController.getActiveDelivery
+);
+
 // Exporter le router
 module.exports = router;

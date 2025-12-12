@@ -18,6 +18,7 @@ function HomePage() {
     stakedAmount: 0,
   });
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [registering, setRegistering] = useState(false);
   const [registerForm, setRegisterForm] = useState({
     name: "",
@@ -56,15 +57,28 @@ function HomePage() {
       setIsRegistered(true);
       setCheckingRegistration(false);
 
+      // Set online status from deliverer data
+      setIsOnline(delivererData.deliverer?.isAvailable || false);
+
       // Load active delivery (may not exist - that's ok)
       const active = await api.getActiveDelivery(address).catch(() => null);
       setActiveDelivery(active);
 
       // Load earnings (with auth - may fail)
-      const earnings = await api.getEarnings(address, "today").catch(() => ({
+      const earningsResponse = await api.getEarnings(address, "today").catch(() => ({
+        earnings: { completedDeliveries: 0, totalEarnings: 0 }
+      }));
+      // Extraire les données depuis la réponse structurée du backend
+      const earnings = earningsResponse.earnings || {
         completedDeliveries: 0,
         totalEarnings: 0
-      }));
+      };
+
+      // Load rating from API
+      const ratingData = await api.getRating(address).catch((err) => {
+        console.warn("Rating data not available:", err.message);
+        return { rating: 0, totalDeliveries: 0, reviews: [] };
+      });
 
       // Load stake info from blockchain (may fail if contract not deployed)
       const stakeInfo = await blockchain.getStakeInfo(address).catch((err) => {
@@ -75,7 +89,7 @@ function HomePage() {
       setStats({
         todayDeliveries: earnings.completedDeliveries || 0,
         todayEarnings: earnings.totalEarnings || 0,
-        rating: 0, // Rating endpoint doesn't exist yet
+        rating: ratingData.rating || 0,
         stakedAmount: stakeInfo.amount || 0,
       });
     } catch (err) {
@@ -125,6 +139,18 @@ function HomePage() {
       alert("Erreur: " + err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await loadData();
+    } catch (err) {
+      console.error("Erreur lors de l'actualisation:", err);
+      alert("Erreur lors de l'actualisation des données");
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -199,7 +225,47 @@ function HomePage() {
 
   return (
     <div className="page">
-      <h1>Tableau de bord</h1>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '1.5rem',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        width: '100%'
+      }}>
+        <h1 style={{ margin: 0, flex: '1 1 auto' }}>Tableau de bord</h1>
+        <button 
+          onClick={handleRefresh} 
+          disabled={refreshing || checkingRegistration}
+          className="btn-primary"
+          style={{ 
+            padding: '0.75rem 1.5rem',
+            fontSize: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            cursor: (refreshing || checkingRegistration) ? 'not-allowed' : 'pointer',
+            minWidth: '150px',
+            justifyContent: 'center',
+            whiteSpace: 'nowrap',
+            visibility: 'visible',
+            opacity: (refreshing || checkingRegistration) ? 0.7 : 1
+          }}
+        >
+          {refreshing ? (
+            <>
+              <span>🔄</span>
+              <span>Actualisation...</span>
+            </>
+          ) : (
+            <>
+              <span>🔄</span>
+              <span>Actualiser</span>
+            </>
+          )}
+        </button>
+      </div>
 
       <label className="toggle">
         <input type="checkbox" checked={isOnline} onChange={toggleStatus} disabled={loading} />

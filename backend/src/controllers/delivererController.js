@@ -610,14 +610,40 @@ async function getDelivererEarnings(req, res) {
       });
     }
     
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, period } = req.query;
     
     const query = { 
       deliverer: deliverer._id,
       status: 'DELIVERED'
     };
     
-    if (startDate || endDate) {
+    // Support du paramètre period (today, week, month) ou dates personnalisées
+    if (period) {
+      const now = new Date();
+      let start = new Date();
+      
+      switch (period.toLowerCase()) {
+        case 'today':
+          start.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          start.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          start.setMonth(now.getMonth() - 1);
+          break;
+        default:
+          // Si period n'est pas reconnu, ignorer
+          break;
+      }
+      
+      if (period.toLowerCase() === 'today' || period.toLowerCase() === 'week' || period.toLowerCase() === 'month') {
+        query.completedAt = {
+          $gte: start,
+          $lte: now
+        };
+      }
+    } else if (startDate || endDate) {
       query.completedAt = {};
       if (startDate) query.completedAt.$gte = new Date(startDate);
       if (endDate) query.completedAt.$lte = new Date(endDate);
@@ -900,6 +926,139 @@ async function acceptOrder(req, res) {
   }
 }
 
+/**
+ * Gets deliverer rating and reviews
+ * @dev Calculates average rating from all delivered orders with reviews
+ * 
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
+ */
+async function getDelivererRating(req, res) {
+  try {
+    const address = req.params.address || req.userAddress || req.validatedAddress;
+    
+    const normalizedAddress = address.toLowerCase();
+    
+    const deliverer = await Deliverer.findByAddress(normalizedAddress);
+    if (!deliverer) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Deliverer not found"
+      });
+    }
+    
+    // Récupérer toutes les commandes livrées avec reviews
+    const ordersWithReviews = await Order.find({
+      deliverer: deliverer._id,
+      status: 'DELIVERED',
+      'review.rating': { $exists: true, $ne: null }
+    })
+    .populate('client', 'address name')
+    .sort({ 'review.createdAt': -1 });
+    
+    // Calculer la moyenne des ratings
+    let averageRating = 0;
+    if (ordersWithReviews.length > 0) {
+      const sumRatings = ordersWithReviews.reduce((sum, order) => {
+        return sum + (order.review?.rating || 0);
+      }, 0);
+      averageRating = sumRatings / ordersWithReviews.length;
+    }
+    
+    // Formater les reviews pour le frontend
+    const reviews = ordersWithReviews.map(order => ({
+      orderId: order.orderId,
+      rating: order.review?.rating || 0,
+      comment: order.review?.comment || '',
+      clientName: order.client?.name || 'Client',
+      clientAddress: order.client?.address || order.client,
+      createdAt: order.review?.createdAt || order.completedAt
+    }));
+    
+    return res.status(200).json({
+      success: true,
+      rating: parseFloat(averageRating.toFixed(2)),
+      totalDeliveries: deliverer.totalDeliveries || 0,
+      reviews: reviews
+    });
+  } catch (error) {
+    console.error("Error getting deliverer rating:", error);
+    
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to get deliverer rating",
+      details: error.message
+    });
+  }
+}
+
+/**
+ * Gets active delivery for a deliverer
+ * @dev Returns the order currently being delivered (status IN_DELIVERY)
+ * 
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
+ */
+async function getActiveDelivery(req, res) {
+  try {
+    const address = req.params.address || req.userAddress || req.validatedAddress;
+    
+    const normalizedAddress = address.toLowerCase();
+    
+    const deliverer = await Deliverer.findByAddress(normalizedAddress);
+    if (!deliverer) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Deliverer not found"
+      });
+    }
+    
+    // Récupérer la commande active (en cours de livraison)
+    const activeOrder = await Order.findOne({
+      deliverer: deliverer._id,
+      status: 'IN_DELIVERY'
+    })
+    .populate('restaurant', 'name address location')
+    .populate('client', 'address name');
+    
+    if (!activeOrder) {
+      return res.status(200).json(null);
+    }
+    
+    // Formater la commande pour le frontend
+    const formattedOrder = {
+      orderId: activeOrder.orderId,
+      restaurant: {
+        name: activeOrder.restaurant?.name || 'Restaurant',
+        address: activeOrder.restaurant?.address || activeOrder.restaurant,
+        location: activeOrder.restaurant?.location || null
+      },
+      client: {
+        name: activeOrder.client?.name || 'Client',
+        address: activeOrder.client?.address || activeOrder.client
+      },
+      deliveryAddress: activeOrder.deliveryAddress,
+      totalAmount: activeOrder.totalAmount,
+      deliveryFee: activeOrder.deliveryFee,
+      items: activeOrder.items || [],
+      status: activeOrder.status,
+      createdAt: activeOrder.createdAt,
+      pickedUpAt: activeOrder.pickedUpAt,
+      gpsTracking: activeOrder.gpsTracking || []
+    };
+    
+    return res.status(200).json(formattedOrder);
+  } catch (error) {
+    console.error("Error getting active delivery:", error);
+    
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to get active delivery",
+      details: error.message
+    });
+  }
+}
+
 module.exports = {
   registerDeliverer,
   getDeliverer,
@@ -909,5 +1068,7 @@ module.exports = {
   stakeAsDeliverer,
   unstake,
   getDelivererOrders,
-  getDelivererEarnings
+  getDelivererEarnings,
+  getDelivererRating,
+  getActiveDelivery
 };
