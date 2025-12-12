@@ -1,0 +1,1009 @@
+# Documentation des Smart Contracts - DoneFood
+
+Documentation technique complète des smart contracts de la plateforme DoneFood déployés sur Polygon.
+
+---
+
+## 📋 Table des matières
+
+1. [Vue d'ensemble](#vue-densemble)
+2. [Architecture](#architecture)
+3. [Contrats principaux](#contrats-principaux)
+4. [Interfaces et bibliothèques](#interfaces-et-bibliothèques)
+5. [Événements](#événements)
+6. [Sécurité](#sécurité)
+7. [Interactions entre contrats](#interactions-entre-contrats)
+8. [Exemples d'utilisation](#exemples-dutilisation)
+9. [Déploiement](#déploiement)
+
+---
+
+## 🎯 Vue d'ensemble
+
+DoneFood utilise une architecture de smart contracts décentralisée sur Polygon pour gérer :
+
+- 📦 **Gestion des commandes** : Cycle de vie complet des commandes
+- 💰 **Paiements** : Escrow et répartition automatique des fonds
+- 🎁 **Tokens de fidélité** : Système de récompenses DONE
+- 🔒 **Staking** : Garantie de fiabilité pour les livreurs
+- ⚖️ **Arbitrage** : Résolution des litiges
+
+### Technologies utilisées
+
+- **Solidity** : Version 0.8.20
+- **OpenZeppelin** : Contrats sécurisés (AccessControl, ReentrancyGuard, Pausable)
+- **Réseau** : Polygon (Mainnet/Testnet)
+- **Standards** : ERC20 pour les tokens
+
+---
+
+## 🏗️ Architecture
+
+### Contrats principaux
+
+```
+DoneOrderManager (Contrat principal)
+    ├── DonePaymentSplitter (Répartition des paiements)
+    ├── DoneToken (Tokens de fidélité)
+    ├── DoneStaking (Staking des livreurs)
+    └── Oracles (GPS, Prix, Météo)
+```
+
+### Flux de données
+
+```
+Client → createOrder() → DoneOrderManager
+                              ↓
+                    Escrow des fonds
+                              ↓
+Restaurant → confirmPreparation() → PREPARING
+                              ↓
+Platform → assignDeliverer() → ASSIGNED
+                              ↓
+Deliverer → confirmPickup() → IN_DELIVERY
+                              ↓
+Client → confirmDelivery() → DELIVERED
+                              ↓
+                    PaymentSplitter → Split (70/20/10)
+                              ↓
+                    DoneToken → Mint rewards
+```
+
+---
+
+## 📄 Contrats principaux
+
+### 1. DoneOrderManager.sol
+
+**Contrat principal** gérant le cycle de vie complet des commandes.
+
+#### Rôles (AccessControl)
+
+```solidity
+CLIENT_ROLE      // Clients qui passent des commandes
+RESTAURANT_ROLE  // Restaurants qui reçoivent des commandes
+DELIVERER_ROLE   // Livreurs qui livrent les commandes
+PLATFORM_ROLE    // Plateforme qui assigne les livreurs
+ARBITRATOR_ROLE  // Arbitres qui résolvent les litiges
+```
+
+#### États des commandes (OrderStatus)
+
+```solidity
+enum OrderStatus {
+    CREATED,      // Commande créée, en attente de préparation
+    PREPARING,    // Restaurant prépare la commande
+    ASSIGNED,     // Livreur assigné, en attente de récupération
+    IN_DELIVERY,  // Livreur en route vers le client
+    DELIVERED,    // Commande livrée et payée
+    DISPUTED      // Litige ouvert
+}
+```
+
+#### Structure Order
+
+```solidity
+struct Order {
+    uint256 id;              // Identifiant unique de la commande
+    address payable client;  // Adresse du client
+    address payable restaurant; // Adresse du restaurant
+    address payable deliverer;  // Adresse du livreur (assigné plus tard)
+    uint256 foodPrice;       // Prix de la nourriture (en wei)
+    uint256 deliveryFee;     // Frais de livraison (en wei)
+    uint256 platformFee;     // Commission plateforme (10% de foodPrice)
+    uint256 totalAmount;     // Montant total = foodPrice + deliveryFee + platformFee
+    OrderStatus status;      // État actuel de la commande
+    string ipfsHash;         // Hash IPFS des détails de la commande
+    uint256 createdAt;      // Timestamp de création
+    bool disputed;           // Indique si un litige est ouvert
+    bool delivered;          // Indique si la commande a été livrée
+}
+```
+
+#### Fonctions principales
+
+##### `createOrder()`
+
+Crée une nouvelle commande avec paiement en escrow.
+
+```solidity
+function createOrder(
+    address payable _restaurant,
+    uint256 _foodPrice,
+    uint256 _deliveryFee,
+    string memory _ipfsHash
+) external payable returns (uint256)
+```
+
+**Paramètres :**
+- `_restaurant` : Adresse du restaurant (doit avoir RESTAURANT_ROLE)
+- `_foodPrice` : Prix de la nourriture en wei
+- `_deliveryFee` : Frais de livraison en wei
+- `_ipfsHash` : Hash IPFS contenant les détails de la commande
+
+**Paiement requis :** `msg.value` doit être égal à `foodPrice + deliveryFee + platformFee`
+
+**Événement émis :** `OrderCreated(uint256 orderId, address client, address restaurant, uint256 totalAmount)`
+
+**Retourne :** `orderId` (identifiant unique de la commande)
+
+---
+
+##### `confirmPreparation()`
+
+Le restaurant confirme qu'il a commencé la préparation.
+
+```solidity
+function confirmPreparation(uint256 _orderId) external
+```
+
+**Contrôles :**
+- L'appelant doit être le restaurant de la commande
+- La commande doit être en état `CREATED`
+- L'appelant doit avoir `RESTAURANT_ROLE`
+
+**Transition :** `CREATED` → `PREPARING`
+
+**Événement émis :** `PreparationConfirmed(uint256 orderId, address restaurant)`
+
+---
+
+##### `assignDeliverer()`
+
+La plateforme assigne un livreur à la commande.
+
+```solidity
+function assignDeliverer(uint256 _orderId, address payable _deliverer) external
+```
+
+**Contrôles :**
+- L'appelant doit avoir `PLATFORM_ROLE`
+- Le livreur doit avoir `DELIVERER_ROLE`
+- Le livreur doit être staké (`isStaked(_deliverer) == true`)
+- La commande doit être en état `PREPARING`
+
+**Transition :** `PREPARING` → `ASSIGNED`
+
+**Événement émis :** `DelivererAssigned(uint256 orderId, address deliverer)`
+
+---
+
+##### `confirmPickup()`
+
+Le livreur confirme avoir récupéré la commande au restaurant.
+
+```solidity
+function confirmPickup(uint256 _orderId) external
+```
+
+**Contrôles :**
+- L'appelant doit être le livreur assigné
+- La commande doit être en état `ASSIGNED`
+- L'appelant doit avoir `DELIVERER_ROLE`
+
+**Transition :** `ASSIGNED` → `IN_DELIVERY`
+
+**Événement émis :** `PickupConfirmed(uint256 orderId, address deliverer)`
+
+---
+
+##### `confirmDelivery()`
+
+Le client confirme la réception de la commande. Déclenche automatiquement :
+1. Le split de paiement (70% restaurant, 20% livreur, 10% plateforme)
+2. Le mint de tokens DONE pour le client (10% de foodPrice)
+
+```solidity
+function confirmDelivery(uint256 _orderId) external
+```
+
+**Contrôles :**
+- L'appelant doit être le client de la commande
+- La commande doit être en état `IN_DELIVERY`
+
+**Actions automatiques :**
+1. Transition : `IN_DELIVERY` → `DELIVERED`
+2. Appel à `PaymentSplitter.splitPayment()` avec le montant total
+3. Mint de tokens DONE : `tokensToMint = foodPrice / 10`
+
+**Événement émis :** `DeliveryConfirmed(uint256 orderId, address client)`
+
+---
+
+##### `openDispute()`
+
+Ouvre un litige pour une commande. Les fonds sont gelés jusqu'à résolution.
+
+```solidity
+function openDispute(uint256 _orderId) external
+```
+
+**Contrôles :**
+- L'appelant doit être le client, le restaurant ou le livreur de la commande
+- La commande ne doit pas être déjà `DELIVERED`
+
+**Transition :** `*` → `DISPUTED` (depuis n'importe quel état sauf DELIVERED)
+
+**Événement émis :** `DisputeOpened(uint256 orderId, address opener)`
+
+---
+
+##### `resolveDispute()`
+
+Un arbitre résout un litige en faveur d'une partie.
+
+```solidity
+function resolveDispute(
+    uint256 _orderId,
+    address payable _winner,
+    uint256 _refundPercent
+) external
+```
+
+**Contrôles :**
+- L'appelant doit avoir `ARBITRATOR_ROLE`
+- La commande doit être en litige (`disputed == true`)
+- `_refundPercent` doit être ≤ 100
+
+**Actions :**
+- Calcul du remboursement : `refundAmount = totalAmount * refundPercent / 100`
+- Transfert au gagnant
+- Transition : `DISPUTED` → `DELIVERED`
+
+**Événement émis :** `DisputeResolved(uint256 orderId, address winner, uint256 amount)`
+
+---
+
+#### Fonctions de consultation (view)
+
+##### `getOrder(uint256 _orderId)`
+
+Retourne les détails complets d'une commande.
+
+```solidity
+function getOrder(uint256 _orderId) external view returns (Order memory)
+```
+
+##### `getClientOrders(address _client)`
+
+Retourne la liste des IDs de commandes d'un client.
+
+```solidity
+function getClientOrders(address _client) external view returns (uint256[] memory)
+```
+
+##### `getRestaurantOrders(address _restaurant)`
+
+Retourne la liste des IDs de commandes d'un restaurant.
+
+```solidity
+function getRestaurantOrders(address _restaurant) external view returns (uint256[] memory)
+```
+
+##### `getDelivererOrders(address _deliverer)`
+
+Retourne la liste des IDs de commandes d'un livreur.
+
+```solidity
+function getDelivererOrders(address _deliverer) external view returns (uint256[] memory)
+```
+
+##### `getTotalOrders()`
+
+Retourne le nombre total de commandes créées.
+
+```solidity
+function getTotalOrders() external view returns (uint256)
+```
+
+---
+
+#### Fonctions d'administration
+
+##### `pause() / unpause()`
+
+Mise en pause/activation du contrat en cas d'urgence.
+
+```solidity
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE)
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE)
+```
+
+##### `updatePlatformWallet(address payable newWallet)`
+
+Met à jour l'adresse du wallet plateforme.
+
+```solidity
+function updatePlatformWallet(address payable newWallet) external onlyRole(DEFAULT_ADMIN_ROLE)
+```
+
+##### Configuration des oracles
+
+```solidity
+function setGPSOracle(address _oracle) external onlyRole(DEFAULT_ADMIN_ROLE)
+function setPriceOracle(address _oracle) external onlyRole(DEFAULT_ADMIN_ROLE)
+function setWeatherOracle(address _oracle) external onlyRole(DEFAULT_ADMIN_ROLE)
+```
+
+---
+
+### 2. DonePaymentSplitter.sol
+
+**Contrat de répartition automatique des paiements** entre restaurant, livreur et plateforme.
+
+#### Constantes de répartition
+
+```solidity
+uint256 public constant RESTAURANT_PERCENT = 70;  // 70% pour le restaurant
+uint256 public constant DELIVERER_PERCENT = 20;   // 20% pour le livreur
+uint256 public constant PLATFORM_PERCENT = 10;    // 10% pour la plateforme
+```
+
+#### Fonction principale
+
+##### `splitPayment()`
+
+Répartit le paiement reçu selon les pourcentages définis.
+
+```solidity
+function splitPayment(
+    uint256 _orderId,
+    address payable _restaurant,
+    address payable _deliverer,
+    address payable _platform
+) external payable
+```
+
+**Paramètres :**
+- `_orderId` : ID de la commande
+- `_restaurant` : Adresse du restaurant (70%)
+- `_deliverer` : Adresse du livreur (20%)
+- `_platform` : Adresse de la plateforme (10%)
+
+**Actions :**
+- Calcule les montants pour chaque partie
+- Ajoute les montants aux balances internes
+- Émet l'événement `PaymentSplit`
+
+**Événement émis :**
+```solidity
+event PaymentSplit(
+    uint256 indexed orderId,
+    address indexed restaurant,
+    address indexed deliverer,
+    address platform,
+    uint256 restaurantAmount,
+    uint256 delivererAmount,
+    uint256 platformAmount,
+    uint256 timestamp
+);
+```
+
+---
+
+##### `withdraw()`
+
+Permet à chaque partie de retirer ses fonds accumulés.
+
+```solidity
+function withdraw() external nonReentrant
+```
+
+**Actions :**
+- Vérifie que l'appelant a un solde > 0
+- Transfère le solde complet
+- Remet le solde à zéro
+
+**Événement émis :** `Withdrawn(address indexed payee, uint256 amount)`
+
+---
+
+##### `getPendingBalance(address payee)`
+
+Consulte le solde en attente d'un bénéficiaire.
+
+```solidity
+function getPendingBalance(address payee) external view returns (uint256)
+```
+
+---
+
+### 3. DoneToken.sol
+
+**Token ERC20 de fidélité** pour récompenser les clients.
+
+#### Caractéristiques
+
+- **Nom** : "DONE Token"
+- **Symbole** : "DONE"
+- **Décimales** : 18 (standard ERC20)
+- **Type** : ERC20 standard avec mint/burn
+
+#### Rôles
+
+```solidity
+MINTER_ROLE  // Peut créer de nouveaux tokens
+```
+
+#### Fonctions principales
+
+##### `mint(address to, uint256 amount)`
+
+Crée de nouveaux tokens DONE.
+
+```solidity
+function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE)
+```
+
+**Utilisation :** Appelé automatiquement par `DoneOrderManager` après livraison.
+
+**Taux de récompense :** `tokensToMint = foodPrice / 10` (10% de la valeur de la commande)
+
+---
+
+##### `burn(uint256 amount)`
+
+Le détenteur brûle ses propres tokens.
+
+```solidity
+function burn(uint256 amount) external
+```
+
+---
+
+##### `burnFrom(address account, uint256 amount)`
+
+Brûle des tokens d'un compte avec autorisation préalable.
+
+```solidity
+function burnFrom(address account, uint256 amount) external
+```
+
+**Utilisation :** Pour les promotions ou réductions utilisant les tokens.
+
+---
+
+##### `calculateReward(uint256 foodPrice)`
+
+Calcule le nombre de tokens à distribuer pour un prix donné.
+
+```solidity
+function calculateReward(uint256 foodPrice) public pure returns (uint256)
+```
+
+**Formule :** `reward = foodPrice / 10`
+
+---
+
+### 4. DoneStaking.sol
+
+**Contrat de staking** pour garantir la fiabilité des livreurs.
+
+#### Constantes
+
+```solidity
+uint256 public constant MINIMUM_STAKE = 0.1 ether;  // Minimum requis : 0.1 ETH
+```
+
+#### Rôles
+
+```solidity
+PLATFORM_ROLE  // Peut slasher les livreurs en cas de faute
+```
+
+#### Fonctions principales
+
+##### `stakeAsDeliverer()`
+
+Un livreur effectue un stake pour pouvoir livrer.
+
+```solidity
+function stakeAsDeliverer() external payable
+```
+
+**Contrôles :**
+- `msg.value >= MINIMUM_STAKE` (0.1 ETH minimum)
+- Le livreur ne doit pas déjà être staké
+
+**Actions :**
+- Enregistre le montant staké
+- Marque le livreur comme staké
+
+**Événement émis :** `Staked(address indexed deliverer, uint256 amount)`
+
+---
+
+##### `unstake()`
+
+Un livreur retire son stake (si aucune livraison active).
+
+```solidity
+function unstake() external nonReentrant
+```
+
+**Contrôles :**
+- Le livreur doit être staké
+
+**Actions :**
+- Transfère le montant staké au livreur
+- Remet les états à zéro
+
+**Événement émis :** `Unstaked(address indexed deliverer, uint256 amount)`
+
+---
+
+##### `slash(address deliverer, uint256 amount)`
+
+La plateforme confisque une partie du stake en cas de faute.
+
+```solidity
+function slash(address deliverer, uint256 amount)
+    external
+    onlyRole(PLATFORM_ROLE)
+    nonReentrant
+```
+
+**Contrôles :**
+- L'appelant doit avoir `PLATFORM_ROLE`
+- Le livreur doit être staké
+- `amount <= stakedAmount[deliverer]`
+
+**Actions :**
+- Réduit le stake du livreur
+- Transfère le montant à la plateforme
+- Si le stake tombe à 0, le livreur n'est plus considéré comme staké
+
+**Événement émis :** `Slashed(address indexed deliverer, uint256 amount, address indexed platform)`
+
+---
+
+##### Fonctions de consultation
+
+```solidity
+function isStaked(address deliverer) external view returns (bool)
+function getStakedAmount(address deliverer) external view returns (uint256)
+```
+
+---
+
+## 🔌 Interfaces et bibliothèques
+
+### IOrderManager.sol
+
+Interface standardisée pour interagir avec `DoneOrderManager`.
+
+**Définit :**
+- Les structures `Order` et `OrderStatus`
+- Les signatures de toutes les fonctions publiques
+- Les événements émis
+
+**Utilisation :** Pour les intégrations tierces et les tests.
+
+---
+
+### IPaymentSplitter.sol
+
+Interface pour `DonePaymentSplitter`.
+
+**Définit :**
+- La fonction `splitPayment()`
+- L'événement `PaymentSplit`
+
+---
+
+### OrderLib.sol
+
+**Bibliothèque utilitaire** pour la gestion des commandes (optimisation gas).
+
+#### Fonctions
+
+##### `validateOrderAmount(uint256 foodPrice, uint256 deliveryFee)`
+
+Valide que les montants sont corrects et non-nuls.
+
+```solidity
+function validateOrderAmount(
+    uint256 foodPrice,
+    uint256 deliveryFee
+) internal pure
+```
+
+---
+
+##### `calculateTotalAmount(uint256 foodPrice, uint256 deliveryFee, uint256 platformFeePercent)`
+
+Calcule le montant total incluant la commission plateforme.
+
+```solidity
+function calculateTotalAmount(
+    uint256 foodPrice,
+    uint256 deliveryFee,
+    uint256 platformFeePercent
+) internal pure returns (uint256)
+```
+
+**Formule :** `total = foodPrice + deliveryFee + (foodPrice * platformFeePercent / 100)`
+
+---
+
+##### `validateStateTransition(OrderStatus currentStatus, OrderStatus newStatus)`
+
+Vérifie qu'une transition d'état est valide selon le workflow.
+
+```solidity
+function validateStateTransition(
+    OrderStatus currentStatus,
+    OrderStatus newStatus
+) internal pure
+```
+
+**Transitions valides :**
+- `CREATED` → `PREPARING` ou `DISPUTED`
+- `PREPARING` → `IN_DELIVERY` ou `DISPUTED`
+- `IN_DELIVERY` → `DELIVERED` ou `DISPUTED`
+- `ASSIGNED` → `IN_DELIVERY` (via `confirmPickup()`)
+- `DISPUTED` → `DELIVERED` (via `resolveDispute()`)
+
+---
+
+##### `calculatePlatformFee(uint256 foodPrice, uint256 feePercent)`
+
+Calcule la commission plateforme.
+
+```solidity
+function calculatePlatformFee(
+    uint256 foodPrice,
+    uint256 feePercent
+) internal pure returns (uint256)
+```
+
+---
+
+##### `isValidIPFSHash(string memory ipfsHash)`
+
+Vérifie qu'un hash IPFS est valide (format CID).
+
+```solidity
+function isValidIPFSHash(string memory ipfsHash) internal pure returns (bool)
+```
+
+---
+
+## 📢 Événements
+
+### DoneOrderManager
+
+| Événement | Paramètres | Description |
+|-----------|------------|-------------|
+| `OrderCreated` | `orderId`, `client`, `restaurant`, `totalAmount` | Commande créée |
+| `PreparationConfirmed` | `orderId`, `restaurant` | Préparation confirmée |
+| `DelivererAssigned` | `orderId`, `deliverer` | Livreur assigné |
+| `PickupConfirmed` | `orderId`, `deliverer` | Récupération confirmée |
+| `DeliveryConfirmed` | `orderId`, `client` | Livraison confirmée |
+| `DisputeOpened` | `orderId`, `opener` | Litige ouvert |
+| `DisputeResolved` | `orderId`, `winner`, `amount` | Litige résolu |
+
+### DonePaymentSplitter
+
+| Événement | Paramètres | Description |
+|-----------|------------|-------------|
+| `PaymentSplit` | `orderId`, `restaurant`, `deliverer`, `platform`, `restaurantAmount`, `delivererAmount`, `platformAmount`, `timestamp` | Paiement réparti |
+| `Withdrawn` | `payee`, `amount` | Retrait effectué |
+
+### DoneStaking
+
+| Événement | Paramètres | Description |
+|-----------|------------|-------------|
+| `Staked` | `deliverer`, `amount` | Stake effectué |
+| `Unstaked` | `deliverer`, `amount` | Stake retiré |
+| `Slashed` | `deliverer`, `amount`, `platform` | Stake confisqué |
+
+### DoneToken
+
+Événements standards ERC20 :
+- `Transfer(address indexed from, address indexed to, uint256 value)`
+- `Approval(address indexed owner, address indexed spender, uint256 value)`
+
+---
+
+## 🔒 Sécurité
+
+### Mesures de sécurité implémentées
+
+#### 1. ReentrancyGuard
+
+Tous les contrats utilisent `ReentrancyGuard` d'OpenZeppelin pour protéger contre les attaques de réentrance.
+
+**Contrats protégés :**
+- `DoneOrderManager` : `createOrder()`, `confirmDelivery()`, `resolveDispute()`
+- `DonePaymentSplitter` : `splitPayment()`, `withdraw()`
+- `DoneStaking` : `stakeAsDeliverer()`, `unstake()`, `slash()`
+
+---
+
+#### 2. AccessControl
+
+Gestion fine des permissions avec OpenZeppelin `AccessControl`.
+
+**Rôles définis :**
+- `DEFAULT_ADMIN_ROLE` : Administration complète
+- `RESTAURANT_ROLE` : Confirmation de préparation
+- `DELIVERER_ROLE` : Confirmation de récupération/livraison
+- `PLATFORM_ROLE` : Assignation de livreurs, slashing
+- `ARBITRATOR_ROLE` : Résolution de litiges
+- `MINTER_ROLE` : Création de tokens DONE
+
+---
+
+#### 3. Pausable
+
+Le contrat `DoneOrderManager` peut être mis en pause en cas d'urgence.
+
+**Fonctions :**
+- `pause()` : Met en pause (admin uniquement)
+- `unpause()` : Reprend le fonctionnement (admin uniquement)
+
+**Protection :** Toutes les fonctions critiques utilisent le modifier `whenNotPaused`.
+
+---
+
+#### 4. Validations
+
+**Validations de montants :**
+- Vérification que `msg.value` correspond au montant attendu
+- Protection contre les overflows avec SafeMath (intégré Solidity 0.8+)
+- Validation des adresses (non-nulles)
+
+**Validations d'état :**
+- Vérification des transitions d'état valides
+- Protection contre les actions sur des commandes déjà terminées
+
+---
+
+#### 5. Escrow Pattern
+
+Les fonds sont détenus en escrow dans le contrat jusqu'à livraison confirmée.
+
+**Avantages :**
+- Protection du client (paiement sécurisé)
+- Protection du restaurant/livreur (fonds garantis)
+- Résolution de litiges possible
+
+---
+
+## 🔄 Interactions entre contrats
+
+### Flux de paiement
+
+```
+1. Client → createOrder() → DoneOrderManager
+   └─> Fonds en escrow dans DoneOrderManager
+
+2. Client → confirmDelivery() → DoneOrderManager
+   └─> Appel interne → PaymentSplitter.splitPayment()
+       ├─> 70% → Restaurant (balance)
+       ├─> 20% → Livreur (balance)
+       └─> 10% → Plateforme (balance)
+
+3. Restaurant/Livreur/Plateforme → withdraw() → PaymentSplitter
+   └─> Transfert des fonds
+```
+
+### Flux de récompenses
+
+```
+1. Client → confirmDelivery() → DoneOrderManager
+   └─> Calcul : tokensToMint = foodPrice / 10
+   └─> Appel interne → DoneToken.mint(client, tokensToMint)
+```
+
+### Flux de staking
+
+```
+1. Livreur → stakeAsDeliverer() → DoneStaking
+   └─> Stake enregistré
+
+2. Plateforme → assignDeliverer() → DoneOrderManager
+   └─> Vérification : DoneStaking.isStaked(deliverer)
+
+3. (En cas de faute) Plateforme → slash() → DoneStaking
+   └─> Confiscation d'une partie du stake
+```
+
+---
+
+## 💻 Exemples d'utilisation
+
+### Exemple 1 : Créer une commande
+
+```solidity
+// Client crée une commande
+uint256 foodPrice = 0.1 ether;      // 0.1 ETH de nourriture
+uint256 deliveryFee = 0.001 ether;  // 0.001 ETH de livraison
+uint256 platformFee = 0.01 ether;  // 10% = 0.01 ETH
+uint256 totalAmount = 0.111 ether;  // Total à payer
+
+uint256 orderId = orderManager.createOrder{value: totalAmount}(
+    restaurantAddress,
+    foodPrice,
+    deliveryFee,
+    "QmXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" // IPFS hash
+);
+```
+
+### Exemple 2 : Workflow complet
+
+```solidity
+// 1. Restaurant confirme la préparation
+orderManager.confirmPreparation(orderId);
+
+// 2. Plateforme assigne un livreur
+orderManager.assignDeliverer(orderId, delivererAddress);
+
+// 3. Livreur confirme la récupération
+orderManager.confirmPickup(orderId);
+
+// 4. Client confirme la livraison
+orderManager.confirmDelivery(orderId);
+// → Déclenche automatiquement :
+//    - Split de paiement (70/20/10)
+//    - Mint de tokens DONE (10% de foodPrice)
+```
+
+### Exemple 3 : Ouvrir un litige
+
+```solidity
+// Client ouvre un litige
+orderManager.openDispute(orderId);
+// → Les fonds sont gelés jusqu'à résolution
+```
+
+### Exemple 4 : Résoudre un litige
+
+```solidity
+// Arbitre résout en faveur du client (100% remboursement)
+orderManager.resolveDispute(
+    orderId,
+    clientAddress,
+    100  // 100% de remboursement
+);
+```
+
+### Exemple 5 : Staking d'un livreur
+
+```solidity
+// Livreur effectue un stake
+stakingContract.stakeAsDeliverer{value: 0.1 ether}();
+// → Minimum requis : 0.1 ETH
+```
+
+### Exemple 6 : Retirer les fonds du PaymentSplitter
+
+```solidity
+// Restaurant retire ses fonds accumulés
+paymentSplitter.withdraw();
+// → Transfère tous les fonds en attente
+```
+
+---
+
+## 🚀 Déploiement
+
+### Ordre de déploiement
+
+1. **DoneToken** (aucune dépendance)
+2. **DonePaymentSplitter** (aucune dépendance)
+3. **DoneStaking** (aucune dépendance)
+4. **DoneOrderManager** (dépend de tous les autres)
+
+### Configuration post-déploiement
+
+1. **Attribuer les rôles** :
+   ```solidity
+   orderManager.grantRole(RESTAURANT_ROLE, restaurantAddress);
+   orderManager.grantRole(DELIVERER_ROLE, delivererAddress);
+   orderManager.grantRole(ARBITRATOR_ROLE, arbitratorAddress);
+   ```
+
+2. **Configurer les autorisations** :
+   ```solidity
+   tokenContract.grantRole(MINTER_ROLE, orderManagerAddress);
+   ```
+
+3. **Configurer les oracles** (optionnel) :
+   ```solidity
+   orderManager.setGPSOracle(gpsOracleAddress);
+   orderManager.setPriceOracle(priceOracleAddress);
+   orderManager.setWeatherOracle(weatherOracleAddress);
+   ```
+
+### Variables d'environnement
+
+```bash
+PRIVATE_KEY=0x...                    # Clé privée du déployeur
+POLYGON_RPC_URL=https://...          # URL RPC Polygon
+ORDER_MANAGER_ADDRESS=0x...          # Adresse déployée
+PAYMENT_SPLITTER_ADDRESS=0x...       # Adresse déployée
+TOKEN_ADDRESS=0x...                  # Adresse déployée
+STAKING_ADDRESS=0x...                # Adresse déployée
+```
+
+---
+
+## 📊 Statistiques et limites
+
+### Limites de gas
+
+| Fonction | Gas estimé |
+|----------|-----------|
+| `createOrder()` | ~150,000 |
+| `confirmPreparation()` | ~50,000 |
+| `assignDeliverer()` | ~60,000 |
+| `confirmPickup()` | ~50,000 |
+| `confirmDelivery()` | ~200,000 |
+| `openDispute()` | ~50,000 |
+| `resolveDispute()` | ~100,000 |
+
+### Limites de montants
+
+- **Staking minimum** : 0.1 ETH
+- **Commission plateforme** : 10% (fixe)
+- **Répartition paiement** : 70% / 20% / 10% (fixe)
+- **Taux de récompense tokens** : 10% de foodPrice (1 DONE / 10 ETH)
+
+---
+
+## 🔍 Vérification sur Polygonscan
+
+Pour vérifier les contrats sur Polygonscan :
+
+1. Allez sur [polygonscan.com](https://polygonscan.com)
+2. Entrez l'adresse du contrat
+3. Cliquez sur "Contract" → "Verify and Publish"
+4. Uploadez le code source et les paramètres de compilation
+
+---
+
+## 📝 Notes importantes
+
+- ⚠️ **Tous les montants sont en wei** (1 ETH = 10^18 wei)
+- ⚠️ **Les adresses doivent être valides** (non-nulles)
+- ⚠️ **Les transitions d'état sont strictes** (workflow défini)
+- ⚠️ **Les rôles doivent être configurés** avant utilisation
+- ⚠️ **Les oracles sont optionnels** mais recommandés pour la production
+
+---
+
+## 🆘 Support technique
+
+Pour toute question technique sur les smart contracts :
+
+- **Documentation** : Voir ce fichier
+- **Code source** : `contracts/contracts/`
+- **Tests** : `contracts/test/`
+- **Support** : support@donefood.io
+
+---
+
+**Dernière mise à jour** : 2024
+

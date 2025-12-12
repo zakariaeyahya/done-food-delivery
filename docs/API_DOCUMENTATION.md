@@ -49,17 +49,20 @@ Content-Type: application/json
 |----------|-------|---------------|
 | Health | 1 | No |
 | Users | 5 | Partial |
-| Restaurants | 13 | Partial |
-| Deliverers | 8 | Partial |
-| Orders | 12 | Partial |
-| Admin | 8 | Yes (PLATFORM) |
+| Restaurants | 14 | Partial |
+| Deliverers | 12 | Partial |
+| Orders | 13 | Partial |
+| Admin | 20 | Yes (PLATFORM) |
 | Analytics | 5 | Yes (PLATFORM) |
 | Oracles | 5 | Partial |
-| Disputes | 3 | Partial |
+| Disputes | 5 | Partial |
 | Tokens | 3 | Partial |
 | Payments | 2 | Yes |
+| Reviews | 1 | Yes (CLIENT) |
+| Upload | 1 | No |
+| Cart | 5 | No |
 
-**Total: 65 endpoints**
+**Total: 96 endpoints**
 
 ---
 
@@ -200,6 +203,29 @@ curl "http://localhost:3000/api/restaurants?cuisine=Italian"
 
 ---
 
+### `GET /api/restaurants/by-address/:address`
+
+Get restaurant by wallet address.
+
+```bash
+curl http://localhost:3000/api/restaurants/by-address/0x8ba1f109551bD432803012645Ac136ddd64DBA72
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "restaurant": {
+    "_id": "...",
+    "address": "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+    "name": "Pizza Palace",
+    "cuisine": "Italian"
+  }
+}
+```
+
+---
+
 ### `GET /api/restaurants/:id`
 
 Get restaurant details.
@@ -335,6 +361,50 @@ Get deliverer profile with staking status.
 
 Get available deliverers.
 
+**Query params:**
+- `lat` - Latitude (optional, for distance calculation)
+- `lng` - Longitude (optional, for distance calculation)
+
+**Response:**
+```json
+{
+  "success": true,
+  "deliverers": [
+    {
+      "address": "0x...",
+      "name": "Mike",
+      "isAvailable": true,
+      "isStaked": true,
+      "rating": 4.6
+    }
+  ]
+}
+```
+
+---
+
+### `POST /api/deliverers/orders/:orderId/accept` (Auth: DELIVERER)
+
+Accept an order for delivery.
+
+```json
+{
+  "delivererAddress": "0x..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "orderId": 123,
+    "deliverer": "0x...",
+    "status": "IN_DELIVERY"
+  }
+}
+```
+
 ---
 
 ### `PUT /api/deliverers/:address/status` (Auth: DELIVERER)
@@ -377,6 +447,68 @@ Get deliverer's orders.
 ### `GET /api/deliverers/:address/earnings` (Auth: DELIVERER)
 
 Get deliverer earnings.
+
+**Query params:**
+- `period` - `today`, `week`, `month` (optional)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalEarnings": "150.50",
+    "completedDeliveries": 25,
+    "period": "week"
+  }
+}
+```
+
+---
+
+### `GET /api/deliverers/:address/rating`
+
+Get deliverer rating and reviews.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "rating": 4.6,
+    "totalReviews": 45,
+    "reviews": [
+      {
+        "rating": 5,
+        "comment": "Fast delivery!",
+        "orderId": 123,
+        "createdAt": "2025-01-15T10:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### `GET /api/deliverers/:address/active-delivery`
+
+Get active delivery for a deliverer.
+
+**Response:**
+```json
+{
+  "success": true,
+  "order": {
+    "orderId": 123,
+    "status": "IN_DELIVERY",
+    "restaurant": {...},
+    "client": {...},
+    "deliveryAddress": "123 Rue Example"
+  }
+}
+```
+
+**Note:** Returns `null` if no active delivery.
 
 ---
 
@@ -540,6 +672,35 @@ Submit a review.
 
 ---
 
+### `POST /api/reviews` (Auth: CLIENT)
+
+Submit a review (alternative route).
+
+```json
+{
+  "orderId": 123,
+  "rating": 5,
+  "comment": "Excellent service!",
+  "clientAddress": "0x..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "review": {
+    "orderId": 123,
+    "rating": 5,
+    "comment": "Excellent service!",
+    "clientAddress": "0x...",
+    "createdAt": "2025-01-15T10:00:00Z"
+  }
+}
+```
+
+---
+
 ### `GET /api/orders/history/:address`
 
 Get order history.
@@ -547,6 +708,37 @@ Get order history.
 **Query params:**
 - `role` - `client`, `restaurant`, or `deliverer`
 - `page`, `limit` - Pagination
+
+---
+
+### `GET /api/orders/:id/receipt`
+
+Get order receipt (PDF/HTML format).
+
+**Response:**
+```json
+{
+  "success": true,
+  "receipt": {
+    "receiptNumber": "RCP-123456",
+    "orderId": 123,
+    "date": "2025-01-15T10:00:00Z",
+    "deliveredAt": "2025-01-15T11:30:00Z",
+    "restaurant": {
+      "name": "Pizza Palace",
+      "address": "..."
+    },
+    "items": [...],
+    "subtotal": "19.00",
+    "deliveryFee": "2.00",
+    "platformFee": "2.10",
+    "total": "23.10",
+    "currency": "POL",
+    "txHash": "0xabc123...",
+    "review": {...}
+  }
+}
+```
 
 ---
 
@@ -580,13 +772,86 @@ Platform statistics.
 List all disputes.
 
 **Query params:**
-- `status` - `VOTING`, `RESOLVED`
+- `status` - `pending`, `resolved` (optional)
+- `search` - Search by orderId (optional)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "...",
+      "disputeId": 123,
+      "orderId": 123,
+      "status": "pending",
+      "client": "0x...",
+      "restaurant": "0x...",
+      "createdAt": "2025-01-15T10:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/admin/disputes/:id`
+
+Get dispute details.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "...",
+    "disputeId": 123,
+    "orderId": 123,
+    "order": {...},
+    "client": {...},
+    "restaurant": {...},
+    "deliverer": {...},
+    "status": "pending",
+    "disputeReason": "Food was cold",
+    "disputeEvidence": ["QmXxx..."],
+    "createdAt": "2025-01-15T10:00:00Z"
+  }
+}
+```
+
+---
+
+### `POST /api/admin/disputes/:id/resolve`
+
+Resolve a dispute (new route).
+
+```json
+{
+  "winner": "CLIENT",
+  "reason": "Client was right, food was indeed cold"
+}
+```
+
+**Valid winners:** `CLIENT`, `RESTAURANT`, `DELIVERER`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "txHash": "0xabc123...",
+    "disputeId": 123,
+    "winner": "CLIENT",
+    "message": "Dispute resolved successfully"
+  }
+}
+```
 
 ---
 
 ### `POST /api/admin/resolve-dispute/:id`
 
-Resolve a dispute.
+Resolve a dispute (legacy route for compatibility).
 
 ```json
 {
@@ -623,6 +888,228 @@ Penalize a deliverer.
   "amount": "0.05",
   "reason": "Order cancellation abuse",
   "orderId": 123
+}
+```
+
+---
+
+### `GET /api/admin/orders`
+
+List all orders (admin view).
+
+**Query params:**
+- `status` - Filter by status (optional)
+- `dateFrom`, `dateTo` - Date range (optional)
+- `restaurant` - Filter by restaurant (optional)
+- `deliverer` - Filter by deliverer (optional)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "orders": [...],
+    "total": 1234,
+    "page": 1,
+    "limit": 50
+  }
+}
+```
+
+---
+
+### `GET /api/admin/orders/:orderId`
+
+Get order details (admin view).
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order": {...},
+    "client": {...},
+    "restaurant": {...},
+    "deliverer": {...},
+    "timeline": [...],
+    "transactions": [...]
+  }
+}
+```
+
+---
+
+### `GET /api/admin/analytics/orders`
+
+Get order analytics.
+
+**Query params:**
+- `period` - `day`, `week`, `month`, `year` (optional)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalOrders": 1234,
+    "avgBasket": "19.50",
+    "growthRate": 15.5,
+    "chartData": [...]
+  }
+}
+```
+
+---
+
+### `GET /api/admin/analytics/revenue`
+
+Get revenue analytics.
+
+**Query params:**
+- `startDate`, `endDate` - Date range (optional)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalRevenue": "1234.50",
+    "platformRevenue": "123.45",
+    "restaurantRevenue": "864.15",
+    "delivererRevenue": "246.90",
+    "chartData": [...]
+  }
+}
+```
+
+---
+
+### `GET /api/admin/analytics/users`
+
+Get user growth analytics.
+
+**Query params:**
+- `period` - `day`, `week`, `month`, `year` (optional)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalUsers": 500,
+    "clients": 400,
+    "restaurants": 50,
+    "deliverers": 50,
+    "growthRate": 10.5,
+    "chartData": [...]
+  }
+}
+```
+
+---
+
+### `GET /api/admin/analytics/top-deliverers`
+
+Get top deliverers by performance.
+
+**Query params:**
+- `limit` - Number of results (default: 10)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "address": "0x...",
+      "name": "Mike",
+      "totalDeliveries": 180,
+      "rating": 4.8,
+      "totalEarnings": "3420.00"
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/admin/analytics/top-restaurants`
+
+Get top restaurants by revenue.
+
+**Query params:**
+- `limit` - Number of results (default: 10)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "...",
+      "name": "Pizza Palace",
+      "totalOrders": 250,
+      "revenue": "3750.00",
+      "rating": 4.8
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/admin/analytics/disputes`
+
+Get dispute analytics histogram.
+
+**Query params:**
+- `period` - `day`, `week`, `month`, `year` (optional)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalDisputes": 45,
+    "resolved": 40,
+    "pending": 5,
+    "histogram": [...]
+  }
+}
+```
+
+---
+
+### `GET /api/admin/ping`
+
+Check admin connection.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "pong",
+  "timestamp": "2025-01-15T10:00:00Z"
+}
+```
+
+---
+
+### `GET /api/admin/config`
+
+Get platform configuration (contract addresses).
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "orderManagerAddress": "0x...",
+    "paymentSplitterAddress": "0x...",
+    "tokenAddress": "0x...",
+    "stakingAddress": "0x...",
+    "network": "polygon"
+  }
 }
 ```
 
@@ -730,11 +1217,88 @@ Vote on a dispute.
 
 Get dispute votes.
 
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "disputeId": 123,
+    "votes": [
+      {
+        "voterAddress": "0x...",
+        "winner": "CLIENT",
+        "reason": "Food was indeed cold",
+        "timestamp": "2025-01-15T10:00:00Z"
+      }
+    ],
+    "summary": {
+      "CLIENT": 3,
+      "RESTAURANT": 1,
+      "DELIVERER": 0
+    }
+  }
+}
+```
+
+---
+
+### `GET /api/disputes/:id`
+
+Get dispute details.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "disputeId": 123,
+    "orderId": 123,
+    "reason": "Food was cold",
+    "evidence": ["QmXxx..."],
+    "status": "VOTING",
+    "votes": [...],
+    "createdAt": "2025-01-15T10:00:00Z"
+  }
+}
+```
+
 ---
 
 ### `POST /api/disputes/:id/resolve` (Auth: PLATFORM)
 
-Force resolve a dispute.
+Force resolve a dispute (after voting).
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "disputeId": 123,
+    "winner": "CLIENT",
+    "txHash": "0xabc123..."
+  }
+}
+```
+
+---
+
+### `GET /api/disputes/metrics`
+
+Get arbitration metrics.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalDisputes": 100,
+    "resolved": 95,
+    "pending": 5,
+    "averageResolutionTime": 3600,
+    "topArbitrators": [...]
+  }
+}
+```
 
 ---
 
@@ -786,6 +1350,133 @@ Use tokens for order discount.
   "orderId": 123
 }
 ```
+
+---
+
+## Cart
+
+### `GET /api/cart/:address`
+
+Get user's cart.
+
+**Response:**
+```json
+{
+  "success": true,
+  "cart": {
+    "items": [
+      {
+        "itemId": "item_123",
+        "name": "Pizza Margherita",
+        "price": 15.50,
+        "quantity": 2,
+        "restaurantId": "..."
+      }
+    ],
+    "total": 31.00
+  }
+}
+```
+
+---
+
+### `POST /api/cart/:address/add`
+
+Add item to cart.
+
+```json
+{
+  "itemId": "item_123",
+  "name": "Pizza Margherita",
+  "price": 15.50,
+  "quantity": 1,
+  "restaurantId": "..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Item added to cart",
+  "cart": {...}
+}
+```
+
+---
+
+### `PUT /api/cart/:address/update`
+
+Update cart item quantity.
+
+```json
+{
+  "itemId": "item_123",
+  "quantity": 3
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Cart updated",
+  "cart": {...}
+}
+```
+
+---
+
+### `DELETE /api/cart/:address/remove/:itemId`
+
+Remove item from cart.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Item removed from cart",
+  "cart": {...}
+}
+```
+
+---
+
+### `DELETE /api/cart/:address/clear`
+
+Clear entire cart.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Cart cleared"
+}
+```
+
+---
+
+## Upload
+
+### `POST /api/upload/image`
+
+Upload an image to IPFS.
+
+**Content-Type:** `multipart/form-data`
+
+**Body:**
+- `file` - Image file (max 10MB)
+
+**Response:**
+```json
+{
+  "success": true,
+  "ipfsHash": "QmXxx...",
+  "url": "https://ipfs.io/ipfs/QmXxx..."
+}
+```
+
+**Note:** In development mode, returns a mock hash if Pinata is not configured.
 
 ---
 
@@ -891,6 +1582,7 @@ cd backend
 node src/tests/api-tests.js
 
 # Expected output: 74/75 tests passing
+# Note: Some new endpoints may not have tests yet
 ```
 
 ### Test Categories
