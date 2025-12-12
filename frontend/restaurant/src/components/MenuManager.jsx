@@ -394,7 +394,7 @@ function MenuItemCard({ item, onEdit, onDelete, onToggle }) {
 
       <div className="mt-3 flex items-center justify-between">
         <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
-          {formatPrice(item.price)} MATIC
+          {formatPrice(item.price, 'MATIC', 5)}
         </p>
 
         <label className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200">

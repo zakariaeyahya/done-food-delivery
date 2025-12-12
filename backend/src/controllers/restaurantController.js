@@ -941,6 +941,24 @@ async function deleteMenuItem(req, res) {
 }
 
 /**
+ * Helper: Get start of week (Monday) for a date
+ */
+function getWeekStart(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  return new Date(d.setDate(diff));
+}
+
+/**
+ * Helper: Format date label for chart
+ */
+function formatDateLabel(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+}
+
+/**
  * Gets restaurant earnings from blockchain
  * @dev Retrieves on-chain earnings for a restaurant
  * 
@@ -980,28 +998,163 @@ async function getRestaurantEarnings(req, res) {
       });
     }
     
+    // Récupérer le paramètre period (day, week, month)
+    const { period = 'week' } = req.query;
+    
+    // Calculer les dates selon la période
+    const now = new Date();
+    let startDate = new Date();
+    
+    if (period === 'day') {
+      startDate.setHours(0, 0, 0, 0);
+    } else if (period === 'week') {
+      startDate.setDate(now.getDate() - 7);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (period === 'month') {
+      startDate.setMonth(now.getMonth() - 1);
+      startDate.setHours(0, 0, 0, 0);
+    }
+    
+    // Récupérer les commandes livrées pour cette période
+    const deliveredOrders = await Order.find({
+      restaurant: restaurant._id,
+      status: 'DELIVERED',
+      completedAt: { $gte: startDate, $lte: now }
+    }).sort({ completedAt: 1 });
+    
+    // Calculer les revenus quotidiens
+    const dailyEarnings = {};
+    const weeklyEarnings = {};
+    
+    deliveredOrders.forEach(order => {
+      const orderDate = new Date(order.completedAt);
+      const dayKey = orderDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      // Calculer le revenu du restaurant (80% du totalAmount)
+      // totalAmount est stocké en wei dans MongoDB (comme Number ou String)
+      const totalAmountRaw = order.totalAmount || 0;
+      
+      // Convertir de wei en MATIC
+      // Utiliser BigNumber pour éviter les problèmes de précision avec les grands nombres
+      let totalAmountMATIC = 0;
+      try {
+        // Si c'est déjà une string, l'utiliser directement
+        // Sinon, convertir en string pour BigNumber
+        const amountStr = typeof totalAmountRaw === 'string' 
+          ? totalAmountRaw 
+          : totalAmountRaw.toString();
+        
+        // Vérifier si c'est déjà en MATIC (si < 1e15, probablement déjà converti)
+        // Sinon, convertir de wei en MATIC
+        const amountNum = parseFloat(amountStr);
+        if (amountNum > 0 && amountNum < 1e15) {
+          // Probablement déjà en MATIC (montant raisonnable)
+          totalAmountMATIC = amountNum;
+        } else {
+          // En wei, convertir en MATIC
+          const totalAmountBN = ethers.BigNumber.from(amountStr);
+          totalAmountMATIC = parseFloat(ethers.formatEther(totalAmountBN));
+        }
+      } catch (e) {
+        console.warn(`Error converting totalAmount for order ${order.orderId}:`, e);
+        // Fallback: diviser par 1e18 manuellement
+        const amountNum = parseFloat(totalAmountRaw);
+        totalAmountMATIC = amountNum >= 1e15 ? amountNum / 1e18 : amountNum;
+      }
+      
+      const restaurantRevenue = totalAmountMATIC * 0.8; // 80% pour le restaurant
+      
+      // Revenus quotidiens
+      if (!dailyEarnings[dayKey]) {
+        dailyEarnings[dayKey] = { date: dayKey, amount: 0 };
+      }
+      dailyEarnings[dayKey].amount += restaurantRevenue;
+      
+      // Revenus hebdomadaires (par semaine ISO)
+      const weekStart = getWeekStart(orderDate);
+      const weekKey = weekStart.toISOString().split('T')[0];
+      
+      if (!weeklyEarnings[weekKey]) {
+        weeklyEarnings[weekKey] = { date: weekKey, amount: 0 };
+      }
+      weeklyEarnings[weekKey].amount += restaurantRevenue;
+    });
+    
+    // Convertir en tableaux triés
+    const daily = Object.values(dailyEarnings)
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .map(item => ({
+        date: item.date,
+        label: formatDateLabel(item.date),
+        amount: parseFloat(item.amount.toFixed(5))
+      }));
+    
+    const weekly = Object.values(weeklyEarnings)
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .map(item => ({
+        date: item.date,
+        label: formatDateLabel(item.date),
+        amount: parseFloat(item.amount.toFixed(5))
+      }));
+    
+    // Calculer le total retiré (depuis les transactions blockchain si disponible)
+    const totalWithdrawn = deliveredOrders.reduce((sum, order) => {
+      const totalAmountRaw = order.totalAmount || 0;
+      
+      let totalAmountMATIC;
+      try {
+        const totalAmountBN = ethers.BigNumber.from(totalAmountRaw.toString());
+        totalAmountMATIC = parseFloat(ethers.formatEther(totalAmountBN));
+      } catch (e) {
+        totalAmountMATIC = parseFloat(totalAmountRaw) / 1e18;
+      }
+      
+      return sum + (totalAmountMATIC * 0.8);
+    }, 0);
+    
+    // Formater avec 5 décimales
+    const totalWithdrawnFormatted = parseFloat(totalWithdrawn.toFixed(5));
+    
+    // Préparer l'historique des transactions
+    const transactions = deliveredOrders.map(order => {
+      const totalAmountRaw = order.totalAmount || 0;
+      
+      let totalAmountMATIC;
+      try {
+        const totalAmountBN = ethers.BigNumber.from(totalAmountRaw.toString());
+        totalAmountMATIC = parseFloat(ethers.formatEther(totalAmountBN));
+      } catch (e) {
+        totalAmountMATIC = parseFloat(totalAmountRaw) / 1e18;
+      }
+      
+      return {
+        orderId: order.orderId,
+        date: order.completedAt,
+        amount: parseFloat((totalAmountMATIC * 0.8).toFixed(4)),
+        txHash: order.txHash || null
+      };
+    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+    
     // Récupérer le solde en attente depuis PaymentSplitter
+    let pendingBalanceMATIC = 0;
     try {
       const pendingBalance = await blockchainService.getPendingBalance(restaurant.address);
-      const pendingBalanceMATIC = parseFloat(ethers.formatEther(pendingBalance));
-      
-      return res.status(200).json({
-        success: true,
-        earnings: {
-          pendingBalance: pendingBalanceMATIC,
-          pendingBalanceWei: pendingBalance
-        }
-      });
+      pendingBalanceMATIC = parseFloat(ethers.formatEther(pendingBalance));
     } catch (blockchainError) {
       console.warn("Error getting earnings from blockchain:", blockchainError);
-      return res.status(200).json({
-        success: true,
-        earnings: {
-          pendingBalance: 0,
-          message: "Blockchain not available, using MongoDB data only"
-        }
-      });
     }
+    
+    return res.status(200).json({
+      success: true,
+      earnings: {
+        pending: parseFloat(pendingBalanceMATIC.toFixed(5)),
+        pendingBalance: parseFloat(pendingBalanceMATIC.toFixed(5)),
+        daily,
+        weekly,
+        withdrawn: totalWithdrawnFormatted,
+        transactions: transactions.slice(0, 50) // Limiter à 50 dernières transactions
+      }
+    });
   } catch (error) {
     console.error("Error getting restaurant earnings:", error);
     

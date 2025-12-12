@@ -12,8 +12,8 @@ import * as blockchain from "../services/blockchain";
 
 // Si tu as déjà des helpers dans utils, remplace ceux-ci
 function formatPrice(v) {
-  if (v == null || Number.isNaN(Number(v))) return "0";
-  return Number(v).toLocaleString("fr-FR", { maximumFractionDigits: 4 });
+  if (v == null || Number.isNaN(Number(v))) return "0.00000";
+  return Number(v).toFixed(5);
 }
 function formatDate(d) {
   const date = new Date(d);
@@ -55,7 +55,9 @@ function EarningsChart({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (restaurantAddress) fetchEarnings();
+    if (restaurantAddress && restaurantId) {
+      fetchEarnings();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantAddress, restaurantId, period]);
 
@@ -85,7 +87,7 @@ function EarningsChart({
         weekly: apiData?.weekly ?? [],
         withdrawn: apiData?.withdrawn ?? 0,
         transactions: apiData?.transactions ?? [],
-        pending,
+        pending: apiData?.pending ?? pending,
       });
     } catch (e) {
       console.error("Error fetching earnings:", e);
@@ -111,7 +113,7 @@ function EarningsChart({
       await fetchEarnings();
 
       const amountMsg =
-        result?.amount != null ? `${formatPrice(result.amount)} MATIC` : "OK";
+        result?.amount != null ? formatPrice(result.amount, 'MATIC', 5) : "OK";
       showSuccess?.(`Retrait réussi: ${amountMsg}`);
     } catch (e) {
       console.error("Error withdrawing:", e);
@@ -126,8 +128,25 @@ function EarningsChart({
   const chartSeries = period === "month" ? earnings.weekly : earnings.daily;
 
   const earningsChartData = useMemo(() => {
-    const labels = chartSeries.map((d) => d.date || d.label);
-    const values = chartSeries.map((d) => d.amount ?? 0);
+    // Si pas de données, créer des labels pour la période
+    let labels = chartSeries.map((d) => d.date || d.label);
+    let values = chartSeries.map((d) => d.amount ?? 0);
+    
+    // Si pas de données, créer des points à zéro pour la période
+    if (labels.length === 0) {
+      const days = period === "day" ? 1 : period === "week" ? 7 : 30;
+      const today = new Date();
+      labels = [];
+      values = [];
+      
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        labels.push(dateStr);
+        values.push(0);
+      }
+    }
 
     return {
       labels,
@@ -140,12 +159,12 @@ function EarningsChart({
           borderWidth: 2,
           borderColor: "rgb(34, 197, 94)", // primary-500
           backgroundColor: "rgba(34, 197, 94, 0.12)",
-          pointRadius: 3,
+          pointRadius: values.some(v => v > 0) ? 3 : 0, // Masquer les points si tous à zéro
           pointHoverRadius: 5,
         },
       ],
     };
-  }, [chartSeries]);
+  }, [chartSeries, period]);
 
   const lineOptions = useMemo(
     () => ({
@@ -179,13 +198,22 @@ function EarningsChart({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 rounded-xl bg-neutral-50 px-3 py-2 dark:bg-neutral-900/40">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={fetchEarnings}
+            disabled={loading}
+            className="rounded-xl bg-neutral-100 px-3 py-2 text-sm font-semibold text-neutral-700 shadow-soft transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
+          >
+            {loading ? "🔄 Actualisation..." : "🔄 Actualiser"}
+          </button>
+
+          <div className="flex items-center gap-3 rounded-xl bg-neutral-50 px-3 py-2 dark:bg-neutral-900/40">
           <div>
             <p className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
               Solde en attente
             </p>
             <p className="font-semibold text-neutral-900 dark:text-neutral-50">
-              {formatPrice(earnings.pending)} MATIC
+              {formatPrice(earnings.pending, 'MATIC', 5)}
             </p>
           </div>
 
@@ -196,6 +224,7 @@ function EarningsChart({
           >
             {withdrawing ? "Retrait..." : "Retirer"}
           </button>
+          </div>
         </div>
       </div>
 
@@ -243,7 +272,7 @@ function EarningsChart({
               <div className="text-sm text-neutral-500 dark:text-neutral-400">
                 Retiré total:{" "}
                 <span className="font-semibold text-neutral-900 dark:text-neutral-50">
-                  {formatPrice(earnings.withdrawn)} MATIC
+                  {formatPrice(earnings.withdrawn, 'MATIC', 5)}
                 </span>
               </div>
             </div>
@@ -279,7 +308,7 @@ function EarningsChart({
                           #{tx.orderId ?? "—"}
                         </td>
                         <td className="py-2 pr-4 text-neutral-700 dark:text-neutral-200">
-                          {formatPrice(tx.amount)} MATIC
+                          {formatPrice(tx.amount, 'MATIC', 5)}
                         </td>
                         <td className="py-2 pr-4">
                           {tx.txHash ? (

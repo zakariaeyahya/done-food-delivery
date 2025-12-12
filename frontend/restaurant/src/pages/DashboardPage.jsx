@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { ethers } from "ethers";
 
 import OrdersQueue from "../components/OrdersQueue";
 import EarningsChart from "../components/EarningsChart";
@@ -17,9 +18,7 @@ import { formatPrice } from "../utils/formatters";     // adapte si besoin
 const safeFormatPrice =
   formatPrice ||
   ((v) =>
-    Number(v || 0).toLocaleString("fr-FR", {
-      maximumFractionDigits: 2,
-    }));
+    Number(v || 0).toFixed(5));
 
 function DashboardPage({ showSuccess, showError, showNotification }) {
   const { restaurant: contextRestaurant, address } = useWallet();
@@ -80,7 +79,14 @@ function DashboardPage({ showSuccess, showError, showNotification }) {
 
       const todayRevenue = orders
         .filter((o) => o.status === "DELIVERED")
-        .reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+        .reduce((sum, o) => {
+          // totalAmount est en wei, convertir en MATIC
+          const totalAmountWei = o.totalAmount || 0;
+          const totalAmountMATIC = parseFloat(ethers.formatEther(totalAmountWei.toString()));
+          // Le restaurant reçoit 80% du montant total
+          const restaurantRevenue = totalAmountMATIC * 0.8;
+          return sum + restaurantRevenue;
+        }, 0);
 
       setKpis({
         pendingOrders,
@@ -153,7 +159,7 @@ function DashboardPage({ showSuccess, showError, showNotification }) {
           />
           <KpiCard
             title="Revenus aujourd'hui"
-            value={`${safeFormatPrice(kpis.todayRevenue)} MATIC`}
+            value={safeFormatPrice(kpis.todayRevenue, 'MATIC', 5)}
             tone="primary"
             loading={loadingKpis}
           />
@@ -183,6 +189,7 @@ function DashboardPage({ showSuccess, showError, showNotification }) {
               period="day"
               showSuccess={showSuccess}
               showError={showError}
+              key={`${restaurant._id}-${kpis.deliveredToday}`} // Force re-render when KPIs change
             />
           </div>
         </div>

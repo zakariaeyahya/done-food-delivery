@@ -131,13 +131,13 @@ function OrderCard({ order, onConfirmPreparation }) {
                       {item.quantity}x {item.name}
                     </p>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                      {formatPrice?.(item.price) ?? item.price} MATIC / unité
+                      {formatPrice?.(item.price, 'MATIC', 5) ?? `${item.price} MATIC`} / unité
                     </p>
                   </div>
                 </div>
 
                 <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
-                  {formatPrice?.(lineTotal) ?? lineTotal} MATIC
+                  {formatPrice?.(lineTotal, 'MATIC', 5) ?? `${lineTotal} MATIC`}
                 </div>
               </div>
             );
@@ -183,13 +183,13 @@ function OrderCard({ order, onConfirmPreparation }) {
         <div className="text-sm text-neutral-500 dark:text-neutral-400">
           Total items:{" "}
           <span className="font-semibold text-neutral-900 dark:text-neutral-50">
-            {formatPrice?.(itemsTotal) ?? itemsTotal} MATIC
+            {formatPrice?.(itemsTotal, 'MATIC', 5) ?? `${itemsTotal} MATIC`}
           </span>
         </div>
 
         <div className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
           Total:{" "}
-          {formatPrice?.(order.totalAmount) ?? order.totalAmount} MATIC
+          {formatPrice?.(order.totalAmount, 'MATIC', 5) ?? `${order.totalAmount} MATIC`}
         </div>
 
         {order.status === "CREATED" && onConfirmPreparation && (

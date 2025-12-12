@@ -324,7 +324,15 @@ async function getEarnings(restaurantId, params = {}, restaurantAddress) {
     });
 
     // L'API retourne { success, earnings } - extraire earnings
-    return response.data?.earnings || { pendingBalance: 0, daily: [], weekly: [], withdrawn: 0, transactions: [] };
+    const earningsData = response.data?.earnings || {};
+    return {
+      pending: earningsData.pending ?? earningsData.pendingBalance ?? 0,
+      pendingBalance: earningsData.pendingBalance ?? earningsData.pending ?? 0,
+      daily: earningsData.daily ?? [],
+      weekly: earningsData.weekly ?? [],
+      withdrawn: earningsData.withdrawn ?? 0,
+      transactions: earningsData.transactions ?? []
+    };
   } catch (error) {
     handleApiError(error);
     throw error;

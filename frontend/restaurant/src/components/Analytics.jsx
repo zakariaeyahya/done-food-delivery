@@ -301,7 +301,7 @@ function Analytics({
           />
           <StatCard
             title="Revenus"
-            value={`${formatPrice(analytics.revenue)} MATIC`}
+            value={formatPrice(analytics.revenue, 'MATIC', 5)}
             className="lg:col-span-3"
           />
           <StatCard
@@ -380,7 +380,7 @@ function Analytics({
                           {d.orderCount ?? 0}
                         </td>
                         <td className="py-2 text-neutral-700 dark:text-neutral-200">
-                          {formatPrice(d.revenue ?? 0)} MATIC
+                          {formatPrice(d.revenue ?? 0, 'MATIC', 5)}
                         </td>
                         <td className="py-2 text-neutral-700 dark:text-neutral-200">
                           {(d.rating ?? 0).toFixed?.(1) ?? d.rating ?? 0}
