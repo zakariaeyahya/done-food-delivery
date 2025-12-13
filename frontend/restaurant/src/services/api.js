@@ -148,6 +148,30 @@ async function confirmPreparation(orderId, restaurantAddress, payload = {}) {
 }
 
 /**
+ * 3b. Marquer une commande comme prête (fin de préparation)
+ * Route: POST /api/orders/:id/mark-ready
+ * @notice Appelé quand le restaurant a terminé la préparation
+ * @dev Déclenche notification aux livreurs pour récupérer la commande
+ */
+async function markOrderReady(orderId, restaurantAddress) {
+  try {
+    if (!orderId) throw new Error("Order ID is required");
+    if (!restaurantAddress) throw new Error("Restaurant address is required");
+
+    const response = await axios.post(
+      `${API_BASE_URL}/orders/${orderId}/mark-ready`,
+      { restaurantAddress },
+      { headers: authHeaders(restaurantAddress) }
+    );
+
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+    throw error;
+  }
+}
+
+/**
  * 4. Mettre à jour le menu complet du restaurant
  * Route: PUT /api/restaurants/:id/menu
  */
@@ -369,6 +393,7 @@ export {
   getRestaurant,
   getOrders,
   confirmPreparation,
+  markOrderReady,
   updateMenu,
   addMenuItem,
   updateMenuItem,

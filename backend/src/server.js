@@ -1,5 +1,14 @@
 require("dotenv").config();
 
+// Initialize logger FIRST to capture all logs
+const logger = require("./utils/logger");
+logger.info("=".repeat(60));
+logger.info("SERVER STARTING...");
+logger.info("NODE_ENV:", process.env.NODE_ENV);
+logger.info("ALLOW_MOCK_BLOCKCHAIN:", process.env.ALLOW_MOCK_BLOCKCHAIN);
+logger.info("ALLOW_MOCK_AUTH:", process.env.ALLOW_MOCK_AUTH);
+logger.info("=".repeat(60));
+
 const express = require("express");
 const { Server } = require("socket.io");
 const http = require("http");

@@ -57,11 +57,12 @@ async function verifySignature(req, res, next) {
       });
     }
     
-    // En mode développement/test, accepter "mock_signature_for_testing"
+    // En mode développement/test OU si ALLOW_MOCK_AUTH=true, accepter "mock_signature_for_testing"
     const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+    const allowMockAuth = process.env.ALLOW_MOCK_AUTH === 'true';
     const isMockSignature = signature === 'mock_signature_for_testing';
-    
-    if (isMockSignature && isDevelopment) {
+
+    if (isMockSignature && (isDevelopment || allowMockAuth)) {
       // En mode dev/test, utiliser l'adresse depuis le header x-wallet-address
       const mockAddress = req.headers['x-wallet-address'] || req.body.address;
       if (!mockAddress) {

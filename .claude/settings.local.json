@@ -5,7 +5,9 @@
       "Bash(rm:*)",
       "Bash(mv:*)",
       "Bash(mkdir:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(findstr:*)",
+      "Bash(node:*)"
     ]
   }
 }
