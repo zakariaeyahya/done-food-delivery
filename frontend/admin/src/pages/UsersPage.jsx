@@ -66,14 +66,14 @@ export default function UsersPage() {
         <input
           type="text"
           placeholder="Rechercher un utilisateur..."
-          className="px-4 py-2 border rounded-lg w-72 bg-gray-50 focus:ring-indigo-500"
+          className="px-4 py-2 border rounded-lg w-72 bg-gray-50 focus:ring-orange-500"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
 
         {/* Filtre activité */}
         <select
-          className="px-4 py-2 border rounded-lg bg-gray-50 focus:ring-indigo-500"
+          className="px-4 py-2 border rounded-lg bg-gray-50 focus:ring-orange-500"
           value={activityFilter}
           onChange={(e) => setActivityFilter(e.target.value)}
         >

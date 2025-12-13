@@ -63,14 +63,14 @@ export default function RestaurantsPage() {
         <input
           type="text"
           placeholder="Rechercher un restaurant..."
-          className="px-4 py-2 border rounded-lg w-72 bg-gray-50 focus:ring-indigo-500"
+          className="px-4 py-2 border rounded-lg w-72 bg-gray-50 focus:ring-orange-500"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
 
         {/* Filtre cuisine */}
         <select
-          className="px-4 py-2 border rounded-lg bg-gray-50 focus:ring-indigo-500"
+          className="px-4 py-2 border rounded-lg bg-gray-50 focus:ring-orange-500"
           value={cuisineFilter}
           onChange={(e) => setCuisineFilter(e.target.value)}
         >

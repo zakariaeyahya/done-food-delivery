@@ -111,7 +111,7 @@ function PlatformStats() {
       <div className="stat-card p-4 rounded-lg shadow bg-white">
         <div className="flex items-center justify-between mb-2">
           <span className="stat-label font-medium">{title}</span>
-          {icon && <div className="text-primary-600">{icon}</div>}
+          {icon && <div className="text-orange-600">{icon}</div>}
         </div>
 
         <div className="stat-value text-2xl font-bold">{value}</div>
