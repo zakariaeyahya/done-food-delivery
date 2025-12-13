@@ -59,19 +59,25 @@ function EarningsTracker({ address }) {
     setLoading(true);
 
     try {
-      const todayData = await api.getEarnings(address, "today");
-      const weekData = await api.getEarnings(address, "week");
-      const monthData = await api.getEarnings(address, "month");
+      const todayResponse = await api.getEarnings(address, "today");
+      const weekResponse = await api.getEarnings(address, "week");
+      const monthResponse = await api.getEarnings(address, "month");
+
+      // Extraire les données depuis la réponse structurée du backend
+      const todayData = todayResponse?.earnings || {};
+      const weekData = weekResponse?.earnings || {};
+      const monthData = monthResponse?.earnings || {};
 
       setEarnings({
-        today: todayData?.totalEarnings || 0,
-        week: weekData?.totalEarnings || 0,
-        month: monthData?.totalEarnings || 0,
+        today: Number(todayData?.totalEarnings || 0),
+        week: Number(weekData?.totalEarnings || 0),
+        month: Number(monthData?.totalEarnings || 0),
         pending: 0, // pattern PUSH → aucun retrait manuel
-        total: monthData?.totalEarnings || 0,
+        total: Number(monthData?.totalEarnings || 0),
       });
 
       setDeliveriesCount(weekData?.completedDeliveries || 0);
+      console.log("[EarningsTracker] 📊 Earnings chargés:", { today: todayData, week: weekData, month: monthData });
     } catch (err) {
       console.error("Erreur récupération earnings :", err);
     } finally {
@@ -144,7 +150,7 @@ function EarningsTracker({ address }) {
       {/* Affichage gains */}
       <div className="earnings-display">
         <div className="earnings-value">
-          {earnings[period]} POL
+          {Number(earnings[period] || 0).toFixed(5)} POL
         </div>
 
         <p>Livraisons: {deliveriesCount}</p>
