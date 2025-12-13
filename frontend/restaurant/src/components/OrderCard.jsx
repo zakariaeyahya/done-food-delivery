@@ -74,6 +74,7 @@ function OrderCard({ order, onConfirmPreparation, onMarkReady }) {
     const map = {
       CREATED: "warning",
       PREPARING: "secondary",
+      READY: "success",
       IN_DELIVERY: "info",
       DELIVERED: "success",
       DISPUTED: "error",
@@ -86,6 +87,7 @@ function OrderCard({ order, onConfirmPreparation, onMarkReady }) {
     const map = {
       CREATED: "Nouvelle",
       PREPARING: "En préparation",
+      READY: "Prête",
       IN_DELIVERY: "En livraison",
       DELIVERED: "Livrée",
       DISPUTED: "Litige",

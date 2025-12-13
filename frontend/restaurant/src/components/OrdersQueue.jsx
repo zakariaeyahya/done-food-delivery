@@ -235,6 +235,7 @@ function OrdersQueue({
       all: orders.length,
       CREATED: 0,
       PREPARING: 0,
+      READY: 0,
       IN_DELIVERY: 0,
     };
     orders.forEach((o) => {
@@ -294,6 +295,12 @@ function OrdersQueue({
           onClick={() => handleFilterChange("PREPARING")}
         >
           Préparation ({counts.PREPARING})
+        </FilterChip>
+        <FilterChip
+          active={currentFilter === "READY"}
+          onClick={() => handleFilterChange("READY")}
+        >
+          Prêtes ({counts.READY})
         </FilterChip>
         <FilterChip
           active={currentFilter === "IN_DELIVERY"}

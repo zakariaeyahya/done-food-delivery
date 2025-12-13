@@ -14,8 +14,8 @@ import { OrdersList } from "@/components/delivery/OrdersList";
 import { ActiveDeliveryCard } from "@/components/delivery/ActiveDeliveryCard";
 import api from "@/services/api";
 import blockchain from "@/services/blockchain";
-import { Package, DollarSign, Star, Lock } from "lucide-react";
-import { motion } from "framer-motion";
+import { Package, DollarSign, Star, Lock, AlertTriangle, Check, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function HomePage() {
   const { address, connectWallet, setActiveDelivery, activeDelivery } = useApp();
@@ -37,6 +37,8 @@ export default function HomePage() {
     vehicleType: "bike",
   });
   const [isMounted, setIsMounted] = useState(false);
+  const [allActiveDeliveries, setAllActiveDeliveries] = useState<any[]>([]);
+  const [managingOrder, setManagingOrder] = useState<number | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -112,8 +114,24 @@ export default function HomePage() {
         setIsOnline(true);
       }
 
-      const active = await api.getActiveDelivery(address).catch(() => null);
-      setActiveDelivery(active);
+      // Récupérer toutes les livraisons actives
+      const activeData = await api.getAllActiveDeliveries(address).catch(() => ({
+        activeDelivery: null,
+        allActiveDeliveries: [],
+        count: 0
+      }));
+      
+      // Stocker toutes les livraisons actives
+      setAllActiveDeliveries(activeData.allActiveDeliveries || []);
+      
+      // Utiliser la plus récente comme livraison active
+      setActiveDelivery(activeData.activeDelivery);
+      
+      // Si le livreur a plusieurs commandes actives, l'alerter
+      if (activeData.count > 1) {
+        console.warn(`[Livreur] ⚠️ Vous avez ${activeData.count} livraisons actives !`);
+        console.warn(`[Livreur] 💡 Commandes actives:`, activeData.allActiveDeliveries.map((o: any) => `#${o.orderId}`).join(', '));
+      }
 
       const earnings = await api.getEarnings(address, "today").catch(() => ({
         completedDeliveries: 0,
@@ -176,6 +194,39 @@ export default function HomePage() {
       alert("Erreur lors de l'inscription: " + errorMsg);
     } finally {
       setRegistering(false);
+    }
+  }
+
+  // Gérer les commandes bloquées
+  async function handleCancelDelivery(orderId: number) {
+    if (!address) return;
+    if (!confirm(`Annuler la livraison #${orderId} ? Elle sera remise à disposition pour un autre livreur.`)) return;
+    
+    setManagingOrder(orderId);
+    try {
+      await api.cancelDelivery(orderId, address);
+      alert(`Livraison #${orderId} annulée avec succès !`);
+      await loadData();
+    } catch (err: any) {
+      alert(`Erreur: ${err.message}`);
+    } finally {
+      setManagingOrder(null);
+    }
+  }
+
+  async function handleForceComplete(orderId: number) {
+    if (!address) return;
+    if (!confirm(`Marquer la livraison #${orderId} comme terminée ?`)) return;
+    
+    setManagingOrder(orderId);
+    try {
+      await api.forceCompleteDelivery(orderId, address);
+      alert(`Livraison #${orderId} terminée avec succès !`);
+      await loadData();
+    } catch (err: any) {
+      alert(`Erreur: ${err.message}`);
+    } finally {
+      setManagingOrder(null);
     }
   }
 
@@ -360,6 +411,73 @@ export default function HomePage() {
                   Vous êtes staké et prêt à recevoir des commandes. Cliquez sur "Passer en ligne" pour commencer.
                 </p>
               </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Panneau des livraisons actives multiples */}
+        {allActiveDeliveries.length > 0 && (
+          <Card className="bg-amber-500/10 border-amber-500/50">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="text-amber-400 font-semibold mb-1">
+                  📦 Vos livraisons en cours ({allActiveDeliveries.length})
+                </h3>
+                <p className="text-amber-300/80 text-sm">
+                  Gérez vos livraisons actives ci-dessous
+                </p>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              {allActiveDeliveries.map((order: any) => (
+                <div 
+                  key={order.orderId}
+                  className="bg-slate-800/50 rounded-xl p-4 flex items-center justify-between"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-white font-semibold">Commande #{order.orderId}</span>
+                      <Badge variant="info">IN_DELIVERY</Badge>
+                    </div>
+                    <p className="text-sm text-slate-400">
+                      {order.restaurant?.name || 'Restaurant'} → {order.deliveryAddress || 'Client'}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Créée le {new Date(order.createdAt).toLocaleDateString('fr-FR', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleForceComplete(order.orderId)}
+                      loading={managingOrder === order.orderId}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Check className="w-4 h-4" />
+                      Terminer
+                    </Button>
+                    <Button
+                      onClick={() => handleCancelDelivery(order.orderId)}
+                      loading={managingOrder === order.orderId}
+                      size="sm"
+                      variant="secondary"
+                      className="border-red-500/50 text-red-400 hover:bg-red-500/20"
+                    >
+                      <X className="w-4 h-4" />
+                      Annuler
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           </Card>
         )}

@@ -60,9 +60,21 @@ export function OrderCard({ order, currentLocation, onAccept, accepting }: Order
             </h3>
             <p className="text-sm text-slate-400 mt-0.5">{order.restaurant?.address || 'Adresse non disponible'}</p>
           </div>
-          <Badge variant={badge.variant} pulse>
-            {badge.label}
-          </Badge>
+          <div className="flex flex-col gap-1 items-end">
+            {order.status === 'READY' && (
+              <Badge variant="success" pulse>
+                ✅ Prête à récupérer
+              </Badge>
+            )}
+            {order.status === 'PREPARING' && (
+              <Badge variant="warning">
+                🍳 En préparation
+              </Badge>
+            )}
+            <Badge variant={badge.variant}>
+              {badge.label}
+            </Badge>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-6">

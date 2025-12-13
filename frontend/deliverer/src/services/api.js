@@ -266,8 +266,16 @@ async function getActiveDelivery(address) {
     if (!address) throw new Error("Address is required");
 
     const response = await apiClient.get(`/deliverers/${address}/active-delivery`);
-    // Le backend retourne null si pas de livraison active
-    return response.data || null;
+    // Le backend retourne { activeDelivery, allActiveDeliveries, count }
+    const data = response.data;
+    
+    // Compatibilité: retourner la commande la plus récente comme avant
+    if (data && data.activeDelivery) {
+      return data.activeDelivery;
+    }
+    
+    // Fallback pour anciennes réponses (structure simple)
+    return data || null;
   } catch (error) {
     // 404 est normal - pas de livraison active
     if (error.response?.status === 404) {
@@ -275,6 +283,74 @@ async function getActiveDelivery(address) {
     }
     console.error("Error fetching active delivery:", error);
     return null;
+  }
+}
+
+/**
+ * Récupérer TOUTES les livraisons actives (pour gérer les commandes bloquées)
+ */
+async function getAllActiveDeliveries(address) {
+  try {
+    if (!address) throw new Error("Address is required");
+
+    const response = await apiClient.get(`/deliverers/${address}/active-delivery`);
+    const data = response.data;
+    
+    return {
+      activeDelivery: data?.activeDelivery || null,
+      allActiveDeliveries: data?.allActiveDeliveries || [],
+      count: data?.count || 0
+    };
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return { activeDelivery: null, allActiveDeliveries: [], count: 0 };
+    }
+    console.error("Error fetching all active deliveries:", error);
+    return { activeDelivery: null, allActiveDeliveries: [], count: 0 };
+  }
+}
+
+/**
+ * Annuler une livraison (remettre en READY pour un autre livreur)
+ */
+async function cancelDelivery(orderId, delivererAddress) {
+  try {
+    if (!orderId) throw new Error("Order ID is required");
+    if (!delivererAddress) throw new Error("Deliverer address is required");
+
+    const response = await apiClient.post(
+      `/deliverers/orders/${orderId}/cancel`,
+      { delivererAddress },
+      { headers: authHeaders(delivererAddress) }
+    );
+    
+    console.log(`[Livreur] ✅ Livraison #${orderId} annulée`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error cancelling delivery #${orderId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Forcer la complétion d'une livraison (marquer comme DELIVERED)
+ */
+async function forceCompleteDelivery(orderId, delivererAddress) {
+  try {
+    if (!orderId) throw new Error("Order ID is required");
+    if (!delivererAddress) throw new Error("Deliverer address is required");
+
+    const response = await apiClient.post(
+      `/deliverers/orders/${orderId}/force-complete`,
+      { delivererAddress },
+      { headers: authHeaders(delivererAddress) }
+    );
+    
+    console.log(`[Livreur] ✅ Livraison #${orderId} forcée comme terminée`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error force completing delivery #${orderId}:`, error);
+    throw error;
   }
 }
 
@@ -352,6 +428,9 @@ const api = {
   updateStatus,
   getDelivererOrders,
   getActiveDelivery,
+  getAllActiveDeliveries,
+  cancelDelivery,
+  forceCompleteDelivery,
   getOrder,
   registerDeliverer,
   getDeliverer
@@ -373,6 +452,9 @@ export {
   updateStatus,
   getDelivererOrders,
   getActiveDelivery,
+  getAllActiveDeliveries,
+  cancelDelivery,
+  forceCompleteDelivery,
   getOrder,
   registerDeliverer,
   getDeliverer

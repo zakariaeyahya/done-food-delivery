@@ -191,10 +191,13 @@ async function getAvailableDeliverers(req, res) {
     
     console.log(`[Backend] 📋 Récupération commandes disponibles pour livreur (lat: ${lat}, lng: ${lng})...`);
     
-    // Récupérer les commandes avec statut PREPARING ou CREATED (pas encore assignées à un livreur)
-    // On inclut CREATED au cas où certaines commandes n'ont pas encore été confirmées en préparation
+    // Récupérer les commandes avec statut READY, PREPARING ou CREATED (pas encore assignées à un livreur)
+    // READY = préparation terminée, prête à être récupérée (prioritaire)
+    // PREPARING = en cours de préparation
+    // CREATED = commande créée mais pas encore confirmée
     const availableOrders = await Order.find({
       $or: [
+        { status: 'READY', deliverer: null },
         { status: 'PREPARING', deliverer: null },
         { status: 'CREATED', deliverer: null }
       ]
@@ -215,11 +218,13 @@ async function getAvailableDeliverers(req, res) {
     } else {
       // Diagnostic : vérifier combien de commandes existent avec différents statuts
       const totalOrders = await Order.countDocuments();
+      const readyOrders = await Order.countDocuments({ status: 'READY' });
       const preparingOrders = await Order.countDocuments({ status: 'PREPARING' });
       const createdOrders = await Order.countDocuments({ status: 'CREATED' });
       const ordersWithDeliverer = await Order.countDocuments({ deliverer: { $ne: null } });
       
       console.log(`[Backend] 🔍 Diagnostic - Total commandes en DB: ${totalOrders}`);
+      console.log(`[Backend]   - Commandes READY: ${readyOrders}`);
       console.log(`[Backend]   - Commandes PREPARING: ${preparingOrders}`);
       console.log(`[Backend]   - Commandes CREATED: ${createdOrders}`);
       console.log(`[Backend]   - Commandes avec livreur assigné: ${ordersWithDeliverer}`);
@@ -737,11 +742,11 @@ async function acceptOrder(req, res) {
     });
     
     // Vérifier le statut
-    if (order.status !== 'PREPARING' && order.status !== 'CREATED') {
-      console.log(`[Backend] ❌ Statut invalide: ${order.status} (attendu: PREPARING ou CREATED)`);
+    if (order.status !== 'READY' && order.status !== 'PREPARING' && order.status !== 'CREATED') {
+      console.log(`[Backend] ❌ Statut invalide: ${order.status} (attendu: READY, PREPARING ou CREATED)`);
       return res.status(400).json({
         error: "Bad Request",
-        message: `Order status must be PREPARING or CREATED, current status: ${order.status}`
+        message: `Order status must be READY, PREPARING or CREATED, current status: ${order.status}`
       });
     }
     
@@ -993,8 +998,145 @@ async function getDelivererRating(req, res) {
 }
 
 /**
- * Gets active delivery for a deliverer
- * @dev Returns the order currently being delivered (status IN_DELIVERY)
+ * Cancel/abandon a delivery (return order to READY status)
+ * @dev Allows deliverer to abandon a stuck delivery
+ * 
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
+ */
+async function cancelDelivery(req, res) {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const address = req.userAddress || req.body.delivererAddress;
+    
+    if (!address) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Deliverer address is required"
+      });
+    }
+    
+    const normalizedAddress = address.toLowerCase();
+    
+    const deliverer = await Deliverer.findByAddress(normalizedAddress);
+    if (!deliverer) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Deliverer not found"
+      });
+    }
+    
+    const order = await Order.findOne({ orderId, deliverer: deliverer._id });
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Order not found or not assigned to this deliverer"
+      });
+    }
+    
+    if (order.status !== 'IN_DELIVERY') {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: `Cannot cancel order with status ${order.status}`
+      });
+    }
+    
+    console.log(`[Backend] 🚫 Livreur ${normalizedAddress} abandonne commande #${orderId}`);
+    
+    // Remettre la commande en READY et supprimer le livreur
+    order.status = 'READY';
+    order.deliverer = null;
+    await order.save();
+    
+    console.log(`[Backend] ✅ Commande #${orderId} remise en READY - disponible pour un autre livreur`);
+    
+    return res.status(200).json({
+      success: true,
+      message: `Order #${orderId} cancelled and returned to READY status`,
+      orderId: orderId
+    });
+  } catch (error) {
+    console.error("Error cancelling delivery:", error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to cancel delivery",
+      details: error.message
+    });
+  }
+}
+
+/**
+ * Force complete a delivery (mark as DELIVERED)
+ * @dev Allows deliverer to force complete a stuck delivery
+ * 
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
+ */
+async function forceCompleteDelivery(req, res) {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const address = req.userAddress || req.body.delivererAddress;
+    
+    if (!address) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Deliverer address is required"
+      });
+    }
+    
+    const normalizedAddress = address.toLowerCase();
+    
+    const deliverer = await Deliverer.findByAddress(normalizedAddress);
+    if (!deliverer) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Deliverer not found"
+      });
+    }
+    
+    const order = await Order.findOne({ orderId, deliverer: deliverer._id });
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Order not found or not assigned to this deliverer"
+      });
+    }
+    
+    if (order.status !== 'IN_DELIVERY') {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: `Cannot force complete order with status ${order.status}`
+      });
+    }
+    
+    console.log(`[Backend] ⚡ Livreur ${normalizedAddress} force la complétion de commande #${orderId}`);
+    
+    // Marquer comme livrée
+    order.status = 'DELIVERED';
+    order.deliveredAt = new Date();
+    await order.save();
+    
+    console.log(`[Backend] ✅ Commande #${orderId} forcée comme DELIVERED`);
+    
+    return res.status(200).json({
+      success: true,
+      message: `Order #${orderId} marked as DELIVERED`,
+      orderId: orderId
+    });
+  } catch (error) {
+    console.error("Error force completing delivery:", error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to force complete delivery",
+      details: error.message
+    });
+  }
+}
+
+/**
+ * Gets all active deliveries for a deliverer
+ * @dev Returns ALL orders currently being delivered (status IN_DELIVERY)
+ * @notice Returns array with all active deliveries, most recent first
  * 
  * @param {Object} req - Express Request
  * @param {Object} res - Express Response
@@ -1013,41 +1155,53 @@ async function getActiveDelivery(req, res) {
       });
     }
     
-    // Récupérer la commande active (en cours de livraison)
-    const activeOrder = await Order.findOne({
+    // Récupérer TOUTES les commandes actives (en cours de livraison)
+    const activeOrders = await Order.find({
       deliverer: deliverer._id,
       status: 'IN_DELIVERY'
     })
     .populate('restaurant', 'name address location')
-    .populate('client', 'address name');
+    .populate('client', 'address name')
+    .sort({ createdAt: -1 }); // Plus récentes en premier
     
-    if (!activeOrder) {
-      return res.status(200).json(null);
+    console.log(`[Backend] 📋 ${activeOrders.length} livraison(s) active(s) pour livreur ${normalizedAddress}`);
+    
+    if (activeOrders.length === 0) {
+      return res.status(200).json({
+        activeDelivery: null,
+        allActiveDeliveries: [],
+        count: 0
+      });
     }
     
-    // Formater la commande pour le frontend
-    const formattedOrder = {
-      orderId: activeOrder.orderId,
+    // Formater toutes les commandes pour le frontend
+    const formattedOrders = activeOrders.map(order => ({
+      orderId: order.orderId,
       restaurant: {
-        name: activeOrder.restaurant?.name || 'Restaurant',
-        address: activeOrder.restaurant?.address || activeOrder.restaurant,
-        location: activeOrder.restaurant?.location || null
+        name: order.restaurant?.name || 'Restaurant',
+        address: order.restaurant?.address || order.restaurant,
+        location: order.restaurant?.location || null
       },
       client: {
-        name: activeOrder.client?.name || 'Client',
-        address: activeOrder.client?.address || activeOrder.client
+        name: order.client?.name || 'Client',
+        address: order.client?.address || order.client
       },
-      deliveryAddress: activeOrder.deliveryAddress,
-      totalAmount: activeOrder.totalAmount,
-      deliveryFee: activeOrder.deliveryFee,
-      items: activeOrder.items || [],
-      status: activeOrder.status,
-      createdAt: activeOrder.createdAt,
-      pickedUpAt: activeOrder.pickedUpAt,
-      gpsTracking: activeOrder.gpsTracking || []
-    };
+      deliveryAddress: order.deliveryAddress,
+      totalAmount: order.totalAmount,
+      deliveryFee: order.deliveryFee,
+      items: order.items || [],
+      status: order.status,
+      createdAt: order.createdAt,
+      pickedUpAt: order.pickedUpAt,
+      gpsTracking: order.gpsTracking || []
+    }));
     
-    return res.status(200).json(formattedOrder);
+    // Retourner la plus récente comme "activeDelivery" et toutes comme "allActiveDeliveries"
+    return res.status(200).json({
+      activeDelivery: formattedOrders[0],  // La plus récente
+      allActiveDeliveries: formattedOrders, // Toutes les livraisons actives
+      count: formattedOrders.length
+    });
   } catch (error) {
     console.error("Error getting active delivery:", error);
     
@@ -1070,5 +1224,7 @@ module.exports = {
   getDelivererOrders,
   getDelivererEarnings,
   getDelivererRating,
+  cancelDelivery,
+  forceCompleteDelivery,
   getActiveDelivery
 };
