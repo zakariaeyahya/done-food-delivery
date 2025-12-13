@@ -8,6 +8,7 @@ function ProfilePage() {
   const { address, setAddress } = useApp();
   const [profile, setProfile] = useState({ name: "", phone: "" });
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (address) loadProfile();
@@ -37,6 +38,18 @@ function ProfilePage() {
     }
   }
 
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await loadProfile();
+    } catch (err) {
+      console.error("Erreur lors de l'actualisation:", err);
+      alert("Erreur lors de l'actualisation des données");
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   function disconnect() {
     if (confirm("Déconnexion ?")) {
       setAddress(null);
@@ -57,7 +70,46 @@ function ProfilePage() {
 
   return (
     <div className="page">
-      <h1>Mon Profil</h1>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '1.5rem',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        width: '100%'
+      }}>
+        <h1 style={{ margin: 0, flex: '1 1 auto' }}>Mon Profil</h1>
+        <button 
+          onClick={handleRefresh} 
+          disabled={refreshing || loading}
+          className="btn-primary"
+          style={{ 
+            padding: '0.75rem 1.5rem',
+            fontSize: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            cursor: (refreshing || loading) ? 'not-allowed' : 'pointer',
+            minWidth: '150px',
+            justifyContent: 'center',
+            whiteSpace: 'nowrap',
+            opacity: (refreshing || loading) ? 0.7 : 1
+          }}
+        >
+          {refreshing ? (
+            <>
+              <span>🔄</span>
+              <span>Actualisation...</span>
+            </>
+          ) : (
+            <>
+              <span>🔄</span>
+              <span>Actualiser</span>
+            </>
+          )}
+        </button>
+      </div>
 
       <div className="card">
         <h2>Informations</h2>

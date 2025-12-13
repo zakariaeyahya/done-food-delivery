@@ -14,6 +14,7 @@ const RestaurantPage = () => {
   const [error, setError] = useState('');
   const [addingToCart, setAddingToCart] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [refreshing, setRefreshing] = useState(false);
 
   const { isConnected } = useWallet();
   const cart = useCart();
@@ -36,6 +37,22 @@ const RestaurantPage = () => {
 
     fetchRestaurant();
   }, [id]);
+
+  const handleRefresh = async () => {
+    if (!id) return;
+    
+    setRefreshing(true);
+    try {
+      setError('');
+      const response = await getRestaurantById(id);
+      setRestaurant(response.data.restaurant || response.data);
+    } catch (err) {
+      console.error(`Failed to refresh restaurant ${id}:`, err);
+      setError('Impossible de charger les details du restaurant.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -281,8 +298,8 @@ const RestaurantPage = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
         </div>
 
-        {/* Back Button */}
-        <div className="absolute top-4 left-4 z-10">
+        {/* Back Button and Refresh */}
+        <div className="absolute top-4 left-4 z-10 flex gap-2">
           <button
             onClick={() => navigate(-1)}
             className="p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white hover:bg-white/30 transition-colors"
@@ -290,6 +307,22 @@ const RestaurantPage = () => {
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
+          </button>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing || loading}
+            className="p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white hover:bg-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Actualiser"
+          >
+            {refreshing ? (
+              <svg className="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            )}
           </button>
         </div>
 
