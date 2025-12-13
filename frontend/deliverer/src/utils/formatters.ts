@@ -35,9 +35,8 @@ export function formatPrice(amount: string | number, currency: string = 'POL', d
       // Toujours convertir depuis wei vers POL
       // Utiliser ethers.js pour une conversion précise
       try {
-        // Essayer avec ethers.js (gère mieux les très grands nombres)
-        const weiAmount = ethers.BigNumber.from(amountStr);
-        const formatted = ethers.formatEther(weiAmount);
+        // Dans ethers.js v6, formatEther peut prendre directement une string
+        const formatted = ethers.formatEther(amountStr);
         amountNumber = parseFloat(formatted);
       } catch (e) {
         // Si ethers échoue, diviser directement par 1e18

@@ -93,7 +93,7 @@ export function ActiveDeliveryCard({ order }: ActiveDeliveryCardProps) {
 
     setTracking(true);
 
-    watchIdRef.current = geolocation.watchPosition(async (pos) => {
+    watchIdRef.current = geolocation.watchPosition(async (pos: { lat: number; lng: number; accuracy?: number; timestamp?: number }) => {
       setCurrentLocation(pos);
 
       if (order) {

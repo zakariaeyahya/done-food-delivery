@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useApp } from "@/providers/AppProvider";
+
+// Désactiver le pré-rendu car cette page utilise des APIs côté client (window, localStorage, etc.)
+export const dynamic = 'force-dynamic';
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -33,6 +36,11 @@ export default function HomePage() {
     phone: "",
     vehicleType: "bike",
   });
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (address) {
@@ -205,6 +213,11 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Protection contre le pré-rendu
+  if (!isMounted) {
+    return null;
   }
 
   if (!address) {

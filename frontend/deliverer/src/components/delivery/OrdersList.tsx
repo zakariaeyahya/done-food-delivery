@@ -186,7 +186,7 @@ export function OrdersList({ limit }: OrdersListProps) {
         console.log(`[Livreur] ✅ Vérification blockchain: ${isStaked ? 'staké' : 'non staké'}`);
       } catch (stakeError: any) {
         // En mode dev, si la blockchain n'est pas accessible, vérifier depuis la DB
-        if (process.env.NODE_ENV === "development" || import.meta.env.MODE === 'development') {
+        if (process.env.NODE_ENV === "development") {
           console.warn(`[Livreur] ⚠️ Erreur vérification blockchain, vérification depuis DB...`);
           try {
             const delivererData = await api.getDeliverer(address);
@@ -218,7 +218,7 @@ export function OrdersList({ limit }: OrdersListProps) {
         console.log(`[Livreur] ✅ Acceptation on-chain réussie pour commande #${orderId}`, blockchainResult.txHash ? `(tx: ${blockchainResult.txHash})` : '(mode dev)');
       } catch (blockchainError: any) {
         // En mode dev, continuer même si la blockchain échoue
-        if (process.env.NODE_ENV === "development" || import.meta.env.MODE === 'development') {
+        if (process.env.NODE_ENV === "development") {
           console.warn(`[Livreur] ⚠️ Erreur blockchain (mode dev):`, blockchainError.message);
           console.log(`[Livreur] 💡 Continuation sans blockchain en mode dev...`);
         } else {

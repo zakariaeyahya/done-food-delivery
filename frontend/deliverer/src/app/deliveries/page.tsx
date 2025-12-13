@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useApp } from "@/providers/AppProvider";
+
+// Désactiver le pré-rendu car cette page utilise des APIs côté client (window, localStorage, etc.)
+export const dynamic = 'force-dynamic';
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +19,11 @@ export default function DeliveriesPage() {
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (address) loadDeliveries();
@@ -70,6 +78,11 @@ export default function DeliveriesPage() {
       return <Badge variant="danger">Annulée</Badge>;
     }
     return <Badge variant="default">{status}</Badge>;
+  }
+
+  // Protection contre le pré-rendu
+  if (!isMounted) {
+    return null;
   }
 
   if (!address) {

@@ -5,7 +5,9 @@ import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { ButtonHTMLAttributes, ReactNode } from "react";
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
+  'onDrag' | 'onDragStart' | 'onDragEnd' | 
+  'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'> {
   variant?: "primary" | "secondary" | "danger" | "ghost";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
