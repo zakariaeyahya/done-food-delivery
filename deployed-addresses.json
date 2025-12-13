@@ -6,5 +6,6 @@
   "DoneStaking": "0xFf9CD2596e73BB0bCB28d9E24d945B0ed34f874b",
   "DoneOrderManager": "0x257D63E05bcf8840896b1ECb5c6d98eb5Ba06182",
   "platformAddress": "0x96Afb493749FF73D8C7524a0f863B5f9b22423fA",
-  "deployedAt": "2025-12-07T13:28:16.219Z"
+  "deployedAt": "2025-12-13T11:46:00.324Z",
+  "DoneArbitration": "0xf339Af8A5e429E015Ee038198665026844a87EF6"
 }
