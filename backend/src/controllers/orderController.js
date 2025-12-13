@@ -22,39 +22,51 @@ const { ethers } = require("ethers");
  */
 async function createOrder(req, res) {
   try {
+    console.log("[Order] ========== CREATE ORDER REQUEST ==========");
+    console.log("[Order] Body:", JSON.stringify(req.body, null, 2));
+    console.log("[Order] userAddress from auth:", req.userAddress);
+
     const { restaurantId, items, deliveryAddress, clientAddress, clientPrivateKey } = req.body;
-    
+
     // Récupérer l'adresse du client depuis le middleware auth
     const userAddress = req.userAddress || clientAddress;
+    console.log("[Order] Final userAddress:", userAddress);
     
     if (!userAddress) {
+      console.log("[Order] ERROR: Client address is required");
       return res.status(400).json({
         error: "Bad Request",
         message: "Client address is required"
       });
     }
-    
+
     // Vérifier que le client existe
     const client = await User.findByAddress(userAddress);
+    console.log("[Order] Client found:", client ? client.address : "NOT FOUND");
     if (!client) {
+      console.log("[Order] ERROR: Client not found for address:", userAddress);
       return res.status(404).json({
         error: "Not Found",
         message: "Client not found. Please register first."
       });
     }
-    
+
     // Vérifier que le restaurant existe
     let restaurant;
     if (restaurantId) {
+      console.log("[Order] Looking for restaurant by ID:", restaurantId);
       restaurant = await Restaurant.findById(restaurantId);
     }
-    
+
     // Si restaurantId n'est pas fourni ou restaurant non trouvé, essayer de trouver par restaurantAddress
     if (!restaurant && req.body.restaurantAddress) {
+      console.log("[Order] Looking for restaurant by address:", req.body.restaurantAddress);
       restaurant = await Restaurant.findByAddress(req.body.restaurantAddress);
     }
-    
+
+    console.log("[Order] Restaurant found:", restaurant ? restaurant.name : "NOT FOUND");
     if (!restaurant) {
+      console.log("[Order] ERROR: Restaurant not found. restaurantId:", restaurantId, "restaurantAddress:", req.body.restaurantAddress);
       return res.status(404).json({
         error: "Not Found",
         message: "Restaurant not found. Please provide a valid restaurantId or restaurantAddress."
@@ -602,6 +614,127 @@ async function confirmPreparation(req, res) {
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to confirm preparation",
+      details: error.message
+    });
+  }
+}
+
+/**
+ * Marks an order as ready for pickup
+ * @dev Restaurant marks the order as ready after preparation is complete
+ * @notice This triggers notifications to available deliverers
+ * 
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
+ */
+async function markOrderReady(req, res) {
+  try {
+    const orderId = req.orderId || parseInt(req.params.id);
+    const restaurantAddress = req.userAddress;
+    
+    // Vérifier que la commande existe
+    const order = await Order.findOne({ orderId })
+      .populate('restaurant', 'address name location')
+      .populate('client', 'address name');
+    
+    if (!order) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `Order with id ${orderId} not found`
+      });
+    }
+    
+    // Vérifier que le restaurant est le propriétaire
+    const orderRestaurantAddress = order.restaurant?.address || order.restaurant;
+    if (!orderRestaurantAddress || orderRestaurantAddress.toString().toLowerCase() !== restaurantAddress.toLowerCase()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "You are not the owner of this order"
+      });
+    }
+    
+    // Vérifier le statut - doit être en préparation
+    if (order.status !== 'PREPARING') {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: `Order status must be PREPARING, current status: ${order.status}`
+      });
+    }
+    
+    console.log(`[Backend] ✅ Marquage commande #${orderId} comme prête...`);
+    
+    // Mettre à jour le statut dans MongoDB
+    await Order.updateStatus(orderId, 'READY');
+    
+    // Récupérer la commande mise à jour
+    const updatedOrder = await Order.findOne({ orderId })
+      .populate('restaurant', 'address name location')
+      .populate('client', 'address name');
+    
+    // Notifier le client
+    try {
+      const clientAddr = order.client?.address || order.client;
+      await notificationService.notifyClientOrderUpdate(
+        orderId,
+        clientAddr,
+        'READY',
+        { message: "Your order is ready for pickup!" }
+      );
+      console.log(`[Backend] 📢 Client notifié pour commande #${orderId}`);
+    } catch (notifError) {
+      console.warn("Error sending notification to client:", notifError);
+    }
+    
+    // Notifier les livreurs disponibles
+    try {
+      const orderData = {
+        orderId: updatedOrder.orderId,
+        restaurant: {
+          name: updatedOrder.restaurant?.name || 'Restaurant',
+          address: updatedOrder.restaurant?.address || order.restaurant,
+          location: updatedOrder.restaurant?.location || null
+        },
+        totalAmount: updatedOrder.totalAmount,
+        deliveryAddress: updatedOrder.deliveryAddress,
+        items: updatedOrder.items,
+        client: {
+          name: updatedOrder.client?.name || 'Client',
+          address: updatedOrder.client?.address
+        }
+      };
+      
+      // Récupérer tous les livreurs disponibles et stakés
+      const availableDeliverers = await Deliverer.find({ 
+        isAvailable: true,
+        isStaked: true 
+      }).select('address name');
+      
+      console.log(`[Backend] 📋 Commande #${orderId} prête - ${availableDeliverers.length} livreur(s) disponible(s)`);
+      
+      const delivererAddresses = availableDeliverers.map(d => d.address);
+      
+      // Notifier via Socket.io
+      await notificationService.notifyDeliverersAvailable(
+        orderId,
+        delivererAddresses,
+        orderData
+      );
+      console.log(`[Backend] ✅ Livreurs notifiés pour commande #${orderId} - prête à être récupérée`);
+    } catch (notifError) {
+      console.error("Error notifying deliverers:", notifError);
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: `Order #${orderId} marked as ready`,
+      status: 'READY'
+    });
+  } catch (error) {
+    console.error("Error marking order as ready:", error);
+    
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to mark order as ready",
       details: error.message
     });
   }
@@ -1437,6 +1570,7 @@ module.exports = {
   getOrder,
   getOrdersByClient,
   confirmPreparation,
+  markOrderReady,
   assignDeliverer,
   confirmPickup,
   updateGPSLocation,

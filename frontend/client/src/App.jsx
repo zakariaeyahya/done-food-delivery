@@ -17,6 +17,9 @@ import CheckoutPage from './pages/CheckoutPage';
 import TrackingPage from './pages/TrackingPage';
 import ProfilePage from './pages/ProfilePage';
 
+// Test Components
+import OracleTest from './components/OracleTest';
+
 function App() {
   return (
     <WalletProvider>
@@ -33,6 +36,7 @@ function App() {
                   <Route path="/tracking/:orderId" element={<TrackingPage />} />
                   <Route path="/order/:id" element={<TrackingPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/test/oracles" element={<OracleTest />} />
                 </Routes>
               </main>
               <Footer />

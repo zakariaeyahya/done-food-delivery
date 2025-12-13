@@ -43,7 +43,7 @@ export default function NavigationMap({
   useEffect(() => {
     if (!origin) return;
 
-    watchIdRef.current = geolocation.watchPosition((pos) => {
+    watchIdRef.current = geolocation.watchPosition((pos: { lat: number; lng: number; accuracy?: number; timestamp?: number }) => {
       setCurrentPosition(pos);
 
       if (directions) {

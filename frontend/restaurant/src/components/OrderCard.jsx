@@ -39,9 +39,10 @@ const IPFS_GATEWAY =
  * Composant OrderCard
  * @param {Object} order - Données de la commande
  * @param {(orderId: string|number) => void} onConfirmPreparation
+ * @param {(orderId: string|number) => void} onMarkReady - Marquer comme prête
  * @returns {JSX.Element}
  */
-function OrderCard({ order, onConfirmPreparation }) {
+function OrderCard({ order, onConfirmPreparation, onMarkReady }) {
   const [elapsedTime, setElapsedTime] = useState("");
 
   useEffect(() => {
@@ -73,6 +74,7 @@ function OrderCard({ order, onConfirmPreparation }) {
     const map = {
       CREATED: "warning",
       PREPARING: "secondary",
+      READY: "success",
       IN_DELIVERY: "info",
       DELIVERED: "success",
       DISPUTED: "error",
@@ -85,6 +87,7 @@ function OrderCard({ order, onConfirmPreparation }) {
     const map = {
       CREATED: "Nouvelle",
       PREPARING: "En préparation",
+      READY: "Prête",
       IN_DELIVERY: "En livraison",
       DELIVERED: "Livrée",
       DISPUTED: "Litige",
@@ -219,6 +222,15 @@ function OrderCard({ order, onConfirmPreparation }) {
             className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-orange-600"
           >
             Confirmer préparation
+          </button>
+        )}
+
+        {order.status === "PREPARING" && onMarkReady && (
+          <button
+            onClick={() => onMarkReady(order.orderId)}
+            className="rounded-xl bg-green-500 px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-green-600"
+          >
+            ✅ Commande prête
           </button>
         )}
       </div>

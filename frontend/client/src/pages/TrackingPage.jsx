@@ -12,6 +12,7 @@ const TrackingPage = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!actualOrderId) {
@@ -37,6 +38,23 @@ const TrackingPage = () => {
 
     fetchOrderDetails();
   }, [actualOrderId]);
+
+  const handleRefresh = async () => {
+    if (!actualOrderId) return;
+    
+    setRefreshing(true);
+    try {
+      setError('');
+      const response = await getOrderById(actualOrderId);
+      const orderData = response.data.order || response.data;
+      setOrder(orderData);
+    } catch (err) {
+      console.error(`Failed to refresh order ${actualOrderId} details:`, err);
+      setError('Impossible de charger les details de la commande.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Loading state
   if (loading) {
@@ -207,6 +225,22 @@ const TrackingPage = () => {
               <h1 className="text-2xl md:text-3xl font-bold text-white">Suivi de commande</h1>
               <p className="text-white/80 text-sm">Commande #{actualOrderId}</p>
             </div>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+              className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Actualiser"
+            >
+              {refreshing ? (
+                <svg className="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              )}
+            </button>
             <div className="hidden md:flex items-center gap-2 bg-white/20 rounded-xl px-4 py-2">
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
               <span className="text-white text-sm font-medium">En direct</span>

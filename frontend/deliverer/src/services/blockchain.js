@@ -182,7 +182,7 @@ export async function isStaked(address) {
         err.message?.includes('execution reverted') ||
         err.code === -32002) {
       // En mode dev, permettre de continuer sans vérification blockchain
-      if (process.env.NODE_ENV === "development" || import.meta.env.MODE === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.warn("⚠️ Contrat blockchain non accessible, mode dev: considérer comme staké");
         return true; // En dev, considérer comme staké pour permettre les tests
       }
@@ -408,7 +408,7 @@ export async function acceptOrderOnChain(orderId) {
         err.code === -32002 ||
         err.message?.includes('contract address not configured')) {
       // En mode dev, permettre de continuer sans blockchain
-      if (process.env.NODE_ENV === "development" || import.meta.env.MODE === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.warn("⚠️ Contrat blockchain non accessible, mode dev: skip on-chain");
         return { txHash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''), receipt: null };
       }

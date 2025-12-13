@@ -134,23 +134,27 @@ export function OrdersList({ limit }: OrdersListProps) {
         console.warn(`[Livreur] ⚠️ Aucune commande disponible. Vérifiez dans les logs backend pourquoi.`);
       }
 
-      // Trier par distance si position GPS disponible, sinon par date de création
+      // Trier : READY en priorité, puis par distance ou date
       let sortedOrders = availableOrders;
-      if (currentLocation && availableOrders.length > 0) {
+      if (availableOrders.length > 0) {
         sortedOrders = availableOrders.sort((a: any, b: any) => {
-          if (a.restaurant?.location && b.restaurant?.location) {
+          // Priorité 1: Statut READY en premier (prêtes à récupérer)
+          const statusPriority = (status: string) => {
+            if (status === 'READY') return 0;
+            if (status === 'PREPARING') return 1;
+            return 2;
+          };
+          const priorityDiff = statusPriority(a.status) - statusPriority(b.status);
+          if (priorityDiff !== 0) return priorityDiff;
+
+          // Priorité 2: Par distance si GPS disponible
+          if (currentLocation && a.restaurant?.location && b.restaurant?.location) {
             const dA = geolocation.getDistance(currentLocation, a.restaurant.location);
             const dB = geolocation.getDistance(currentLocation, b.restaurant.location);
             return dA - dB;
           }
-          // Si pas de location, trier par date de création (plus récentes en premier)
-          const dateA = new Date(a.createdAt || 0).getTime();
-          const dateB = new Date(b.createdAt || 0).getTime();
-          return dateB - dateA;
-        });
-      } else if (availableOrders.length > 0) {
-        // Trier par date de création si pas de GPS
-        sortedOrders = availableOrders.sort((a: any, b: any) => {
+          
+          // Fallback: trier par date de création (plus récentes en premier)
           const dateA = new Date(a.createdAt || 0).getTime();
           const dateB = new Date(b.createdAt || 0).getTime();
           return dateB - dateA;
@@ -186,7 +190,7 @@ export function OrdersList({ limit }: OrdersListProps) {
         console.log(`[Livreur] ✅ Vérification blockchain: ${isStaked ? 'staké' : 'non staké'}`);
       } catch (stakeError: any) {
         // En mode dev, si la blockchain n'est pas accessible, vérifier depuis la DB
-        if (process.env.NODE_ENV === "development" || import.meta.env.MODE === 'development') {
+        if (process.env.NODE_ENV === "development") {
           console.warn(`[Livreur] ⚠️ Erreur vérification blockchain, vérification depuis DB...`);
           try {
             const delivererData = await api.getDeliverer(address);
@@ -218,7 +222,7 @@ export function OrdersList({ limit }: OrdersListProps) {
         console.log(`[Livreur] ✅ Acceptation on-chain réussie pour commande #${orderId}`, blockchainResult.txHash ? `(tx: ${blockchainResult.txHash})` : '(mode dev)');
       } catch (blockchainError: any) {
         // En mode dev, continuer même si la blockchain échoue
-        if (process.env.NODE_ENV === "development" || import.meta.env.MODE === 'development') {
+        if (process.env.NODE_ENV === "development") {
           console.warn(`[Livreur] ⚠️ Erreur blockchain (mode dev):`, blockchainError.message);
           console.log(`[Livreur] 💡 Continuation sans blockchain en mode dev...`);
         } else {

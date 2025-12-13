@@ -46,6 +46,15 @@ router.post(
   orderController.confirmPreparation
 );
 
+// Route POST /api/orders/:id/mark-ready - Marquer la commande comme prête (restaurant)
+router.post(
+  "/:id/mark-ready",
+  auth.verifySignature,                    // Vérifier signature
+  auth.requireRole("RESTAURANT_ROLE"),     // Vérifier rôle restaurant
+  validation.validateOrderId,              // Valider orderId
+  orderController.markOrderReady
+);
+
 // Route POST /api/orders/:id/assign-deliverer - Assigner un livreur
 router.post(
   "/:id/assign-deliverer",

@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useApp } from "@/providers/AppProvider";
+
+// Désactiver le pré-rendu car cette page utilise des APIs côté client (window, localStorage, etc.)
+export const dynamic = 'force-dynamic';
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -27,6 +30,11 @@ export default function EarningsPage() {
     values: number[];
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (address) {
@@ -101,6 +109,11 @@ export default function EarningsPage() {
     link.href = URL.createObjectURL(blob);
     link.download = "earnings.csv";
     link.click();
+  }
+
+  // Protection contre le pré-rendu
+  if (!isMounted) {
+    return null;
   }
 
   if (!address) {

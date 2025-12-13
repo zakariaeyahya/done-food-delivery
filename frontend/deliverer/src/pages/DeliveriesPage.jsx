@@ -7,6 +7,7 @@ function DeliveriesPage() {
   const [deliveries, setDeliveries] = useState([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (address) loadDeliveries();
@@ -26,6 +27,18 @@ function DeliveriesPage() {
       setDeliveries([]); // Set empty array on error
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await loadDeliveries();
+    } catch (err) {
+      console.error("Erreur lors de l'actualisation:", err);
+      alert("Erreur lors de l'actualisation des données");
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -62,7 +75,46 @@ function DeliveriesPage() {
 
   return (
     <div className="page">
-      <h1>Mes Livraisons</h1>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '1.5rem',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        width: '100%'
+      }}>
+        <h1 style={{ margin: 0, flex: '1 1 auto' }}>Mes Livraisons</h1>
+        <button 
+          onClick={handleRefresh} 
+          disabled={refreshing || loading}
+          className="btn-primary"
+          style={{ 
+            padding: '0.75rem 1.5rem',
+            fontSize: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            cursor: (refreshing || loading) ? 'not-allowed' : 'pointer',
+            minWidth: '150px',
+            justifyContent: 'center',
+            whiteSpace: 'nowrap',
+            opacity: (refreshing || loading) ? 0.7 : 1
+          }}
+        >
+          {refreshing ? (
+            <>
+              <span>🔄</span>
+              <span>Actualisation...</span>
+            </>
+          ) : (
+            <>
+              <span>🔄</span>
+              <span>Actualiser</span>
+            </>
+          )}
+        </button>
+      </div>
 
       <div className="filters">
         {["all", "active", "completed", "cancelled"].map((f) => (

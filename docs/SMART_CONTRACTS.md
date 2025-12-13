@@ -1517,12 +1517,30 @@ paymentSplitter.withdraw();
 
 ## 🚀 Déploiement
 
+### Adresses Déployées (Polygon Amoy Testnet)
+
+| Contrat | Adresse | Statut |
+|---------|---------|--------|
+| **DoneToken** | `0x24D89CC7f6F76980F2c088DB203DEa6223B1DEd9` | ✅ Déployé |
+| **DonePaymentSplitter** | `0xE99F26DA1B38a79d08ed8d853E45397C99818C2f` | ✅ Déployé |
+| **DoneStaking** | `0xFf9CD2596e73BB0bCB28d9E24d945B0ed34f874b` | ✅ Déployé |
+| **DoneOrderManager** | `0x257D63E05bcf8840896b1ECb5c6d98eb5Ba06182` | ✅ Déployé |
+| **DoneArbitration** | `0xf339Af8A5e429E015Ee038198665026844a87EF6` | ✅ Déployé |
+| **DonePriceOracle** | `0x1D4fF5879B7b2653b6aB8d23423A9799FdABc582` | ✅ Déployé |
+| **DoneGPSOracle** | `0x1a52184023BF93eb0cD150C4595FbCeD3dE88d97` | ✅ Déployé |
+| **DoneWeatherOracle** | `0xa8E5C18c397120699969D22f703e273044c5a125` | ✅ Déployé |
+| **Chainlink MATIC/USD** | `0xd0D5e3DB44DE05E9F294BB0a3bEEaF030DE24Ada` | Externe |
+
 ### Ordre de déploiement
 
 1. **DoneToken** (aucune dépendance)
 2. **DonePaymentSplitter** (aucune dépendance)
 3. **DoneStaking** (aucune dépendance)
 4. **DoneOrderManager** (dépend de tous les autres)
+5. **DoneArbitration** (dépend de DoneToken, DoneOrderManager)
+6. **DonePriceOracle** (dépend de Chainlink)
+7. **DoneGPSOracle** (aucune dépendance)
+8. **DoneWeatherOracle** (aucune dépendance)
 
 ### Configuration post-déploiement
 
@@ -1654,5 +1672,47 @@ Pour toute question technique sur les smart contracts :
 
 ---
 
-**Dernière mise à jour** : 2024
+---
+
+## 🔗 Intégration Backend
+
+### Services Backend connectés aux Smart Contracts
+
+| Service | Contrat | Fonctions utilisées |
+|---------|---------|---------------------|
+| `blockchainService.js` | DoneOrderManager | createOrder, confirmDelivery, etc. |
+| `chainlinkService.js` | DonePriceOracle | getLatestPrice, convertUSDtoMATIC |
+| `priceOracleService.js` | Chainlink + CoinGecko | Prix MATIC/USD avec fallback |
+| `gpsOracleService.js` | DoneGPSOracle | updateLocation, verifyDelivery |
+| `weatherOracleService.js` | DoneWeatherOracle | getWeather, canDeliver |
+| `arbitrationService.js` | DoneArbitration | createDispute, voteDispute, resolveDispute |
+
+### API Endpoints Oracle
+
+| Route | Service | Contract |
+|-------|---------|----------|
+| `GET /api/oracles/price` | chainlinkService | ✅ Chainlink on-chain |
+| `GET /api/oracles/price/latest` | chainlinkService | ✅ Chainlink on-chain |
+| `POST /api/oracles/convert` | chainlinkService | ✅ Chainlink on-chain |
+| `POST /api/oracles/gps/update` | gpsOracleService | ✅ DoneGPSOracle on-chain |
+| `POST /api/oracles/gps/verify` | gpsOracleService | ✅ DoneGPSOracle on-chain |
+| `GET /api/oracles/gps/track/:id` | gpsOracleService | MongoDB + on-chain |
+| `GET /api/oracles/weather` | weatherOracleService | ✅ DoneWeatherOracle on-chain |
+| `POST /api/oracles/arbitration/*` | arbitrationService | ✅ DoneArbitration on-chain |
+
+### Stratégie de stockage hybride
+
+```
+On-chain (immuable, coûteux)          Off-chain (rapide, flexible)
+─────────────────────────────────────────────────────────────────
+✓ Paiements                           ✓ Détails commande (IPFS)
+✓ États commande critiques            ✓ GPS tracking (MongoDB)
+✓ Preuves de livraison                ✓ Images menu (IPFS)
+✓ Votes arbitrage                     ✓ Analytics
+✓ GPS critique (every 5th)            ✓ Cache prix
+```
+
+---
+
+**Dernière mise à jour** : 2025-12-13
 

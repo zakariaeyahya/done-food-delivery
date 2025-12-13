@@ -93,7 +93,7 @@ const orderSchema = new mongoose.Schema({
   status: {
     type: String,
     required: true,
-    enum: ['CREATED', 'PREPARING', 'IN_DELIVERY', 'DELIVERED', 'DISPUTED'],
+    enum: ['CREATED', 'PREPARING', 'READY', 'IN_DELIVERY', 'DELIVERED', 'DISPUTED'],
     default: 'CREATED',
     index: true
   },
@@ -223,7 +223,7 @@ orderSchema.statics.findByOrderId = async function(orderId) {
  * @dev Implémenté
  * 
  * @param {number} orderId - ID de la commande
- * @param {string} newStatus - Nouveau statut (CREATED, PREPARING, IN_DELIVERY, DELIVERED, DISPUTED)
+ * @param {string} newStatus - Nouveau statut (CREATED, PREPARING, READY, IN_DELIVERY, DELIVERED, DISPUTED)
  * @returns {Promise<Object>} Document Order mis à jour
  */
 orderSchema.statics.updateStatus = async function(orderId, newStatus) {

@@ -117,5 +117,21 @@ router.get(
   delivererController.getActiveDelivery
 );
 
+// Route POST /api/deliverers/orders/:orderId/cancel - Annuler une livraison (remettre en READY)
+router.post(
+  "/orders/:orderId/cancel",
+  auth.verifySignature,                    // Vérifier signature
+  auth.requireRole("DELIVERER_ROLE"),      // Vérifier rôle livreur
+  delivererController.cancelDelivery
+);
+
+// Route POST /api/deliverers/orders/:orderId/force-complete - Forcer la complétion d'une livraison
+router.post(
+  "/orders/:orderId/force-complete",
+  auth.verifySignature,                    // Vérifier signature
+  auth.requireRole("DELIVERER_ROLE"),      // Vérifier rôle livreur
+  delivererController.forceCompleteDelivery
+);
+
 // Exporter le router
 module.exports = router;

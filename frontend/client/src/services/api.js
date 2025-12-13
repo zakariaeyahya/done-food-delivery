@@ -49,8 +49,76 @@ apiClient.interceptors.request.use((config) => {
 export const getRestaurants = (filters = {}) => {
   return apiClient.get('/restaurants', { params: filters });
 };
+// === ORACLE APIs ===
+
+/**
+ * Gets MATIC/USD price from Chainlink Oracle
+ * @returns {Promise<AxiosResponse<any>>}
+ */
+export const getOraclePrice = () => {
+  return apiClient.get('/oracles/price');
+};
+
+/**
+ * Converts fiat currency to MATIC
+ * @param {object} data - { amount, from: 'USD'|'EUR', to: 'MATIC' }
+ * @returns {Promise<AxiosResponse<any>>}
+ */
 export const convertCurrency = (data) => {
   return apiClient.post('/oracles/convert', data);
+};
+
+/**
+ * Gets weather data for a location
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @returns {Promise<AxiosResponse<any>>}
+ */
+export const getWeather = (lat, lng) => {
+  return apiClient.get(`/oracles/weather?lat=${lat}&lng=${lng}`);
+};
+
+/**
+ * Verifies GPS delivery location
+ * @param {object} data - { orderId, clientLat, clientLng }
+ * @returns {Promise<AxiosResponse<any>>}
+ */
+export const verifyGPSDelivery = (data) => {
+  return apiClient.post('/oracles/gps/verify', data);
+};
+
+/**
+ * Updates deliverer GPS location
+ * @param {object} data - { orderId, lat, lng, delivererAddress }
+ * @returns {Promise<AxiosResponse<any>>}
+ */
+export const updateGPSLocation = (data) => {
+  return apiClient.post('/oracles/gps/update', data);
+};
+
+/**
+ * Tracks delivery in real-time
+ * @param {string|number} orderId - Order ID
+ * @returns {Promise<AxiosResponse<any>>}
+ */
+export const trackDelivery = (orderId) => {
+  return apiClient.get(`/oracles/gps/track/${orderId}`);
+};
+
+/**
+ * Gets GPS metrics
+ * @returns {Promise<AxiosResponse<any>>}
+ */
+export const getGPSMetrics = () => {
+  return apiClient.get('/oracles/gps/metrics');
+};
+
+/**
+ * Gets price metrics
+ * @returns {Promise<AxiosResponse<any>>}
+ */
+export const getPriceMetrics = () => {
+  return apiClient.get('/oracles/price/metrics');
 };
 // src/services/api.js
 export const getUserProfile = (address) => {
@@ -225,4 +293,13 @@ export default {
   updateCartItem,
   removeFromCart,
   clearCart,
+  // Oracle APIs
+  getOraclePrice,
+  convertCurrency,
+  getWeather,
+  verifyGPSDelivery,
+  updateGPSLocation,
+  trackDelivery,
+  getGPSMetrics,
+  getPriceMetrics,
 };

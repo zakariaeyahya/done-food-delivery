@@ -178,6 +178,37 @@ function OrdersQueue({
     }
   }
 
+  async function handleMarkReady(orderId) {
+    try {
+      console.log(`[Restaurant] ✅ Marquage commande #${orderId} comme prête...`);
+      setLoading(true);
+
+      // 1) Mettre à jour via API backend
+      console.log(`[Restaurant] 📡 Envoi requête API pour marquer prête commande #${orderId}...`);
+      await api.markOrderReady(orderId, restaurantAddress);
+      console.log(`[Restaurant] ✅ Commande #${orderId} marquée comme prête dans la base de données`);
+      console.log(`[Restaurant] 📢 Notification envoyée aux livreurs - commande #${orderId} prête à être récupérée`);
+
+      // 2) Update local optimiste
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.orderId === orderId
+            ? { ...o, status: "READY" }
+            : o
+        )
+      );
+
+      console.log(`[Restaurant] ✅ Commande #${orderId} mise à jour en statut READY`);
+      showSuccess?.("Commande marquée comme prête !");
+      showNotification?.(`Commande #${orderId} prête - En attente d'un livreur`);
+    } catch (e) {
+      console.error(`[Restaurant] ❌ Erreur marquage prête commande #${orderId}:`, e);
+      showError?.(`Erreur: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function playNotificationSound() {
     try {
       const audio = new Audio("/notification.mp3");
@@ -204,6 +235,7 @@ function OrdersQueue({
       all: orders.length,
       CREATED: 0,
       PREPARING: 0,
+      READY: 0,
       IN_DELIVERY: 0,
     };
     orders.forEach((o) => {
@@ -265,6 +297,12 @@ function OrdersQueue({
           Préparation ({counts.PREPARING})
         </FilterChip>
         <FilterChip
+          active={currentFilter === "READY"}
+          onClick={() => handleFilterChange("READY")}
+        >
+          Prêtes ({counts.READY})
+        </FilterChip>
+        <FilterChip
           active={currentFilter === "IN_DELIVERY"}
           onClick={() => handleFilterChange("IN_DELIVERY")}
         >
@@ -303,6 +341,7 @@ function OrdersQueue({
               <OrderCard
                 order={order}
                 onConfirmPreparation={handleConfirmPreparation}
+                onMarkReady={handleMarkReady}
               />
             </div>
           ))}

@@ -90,6 +90,10 @@ export function ConnectWalletModal({
         console.log("Livreur non enregistré dans la base backend.");
       }
 
+      if (!account) {
+        throw new Error("Impossible de récupérer l'adresse du wallet");
+      }
+
       onConnect(account);
     } catch (err: any) {
       setError(`Erreur de connexion : ${err.message}`);
