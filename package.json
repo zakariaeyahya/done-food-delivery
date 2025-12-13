@@ -7,6 +7,7 @@
   "workspaces": [
     "contracts",
     "backend",
+    "frontend/admin",
     "frontend/client",
     "frontend/restaurant",
     "frontend/deliverer"
@@ -14,14 +15,19 @@
   "scripts": {
     "install:all": "npm install && npm install --workspaces",
     "dev:backend": "npm run dev --workspace=backend",
+    "dev:admin": "npm run dev --workspace=frontend/admin",
     "dev:client": "npm run dev --workspace=frontend/client",
     "dev:restaurant": "npm run dev --workspace=frontend/restaurant",
     "dev:deliverer": "npm run dev --workspace=frontend/deliverer",
+    "dev:all": "concurrently -n \"BACKEND,ADMIN,CLIENT,RESTAURANT,DELIVERER\" -c \"blue,green,yellow,magenta,cyan\" \"npm run dev:backend\" \"npm run dev:admin\" \"npm run dev:client\" \"npm run dev:restaurant\" \"npm run dev:deliverer\"",
     "test:contracts": "npx hardhat test",
     "deploy:mumbai": "npx hardhat run scripts/deploy-all.js --network mumbai",
     "deploy:local": "npx hardhat run scripts/deploy-all.js --network localhost",
     "compile": "npx hardhat compile",
     "clean": "npx hardhat clean"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   },
   "keywords": [
     "blockchain",
