@@ -30,13 +30,13 @@ export default function StatsCards({
     },
     {
       label: "GMV Total",
-      value: formatCrypto(totalGMV, "POL", 3),
+      value: formatCrypto(totalGMV, "POL", 5),
       icon: <CurrencyDollarIcon className="h-8 w-8 text-orange-600" />,
       bg: "bg-orange-50",
     },
     {
       label: "Revenus Plateforme",
-      value: formatCrypto(platformRevenue, "POL", 3),
+      value: formatCrypto(platformRevenue, "POL", 5),
       icon: <BanknotesIcon className="h-8 w-8 text-red-600" />,
       bg: "bg-red-50",
     },

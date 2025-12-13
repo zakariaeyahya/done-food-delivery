@@ -65,14 +65,18 @@ function HomePage() {
       setActiveDelivery(active);
 
       // Load earnings (with auth - may fail)
-      const earningsResponse = await api.getEarnings(address, "today").catch(() => ({
-        earnings: { completedDeliveries: 0, totalEarnings: 0 }
-      }));
+      console.log("[HomePage] 📊 Chargement earnings pour:", address);
+      const earningsResponse = await api.getEarnings(address, "today").catch((err) => {
+        console.error("[HomePage] ❌ Erreur earnings:", err);
+        return { earnings: { completedDeliveries: 0, totalEarnings: 0 } };
+      });
+      console.log("[HomePage] 📊 Réponse earnings:", earningsResponse);
       // Extraire les données depuis la réponse structurée du backend
       const earnings = earningsResponse.earnings || {
         completedDeliveries: 0,
         totalEarnings: 0
       };
+      console.log("[HomePage] 📊 Earnings extraits:", earnings);
 
       // Load rating from API
       const ratingData = await api.getRating(address).catch((err) => {
@@ -283,7 +287,7 @@ function HomePage() {
             </div>
             <div className="card">
               <h3>Gains</h3>
-              <p className="big">{stats.todayEarnings} POL</p>
+              <p className="big">{Number(stats.todayEarnings).toFixed(5)} POL</p>
             </div>
             <div className="card">
               <h3>Rating</h3>
@@ -291,7 +295,7 @@ function HomePage() {
             </div>
             <div className="card">
               <h3>Staké</h3>
-              <p className="big">{stats.stakedAmount} POL</p>
+              <p className="big">{Number(stats.stakedAmount).toFixed(5)} POL</p>
             </div>
           </div>
 

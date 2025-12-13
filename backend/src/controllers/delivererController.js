@@ -561,9 +561,9 @@ async function unstake(req, res) {
 async function getDelivererOrders(req, res) {
   try {
     const address = req.params.address || req.userAddress || req.validatedAddress;
-    
+
     const normalizedAddress = address.toLowerCase();
-    
+
     const deliverer = await Deliverer.findByAddress(normalizedAddress);
     if (!deliverer) {
       return res.status(404).json({
@@ -571,21 +571,33 @@ async function getDelivererOrders(req, res) {
         message: "Deliverer not found"
       });
     }
-    
+
     const { status } = req.query;
-    
+
     const orders = await Order.getOrdersByDeliverer(deliverer._id, {
       status
     });
-    
+
+    // Ajouter le champ earnings (deliveryFee converti en POL) pour chaque commande
+    const ordersWithEarnings = orders.map(order => {
+      const orderObj = order.toObject ? order.toObject() : order;
+      // Calculer earnings: deliveryFee en wei converti en POL
+      const deliveryFeeWei = parseFloat(orderObj.deliveryFee || 0);
+      const earningsPOL = deliveryFeeWei / 1e18;
+      return {
+        ...orderObj,
+        earnings: parseFloat(earningsPOL.toFixed(5))
+      };
+    });
+
     return res.status(200).json({
       success: true,
-      orders,
-      count: orders.length
+      orders: ordersWithEarnings,
+      count: ordersWithEarnings.length
     });
   } catch (error) {
     console.error("Error getting deliverer orders:", error);
-    
+
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get deliverer orders",
@@ -623,10 +635,11 @@ async function getDelivererEarnings(req, res) {
     };
     
     // Support du paramètre period (today, week, month) ou dates personnalisées
+    // Utilise completedAt si disponible, sinon updatedAt pour les commandes DELIVERED
     if (period) {
       const now = new Date();
       let start = new Date();
-      
+
       switch (period.toLowerCase()) {
         case 'today':
           start.setHours(0, 0, 0, 0);
@@ -641,24 +654,30 @@ async function getDelivererEarnings(req, res) {
           // Si period n'est pas reconnu, ignorer
           break;
       }
-      
+
       if (period.toLowerCase() === 'today' || period.toLowerCase() === 'week' || period.toLowerCase() === 'month') {
-        query.completedAt = {
-          $gte: start,
-          $lte: now
-        };
+        // Utiliser $or pour matcher completedAt OU updatedAt (fallback si completedAt est null)
+        query.$or = [
+          { completedAt: { $gte: start, $lte: now } },
+          { completedAt: null, updatedAt: { $gte: start, $lte: now } }
+        ];
       }
     } else if (startDate || endDate) {
-      query.completedAt = {};
-      if (startDate) query.completedAt.$gte = new Date(startDate);
-      if (endDate) query.completedAt.$lte = new Date(endDate);
+      const dateFilter = {};
+      if (startDate) dateFilter.$gte = new Date(startDate);
+      if (endDate) dateFilter.$lte = new Date(endDate);
+      query.$or = [
+        { completedAt: dateFilter },
+        { completedAt: null, updatedAt: dateFilter }
+      ];
     }
     
     const orders = await Order.find(query);
     
     const totalEarnings = orders.reduce((sum, order) => {
-      const deliveryFeeMATIC = parseFloat(order.deliveryFee) / 1e18;
-      return sum + (deliveryFeeMATIC * 0.2);
+      // Le livreur reçoit le deliveryFee complet (converti de wei en POL)
+      const deliveryFeePOL = parseFloat(order.deliveryFee || 0) / 1e18;
+      return sum + deliveryFeePOL;
     }, 0);
     
     const completedDeliveries = orders.length;
