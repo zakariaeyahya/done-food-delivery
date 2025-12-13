@@ -97,8 +97,6 @@ router.get(
 // Route GET /api/deliverers/:address/earnings - Récupérer les earnings d'un livreur
 router.get(
   "/:address/earnings",
-  auth.verifySignature,                    // Vérifier signature
-  auth.requireRole("DELIVERER_ROLE"),      // Vérifier rôle livreur
   validation.validateAddress,              // Valider address dans params
   delivererController.getDelivererEarnings
 );

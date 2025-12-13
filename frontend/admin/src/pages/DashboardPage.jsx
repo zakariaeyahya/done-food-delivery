@@ -82,9 +82,9 @@ export default function DashboardPage() {
     <div className="space-y-6 md:space-y-8">
 
       {/* ===================== HEADER ===================== */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-6 md:p-8 text-white shadow-lg">
+      <div className="bg-gradient-to-r from-orange-600 via-red-500 to-pink-600 rounded-xl p-6 md:p-8 text-white shadow-lg">
         <h1 className="text-3xl md:text-4xl font-bold mb-2">Tableau de Bord</h1>
-        <p className="text-indigo-100 text-sm md:text-base">
+        <p className="text-orange-100 text-sm md:text-base">
           Vue d'ensemble de l'activité de la plateforme DONE Delivery
         </p>
       </div>
@@ -143,7 +143,7 @@ export default function DashboardPage() {
           </div>
           <Link
             to="/orders"
-            className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium text-sm transition-colors"
+            className="flex items-center gap-2 text-orange-600 hover:text-orange-700 font-medium text-sm transition-colors"
           >
             Voir tout
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,7 +164,7 @@ export default function DashboardPage() {
           </div>
           <Link
             to="/disputes"
-            className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium text-sm transition-colors"
+            className="flex items-center gap-2 text-orange-600 hover:text-orange-700 font-medium text-sm transition-colors"
           >
             Voir tout
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

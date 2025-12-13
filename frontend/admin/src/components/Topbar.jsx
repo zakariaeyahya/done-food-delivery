@@ -117,7 +117,7 @@ export default function Topbar({ title }) {
 
         {/* WALLET ADDRESS */}
         {address && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 text-indigo-700">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-50 text-orange-700">
             <WalletIcon className="h-5 w-5" />
             <span className="font-mono text-sm">{shortAddress}</span>
           </div>

@@ -29,11 +29,11 @@ export default function Sidebar() {
     <div
       className={`${
         open ? "w-64" : "w-20"
-      } bg-white shadow-lg border-r transition-all duration-300 flex flex-col`}
+      } bg-gradient-to-b from-orange-600 via-red-500 to-pink-600 shadow-xl border-r transition-all duration-300 flex flex-col`}
     >
       {/* HEADER SIDEBAR */}
-      <div className="flex items-center justify-between px-4 py-4 border-b">
-        <span className="font-bold text-xl text-indigo-600">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-orange-700">
+        <span className="font-bold text-xl text-white">
           {open ? "Admin" : "A"}
         </span>
 
@@ -42,9 +42,9 @@ export default function Sidebar() {
           onClick={() => setOpen(!open)}
         >
           {open ? (
-            <XMarkIcon className="h-6 w-6 text-gray-700" />
+            <XMarkIcon className="h-6 w-6 text-white" />
           ) : (
-            <Bars3Icon className="h-6 w-6 text-gray-700" />
+            <Bars3Icon className="h-6 w-6 text-white" />
           )}
         </button>
       </div>
@@ -59,8 +59,8 @@ export default function Sidebar() {
               `
               flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all
               ${isActive
-                ? "bg-indigo-600 text-white shadow-md"
-                : "text-gray-700 hover:bg-gray-200"
+                ? "bg-orange-700 text-white border-r-4 border-yellow-400 shadow-md"
+                : "text-orange-100 hover:bg-orange-700/50 hover:text-white"
               }
               `
             }

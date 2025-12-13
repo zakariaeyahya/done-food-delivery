@@ -425,19 +425,34 @@ async function getRestaurantOrders(req, res) {
       });
     }
     
-    const { status } = req.query;
+    const { status, startDate, endDate } = req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    
-    const orders = await Order.getOrdersByRestaurant(restaurant._id, {
-      limit,
-      skip,
-      status
-    });
-    
+
+    // Construire la query avec filtres de date
     const query = { restaurant: restaurant._id };
-    if (status) query.status = status;
+    if (status && status !== 'all') query.status = status;
+
+    // Ajouter filtre de date (utilise createdAt ou updatedAt comme fallback)
+    if (startDate || endDate) {
+      const dateFilter = {};
+      if (startDate) dateFilter.$gte = new Date(startDate);
+      if (endDate) dateFilter.$lte = new Date(endDate);
+
+      query.$or = [
+        { createdAt: dateFilter },
+        { updatedAt: dateFilter }
+      ];
+    }
+
+    const orders = await Order.find(query)
+      .populate('client', 'name address')
+      .populate('deliverer', 'name address')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
     const total = await Order.countDocuments(query);
     
     return res.status(200).json({
@@ -1016,18 +1031,23 @@ async function getRestaurantEarnings(req, res) {
     }
     
     // Récupérer les commandes livrées pour cette période
+    // Utilise completedAt si disponible, sinon updatedAt comme fallback
     const deliveredOrders = await Order.find({
       restaurant: restaurant._id,
       status: 'DELIVERED',
-      completedAt: { $gte: startDate, $lte: now }
-    }).sort({ completedAt: 1 });
-    
+      $or: [
+        { completedAt: { $gte: startDate, $lte: now } },
+        { completedAt: null, updatedAt: { $gte: startDate, $lte: now } }
+      ]
+    }).sort({ completedAt: 1, updatedAt: 1 });
+
     // Calculer les revenus quotidiens
     const dailyEarnings = {};
     const weeklyEarnings = {};
-    
+
     deliveredOrders.forEach(order => {
-      const orderDate = new Date(order.completedAt);
+      // Utiliser completedAt ou updatedAt comme fallback
+      const orderDate = new Date(order.completedAt || order.updatedAt);
       const dayKey = orderDate.toISOString().split('T')[0]; // YYYY-MM-DD
       
       // Calculer le revenu du restaurant (80% du totalAmount)

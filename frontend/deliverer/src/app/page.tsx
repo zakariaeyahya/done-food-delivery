@@ -133,10 +133,12 @@ export default function HomePage() {
         console.warn(`[Livreur] 💡 Commandes actives:`, activeData.allActiveDeliveries.map((o: any) => `#${o.orderId}`).join(', '));
       }
 
-      const earnings = await api.getEarnings(address, "today").catch(() => ({
-        completedDeliveries: 0,
-        totalEarnings: 0,
+      const earningsResponse = await api.getEarnings(address, "today").catch(() => ({
+        earnings: { completedDeliveries: 0, totalEarnings: 0 }
       }));
+      // Extraire les données depuis la réponse structurée du backend
+      const earnings = earningsResponse.earnings || { completedDeliveries: 0, totalEarnings: 0 };
+      console.log("[HomePage] 📊 Earnings reçus:", earnings);
 
       const stakeInfo = await blockchain.getStakeInfo(address).catch((err: any) => {
         // Ne pas logger les erreurs RPC communes (trop verbeuses)
@@ -149,13 +151,14 @@ export default function HomePage() {
       const stakedAmount = stakeInfo.amount || 0;
       const staked = stakedAmount > 0 || delivererData.deliverer?.isStaked || false;
       setIsStaked(staked);
-      
+
       setStats({
         todayDeliveries: earnings.completedDeliveries || 0,
         todayEarnings: earnings.totalEarnings || 0,
         rating: 0,
         stakedAmount: stakedAmount,
       });
+      console.log("[HomePage] ✅ Stats mises à jour:", { todayDeliveries: earnings.completedDeliveries, todayEarnings: earnings.totalEarnings });
     } catch (err) {
       console.error("Erreur chargement:", err);
     }

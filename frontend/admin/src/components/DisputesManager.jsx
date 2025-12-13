@@ -166,7 +166,7 @@ function DisputesManager() {
           {dispute.votingPeriodEnded && (
             <button
               onClick={() => handleResolve(dispute.disputeId)}
-              className="btn btn-sm btn-admin"
+              className="btn btn-sm btn-primary"
             >
               Résoudre
             </button>
@@ -236,7 +236,7 @@ function DisputesManager() {
 
             <button
               onClick={() => handleResolve(dispute.disputeId)}
-              className="btn btn-admin"
+              className="btn btn-primary"
             >
               Résoudre Manuellement
             </button>
@@ -255,7 +255,7 @@ function DisputesManager() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
         </div>
       ) : disputes.length === 0 ? (
         <div className="text-center text-gray-500 py-8">
