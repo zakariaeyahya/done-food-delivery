@@ -52,7 +52,7 @@ function getMinimalABI(contractName) {
       "function assignDeliverer(uint256 orderId, address deliverer) external",
       "function confirmPickup(uint256 orderId) external",
       "function confirmDelivery(uint256 orderId) external",
-      "function openDispute(uint256 orderId, string memory reason) external",
+      "function openDispute(uint256 orderId) external",
       "function resolveDispute(uint256 orderId, address payable winner, uint256 refundPercent) external",
       "function getOrder(uint256 orderId) external view returns (tuple(uint256 id, address client, address restaurant, address deliverer, uint256 foodPrice, uint256 deliveryFee, uint256 platformFee, uint256 totalAmount, uint8 status, string ipfsHash, uint256 createdAt, bool disputed, bool delivered))",
       "event OrderCreated(uint256 indexed orderId, address indexed client, address indexed restaurant, uint256 totalAmount)",

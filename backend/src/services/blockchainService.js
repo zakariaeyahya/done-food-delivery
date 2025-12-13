@@ -373,8 +373,9 @@ async function openDispute(orderId, openerAddress, reason, openerPrivateKey) {
     // Connecter le contrat au wallet
     const orderManagerWithSigner = orderManager.connect(openerWallet);
     
-    // Appeler openDispute
-    const tx = await orderManagerWithSigner.openDispute(orderId, reason || "");
+    // Appeler openDispute (le contrat n'accepte qu'un seul paramètre: orderId)
+    // La raison est stockée off-chain dans MongoDB
+    const tx = await orderManagerWithSigner.openDispute(orderId);
     
     // Attendre la confirmation
     const receipt = await tx.wait();
