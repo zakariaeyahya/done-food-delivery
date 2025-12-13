@@ -6,13 +6,58 @@ require("dotenv").config();
 
 /**
  * GPS Oracle Service - GPS data management and DoneGPSOracle interaction
- * 
+ *
  * Manages GPS updates with hybrid storage strategy (off-chain + on-chain)
+ * Connected to deployed DoneGPSOracle contract
  */
 
 // Configuration
 const DELIVERY_RADIUS = 100; // 100 meters
 const GPS_UPDATE_INTERVAL = 5000; // 5 seconds
+const GPS_ORACLE_ADDRESS = process.env.GPS_ORACLE_ADDRESS;
+
+// DoneGPSOracle ABI (minimal)
+const GPS_ORACLE_ABI = [
+  "function updateLocation(uint256 orderId, int256 lat, int256 lng) external",
+  "function verifyDelivery(uint256 orderId, int256 clientLat, int256 clientLng) external view returns (bool)",
+  "function calculateDistance(int256 lat1, int256 lng1, int256 lat2, int256 lng2) public pure returns (uint256)",
+  "function getDeliveryRoute(uint256 orderId) external view returns (tuple(int256 latitude, int256 longitude, uint256 timestamp, address deliverer, bool verified)[] locations, uint256 totalDistance, uint256 startTime, uint256 endTime)",
+  "function currentLocations(uint256 orderId) external view returns (int256 latitude, int256 longitude, uint256 timestamp, address deliverer, bool verified)",
+  "function deliveryRadius() external view returns (uint256)",
+  "event LocationUpdated(uint256 indexed orderId, int256 lat, int256 lng, uint256 timestamp)",
+  "event DeliveryVerified(uint256 indexed orderId, uint256 distance, bool verified)"
+];
+
+// GPS Oracle contract instance (lazy loaded)
+let gpsOracleContract = null;
+
+/**
+ * Get GPS Oracle contract instance
+ * @returns {ethers.Contract|null} Contract instance or null
+ */
+function getGPSOracleContract() {
+  if (gpsOracleContract) return gpsOracleContract;
+
+  if (!GPS_ORACLE_ADDRESS) {
+    console.warn("⚠️ GPS_ORACLE_ADDRESS not configured");
+    return null;
+  }
+
+  try {
+    const provider = getProvider();
+    if (!provider) {
+      console.warn("⚠️ Provider not initialized for GPS Oracle");
+      return null;
+    }
+
+    gpsOracleContract = new ethers.Contract(GPS_ORACLE_ADDRESS, GPS_ORACLE_ABI, provider);
+    console.log("✓ GPS Oracle contract initialized:", GPS_ORACLE_ADDRESS);
+    return gpsOracleContract;
+  } catch (error) {
+    console.error("❌ Failed to initialize GPS Oracle:", error.message);
+    return null;
+  }
+}
 
 // Performance metrics
 let totalGPSUpdates = 0;
@@ -112,29 +157,38 @@ async function updateLocation(orderId, lat, lng, delivererAddress) {
       isNearDestination(lat, lng, order.deliveryLocation); // Near destination
     
     let onChainUpdate = false;
-    if (shouldUpdateOnChain && process.env.GPS_ORACLE_ADDRESS) {
+    let txHash = null;
+
+    if (shouldUpdateOnChain && GPS_ORACLE_ADDRESS) {
       try {
-        // 7. Update on-chain
+        // 7. Update on-chain via DoneGPSOracle contract
+        const gpsOracle = getGPSOracleContract();
+        if (!gpsOracle) {
+          throw new Error("GPS Oracle contract not initialized");
+        }
+
         const provider = getProvider();
         if (!provider) {
           throw new Error("Provider not initialized");
         }
 
-        // Note: GPS Oracle contract would need to be deployed and configured
-        // For now, we'll just log that it would be updated
-        console.log(`📍 GPS on-chain update would be sent: orderId=${orderId}, lat=${latScaled}, lng=${lngScaled}`);
-        
-        // If GPS_ORACLE_ADDRESS is set, we could update on-chain here
-        // const gpsOracle = getContractInstance('gpsOracle');
-        // const wallet = new ethers.Wallet(process.env.DELIVERER_PRIVATE_KEY, provider);
-        // const oracleWithSigner = gpsOracle.connect(wallet);
-        // const tx = await oracleWithSigner.updateLocation(orderId, latScaled, lngScaled);
-        // await tx.wait();
-        
+        // Use backend wallet to send transaction (must have DELIVERER_ROLE)
+        const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+        const oracleWithSigner = gpsOracle.connect(wallet);
+
+        console.log(`📍 Sending GPS on-chain update: orderId=${orderId}, lat=${latScaled}, lng=${lngScaled}`);
+
+        const tx = await oracleWithSigner.updateLocation(orderId, latScaled, lngScaled);
+        const receipt = await tx.wait();
+
+        txHash = tx.hash;
         onChainUpdates++;
         onChainUpdate = true;
+
+        console.log(`✓ GPS on-chain update confirmed: txHash=${txHash}`);
       } catch (onChainError) {
-        console.warn("On-chain GPS update failed (continuing with off-chain):", onChainError.message);
+        console.warn("⚠️ On-chain GPS update failed (continuing with off-chain):", onChainError.message);
+        // Continue with off-chain only - don't throw
       }
     }
     
@@ -158,6 +212,7 @@ async function updateLocation(orderId, lat, lng, delivererAddress) {
       success: true,
       location: { lat, lng },
       onChainUpdate: onChainUpdate,
+      txHash: txHash,
       updateTime: `${updateTime}ms`
     };
   } catch (error) {
@@ -209,16 +264,28 @@ async function verifyDelivery(orderId, clientLat, clientLng) {
     if (isNearby) {
       successfulVerifications++;
       console.log(`✓ Delivery verified: deliverer is within ${DELIVERY_RADIUS}m`);
-      
+
       // 5. Call on-chain contract for verification (if available)
-      // const latScaled = Math.round(clientLat * 1e6);
-      // const lngScaled = Math.round(clientLng * 1e6);
-      // const isVerified = await gpsOracle.verifyDelivery(orderId, latScaled, lngScaled);
-      
+      let onChainVerified = null;
+      if (GPS_ORACLE_ADDRESS) {
+        try {
+          const gpsOracle = getGPSOracleContract();
+          if (gpsOracle) {
+            const latScaled = Math.round(clientLat * 1e6);
+            const lngScaled = Math.round(clientLng * 1e6);
+            onChainVerified = await gpsOracle.verifyDelivery(orderId, latScaled, lngScaled);
+            console.log(`✓ On-chain verification result: ${onChainVerified}`);
+          }
+        } catch (onChainError) {
+          console.warn("⚠️ On-chain verification failed:", onChainError.message);
+        }
+      }
+
       return {
         verified: true,
         distance: distance,
         withinRadius: isNearby,
+        onChainVerified: onChainVerified,
         lastUpdate: lastPosition.timestamp
       };
     } else {

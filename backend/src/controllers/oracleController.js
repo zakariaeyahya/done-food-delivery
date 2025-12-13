@@ -1,5 +1,6 @@
 const priceOracleService = require("../services/priceOracleService");
 const gpsOracleService = require("../services/gpsOracleService");
+const weatherOracleService = require("../services/weatherOracleService");
 
 /**
  * Controller for managing HTTP requests related to Oracles
@@ -153,8 +154,8 @@ async function verifyGPSDelivery(req, res) {
 
 /**
  * Gets weather data to adjust delivery fees
- * @dev TODO: Implement with external weather API
- * 
+ * @dev Connected to DoneWeatherOracle contract
+ *
  * @param {Object} req - Express Request
  * @param {Object} res - Express Response
  */
@@ -162,29 +163,20 @@ async function getWeather(req, res) {
   try {
     const lat = parseFloat(req.query.lat);
     const lng = parseFloat(req.query.lng);
-    
+
     if (isNaN(lat) || isNaN(lng)) {
       return res.status(400).json({
         error: "Bad Request",
         message: "lat and lng query parameters are required"
       });
     }
-    
+
+    // Use weatherOracleService to get real weather data
+    const weatherData = await weatherOracleService.getWeather(lat, lng);
+
     return res.status(200).json({
       success: true,
-      data: {
-        location: {
-          lat: lat,
-          lng: lng
-        },
-        weather: {
-          condition: "clear",
-          temperature: 20,
-          windSpeed: 10
-        },
-        deliveryFeeMultiplier: 1.0,
-        timestamp: new Date().toISOString()
-      }
+      data: weatherData
     });
   } catch (error) {
     console.error("Error getting weather:", error);
