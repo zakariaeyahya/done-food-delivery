@@ -1,124 +1,302 @@
-# Dossier frontend/deliverer/
+# DONE Food Delivery - Frontend Deliverer App
 
-Application React web pour les livreurs permettant d'accepter des livraisons, suivre les trajets en temps réel et gérer les gains. L'application est conçue en web-first avec possibilité de PWA pour accès mobile.
+## 📋 Table des matières
 
-## Structure
+- [Introduction](#introduction)
+- [Architecture](#architecture)
+- [Technologies](#technologies)
+- [Prérequis](#prérequis)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Structure du projet](#structure-du-projet)
+- [Composants](#composants)
+- [Pages](#pages)
+- [Services](#services)
+- [Intégration API](#intégration-api)
+- [PWA (Progressive Web App)](#pwa-progressive-web-app)
+- [Démarrage](#démarrage)
+- [Déploiement](#déploiement)
+- [Workflow utilisateur](#workflow-utilisateur)
+
+---
+
+## 🎯 Introduction
+
+L'application frontend deliverer de DONE Food Delivery est une interface React web-first permettant aux livreurs d'accepter des livraisons, suivre leurs trajets en temps réel et gérer leurs gains. L'application est conçue comme une **PWA (Progressive Web App)** pour permettre l'installation sur mobile et l'accès aux fonctionnalités GPS natives.
+
+### Fonctionnalités principales
+
+- ✅ **Connexion Web3** : Intégration MetaMask avec vérification du rôle DELIVERER
+- ✅ **Staking** : Gestion du staking minimum (0.1 ETH) pour devenir livreur actif
+- ✅ **Commandes disponibles** : Liste des commandes à proximité avec tri par distance
+- ✅ **Navigation GPS** : Intégration Google Maps avec itinéraires en temps réel
+- ✅ **Tracking actif** : Suivi GPS automatique pendant les livraisons
+- ✅ **Confirmation pickup/delivery** : Validation on-chain des étapes
+- ✅ **Suivi des gains** : Analytics détaillées des revenus (20% du total)
+- ✅ **Notes et avis** : Affichage des ratings clients
+- ✅ **PWA mobile** : Installation sur écran d'accueil et accès GPS natif
+- ✅ **Design responsive** : Interface optimisée pour mobile et desktop
+
+---
+
+## 🏗️ Architecture
+
+### Vue d'ensemble
 
 ```
-frontend/deliverer/
-├── src/
-│   ├── App.jsx
-│   ├── index.jsx
-│   ├── components/
-│   │   ├── ConnectWallet.jsx
-│   │   ├── StakingPanel.jsx
-│   │   ├── AvailableOrders.jsx
-│   │   ├── ActiveDelivery.jsx
-│   │   ├── NavigationMap.jsx
-│   │   ├── EarningsTracker.jsx
-│   │   └── RatingDisplay.jsx
-│   ├── pages/
-│   │   ├── HomePage.jsx
-│   │   ├── DeliveriesPage.jsx
-│   │   ├── EarningsPage.jsx
-│   │   └── ProfilePage.jsx
-│   ├── services/
-│   │   ├── api.js
-│   │   ├── blockchain.js
-│   │   └── geolocation.js
-│   └── index.css
-├── package.json
-└── .env.example
+┌─────────────────────────────────────────────────────────────┐
+│            Frontend Deliverer App (React + Vite)              │
+│                    Web-First + PWA Mobile                      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+┌───────▼────────┐   ┌────────▼────────┐   ┌───────▼────────┐
+│  Backend API   │   │   Blockchain     │   │  Services      │
+│  (REST)        │   │   (Polygon)     │   │  Externes      │
+├────────────────┤   ├─────────────────┤   ├────────────────┤
+│ - Orders       │   │ - OrderManager  │   │ - Google Maps  │
+│ - Deliverers   │   │ - Staking       │   │ - Geolocation  │
+│ - GPS Tracking │   │ - PaymentSplit  │   │ - Socket.io    │
+└────────────────┘   └─────────────────┘   └────────────────┘
 ```
 
-## Fichiers
+### Flux de données
 
-### App.jsx
-
-**Rôle** : Composant racine de l'application livreur.
-
-**Fonctionnalités** :
-- Configuration du router (React Router)
-- Gestion de l'état global (Context API)
-- Authentification livreur via wallet
-- Layout responsive web-first
-- Gestion des notifications Socket.io
-- Tracking GPS continu quand livraison active
-
-**Structure** :
-```javascript
-// Imports
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { WalletProvider } from './contexts/WalletContext'
-import { SocketProvider } from './contexts/SocketContext'
-import { GeolocationProvider } from './contexts/GeolocationContext'
-
-// State global
-const [deliverer, setDeliverer] = useState(null)
-const [isOnline, setIsOnline] = useState(false)
-const [activeDelivery, setActiveDelivery] = useState(null)
-const [currentLocation, setCurrentLocation] = useState(null)
-
-// Routes
-<Routes>
-  <Route path="/" element={<HomePage />} />
-  <Route path="/deliveries" element={<DeliveriesPage />} />
-  <Route path="/earnings" element={<EarningsPage />} />
-  <Route path="/profile" element={<ProfilePage />} />
-</Routes>
-
-// Navigation bar
-// Socket.io connection pour notifications
-// GPS tracking si livraison active
+```
+Livreur en ligne → Commandes disponibles → Acceptation → Navigation GPS
+                                                              ↓
+                                                         Confirmation pickup
+                                                              ↓
+                                                         Tracking GPS actif
+                                                              ↓
+                                                         Confirmation delivery
+                                                              ↓
+                                                         Paiement automatique (20%)
 ```
 
 ---
 
-## Components (src/components/)
+## 🛠️ Technologies
+
+### Core
+- **React** 18.2 : Bibliothèque UI
+- **Vite** 4.3 : Build tool et dev server (avec support PWA)
+- **React Router DOM** 6.11 : Routing client-side
+- **TailwindCSS** 3.3 : Framework CSS utility-first
+
+### Web3 & Blockchain
+- **Ethers.js** 6.4 : Bibliothèque pour interagir avec Ethereum/Polygon
+- **MetaMask** : Wallet pour transactions Web3
+
+### Cartographie & GPS
+- **Google Maps API** : Cartographie et navigation
+- **@react-google-maps/api** 2.19 : Wrapper React pour Google Maps
+- **Geolocation API** : API native du navigateur pour GPS
+
+### Temps réel
+- **Socket.io-client** 4.6 : Notifications temps réel
+
+### Visualisation
+- **Chart.js** 4.3 : Bibliothèque de graphiques
+- **react-chartjs-2** 5.2 : Wrapper React pour Chart.js
+
+### Services
+- **Axios** 1.4 : Client HTTP pour appels API
+- **date-fns** 2.30 : Manipulation de dates
+
+### PWA
+- **vite-plugin-pwa** : Support PWA pour installation mobile
+
+---
+
+## 📦 Prérequis
+
+Avant de commencer, assurez-vous d'avoir :
+
+- **Node.js** >= 18.0.0
+- **npm** >= 9.0.0
+- **MetaMask** installé dans le navigateur
+- Un wallet avec le rôle **DELIVERER_ROLE** sur la blockchain
+- Un wallet avec au moins **0.1 MATIC** pour le staking
+- L'URL de l'API backend (Sprint 2)
+- Les adresses des contrats déployés (Sprint 1)
+- Une clé **Google Maps API** (pour la navigation)
+- Accès GPS sur le navigateur/mobile (pour le tracking)
+
+---
+
+## 🚀 Installation
+
+### 1. Naviguer vers le dossier
+
+```bash
+cd frontend/deliverer
+```
+
+### 2. Installer les dépendances
+
+```bash
+npm install
+```
+
+### 3. Configuration
+
+Copiez le fichier `.env.example` vers `.env` :
+
+```bash
+cp .env.example .env
+```
+
+Puis éditez `.env` avec vos valeurs (voir section [Configuration](#configuration)).
+
+---
+
+## ⚙️ Configuration
+
+### Variables d'environnement
+
+Créez un fichier `.env` à la racine du dossier `frontend/deliverer/` :
+
+```env
+# === API BACKEND ===
+VITE_API_URL=http://localhost:3000/api
+VITE_SOCKET_URL=http://localhost:3000
+
+# === BLOCKCHAIN (Polygon Amoy) ===
+VITE_ORDER_MANAGER_ADDRESS=0x...
+VITE_STAKING_ADDRESS=0x...
+VITE_PAYMENT_SPLITTER_ADDRESS=0x...
+
+# === GOOGLE MAPS ===
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
+# === RÉSEAU ===
+VITE_CHAIN_ID=80002
+VITE_NETWORK_NAME=Polygon Amoy
+```
+
+### Obtenir une clé Google Maps API
+
+1. Aller sur [Google Cloud Console](https://console.cloud.google.com/)
+2. Créer un projet ou sélectionner un projet existant
+3. Activer les APIs :
+   - Maps JavaScript API
+   - Directions API
+   - Geocoding API
+4. Créer des credentials (clé API)
+5. Restreindre la clé (optionnel mais recommandé)
+6. Copier la clé dans `.env`
+
+### Vérification du rôle DELIVERER
+
+Le livreur doit avoir le rôle `DELIVERER_ROLE` sur le contrat `DoneOrderManager`. Si ce n'est pas le cas, contactez l'administrateur de la plateforme.
+
+### Staking minimum
+
+Le livreur doit staker au minimum **0.1 MATIC** pour être éligible aux livraisons. Le staking se fait via le composant `StakingPanel`.
+
+---
+
+## 📁 Structure du projet
+
+```
+frontend/deliverer/
+├── public/
+│   ├── index.html              # HTML de base
+│   ├── manifest.json           # Manifest PWA
+│   └── icons/                  # Icônes PWA (192x192, 512x512)
+│
+├── src/
+│   ├── App.jsx                 # Composant racine + routing
+│   ├── index.jsx               # Point d'entrée React
+│   ├── index.css               # Styles globaux TailwindCSS
+│   │
+│   ├── components/             # Composants réutilisables
+│   │   ├── ConnectWallet.jsx  # Connexion MetaMask
+│   │   ├── StakingPanel.jsx  # Gestion staking
+│   │   ├── AvailableOrders.jsx # Liste commandes disponibles
+│   │   ├── ActiveDelivery.jsx # Livraison en cours
+│   │   ├── NavigationMap.jsx  # Carte navigation Google Maps
+│   │   ├── EarningsTracker.jsx # Suivi gains
+│   │   ├── RatingDisplay.jsx  # Notes et avis
+│   │   ├── charts/            # Composants graphiques
+│   │   │   ├── EarningsChart.tsx
+│   │   │   └── RatingChart.tsx
+│   │   ├── delivery/          # Composants livraison
+│   │   │   ├── ActiveDeliveryCard.tsx
+│   │   │   ├── OrderCard.tsx
+│   │   │   └── OrdersList.tsx
+│   │   ├── layout/            # Composants layout
+│   │   │   ├── Header.tsx
+│   │   │   ├── Footer.tsx
+│   │   │   └── MobileNav.tsx
+│   │   ├── rating/            # Composants rating
+│   │   │   ├── RatingDisplay.tsx
+│   │   │   └── StarRating.tsx
+│   │   ├── wallet/            # Composants wallet
+│   │   │   ├── ConnectWalletModal.tsx
+│   │   │   └── WalletBadge.tsx
+│   │   └── ui/                # Composants UI réutilisables
+│   │       ├── Badge.tsx
+│   │       ├── Button.tsx
+│   │       ├── Card.tsx
+│   │       ├── Skeleton.tsx
+│   │       └── PageTransition.tsx
+│   │
+│   ├── pages/                  # Pages de l'application
+│   │   ├── HomePage.jsx       # Page d'accueil
+│   │   ├── DeliveriesPage.jsx # Historique livraisons
+│   │   ├── EarningsPage.jsx   # Page revenus
+│   │   └── ProfilePage.jsx     # Page profil
+│   │
+│   ├── services/               # Services API et blockchain
+│   │   ├── api.js             # Appels API backend
+│   │   ├── blockchain.js      # Interactions Web3
+│   │   └── geolocation.js     # Service géolocalisation
+│   │
+│   ├── providers/              # Context providers
+│   │   └── AppProvider.tsx     # Provider global
+│   │
+│   ├── lib/                    # Bibliothèques utilitaires
+│   │   ├── animations.ts      # Animations
+│   │   ├── constants.ts       # Constantes
+│   │   └── utils.ts           # Utilitaires généraux
+│   │
+│   └── utils/                  # Utilitaires
+│       └── formatters.ts      # Formatage données
+│
+├── package.json                # Dépendances et scripts
+├── vite.config.js              # Configuration Vite + PWA
+├── tailwind.config.js          # Configuration TailwindCSS
+├── postcss.config.js           # Configuration PostCSS
+└── .env                        # Variables d'environnement
+```
+
+---
+
+## 🧩 Composants
 
 ### ConnectWallet.jsx
 
-**Rôle** : Connexion au wallet MetaMask pour le livreur.
+**Rôle** : Gestion de la connexion au wallet MetaMask pour le livreur.
 
 **Fonctionnalités** :
+- Détection de MetaMask installé
+- Connexion au wallet
+- Vérification du réseau (Polygon Amoy)
+- Vérification du rôle `DELIVERER_ROLE` sur la blockchain
+- Vérification du staking (minimum 0.1 ETH)
+- Récupération du profil livreur depuis l'API
+- Affichage de l'adresse connectée (format court)
+- Indicateur de réseau et statut staking
 
-**1. Connexion wallet**
-- Détecte MetaMask installé
-- Appelle window.ethereum.request({ method: 'eth_requestAccounts' })
-- Récupère l'adresse du livreur
-- Vérifie le réseau (Polygon Mumbai)
+**Utilisation** :
+```jsx
+import ConnectWallet from './components/ConnectWallet'
 
-**2. Vérification du rôle DELIVERER**
-- Call blockchain.hasRole(DELIVERER_ROLE, address)
-- Si pas de rôle : afficher message d'erreur et lien inscription
-- Si rôle validé : fetch deliverer profile depuis API
-
-**3. Vérification du staking (minimum 0.1 ETH)**
-- Call blockchain.isStaked(address)
-- Si pas staké : afficher warning + lien vers StakingPanel
-- Affiche montant staké actuel
-
-**4. Affichage de l'adresse connectée**
-- Format court : 0x1234...5678
-- Bouton déconnexion
-- Indicateur réseau et status staking
-
-**State** :
-```javascript
-const [address, setAddress] = useState(null)
-const [isConnecting, setIsConnecting] = useState(false)
-const [hasRole, setHasRole] = useState(false)
-const [isStaked, setIsStaked] = useState(false)
-const [stakedAmount, setStakedAmount] = useState(0)
-const [deliverer, setDeliverer] = useState(null)
+<ConnectWallet onConnect={handleConnect} />
 ```
-
-**Méthodes** :
-- connectWallet() : Connexion MetaMask
-- checkRole() : Vérification DELIVERER_ROLE
-- checkStaking() : Vérification staking
-- fetchDelivererProfile() : Récupération données livreur
-- disconnect() : Déconnexion
 
 ---
 
@@ -127,54 +305,22 @@ const [deliverer, setDeliverer] = useState(null)
 **Rôle** : Panel de gestion du staking livreur.
 
 **Fonctionnalités** :
+- Affichage du montant staké (MATIC + conversion USD)
+- Statut : Staké / Non staké (badge visuel)
+- Input pour montant à staker (minimum 0.1 MATIC)
+- Bouton "Stake 0.1 ETH" avec transaction MetaMask
+- Bouton "Unstake" (désactivé si livraison active)
+- Historique des slashing :
+  - Table avec dates, raisons, montants, txHash
+  - Total slashé affiché
+  - Avertissement si trop de slashing
 
-**1. Display staked amount**
-- Fetch blockchain.getStakeInfo(address)
-- Affiche montant staké en MATIC
-- Affiche montant staké en USD (conversion)
-- Statut : Staké / Non staké
-- Badge visuel : vert si staké, rouge sinon
-
-**2. Stake 0.1 ETH button**
-- Input montant à staker (minimum 0.1 MATIC)
-- Validation : amount >= 0.1
-- Appelle blockchain.stake(amount)
-- Affiche transaction en cours
-- Update UI après confirmation
-- Notification succès
-
-**3. Unstake button (if no active delivery)**
-- Vérifie pas de livraison active via api.getActiveDelivery(address)
-- Si livraison active : disable button avec tooltip
-- Appelle blockchain.unstake()
-- Confirmation modal avant unstake
-- Update UI après retrait
-
-**4. Slashing history**
-- Fetch slashing events depuis blockchain
-- Table historique :
-  - Date
-  - Raison (late delivery, cancelled, etc.)
-  - Montant slashé
-  - Transaction hash
-- Total slashé affiché
-- Avertissement si trop de slashing
-
-**State** :
-```javascript
-const [stakedAmount, setStakedAmount] = useState(0)
-const [isStaked, setIsStaked] = useState(false)
-const [stakeInput, setStakeInput] = useState('0.1')
-const [hasActiveDelivery, setHasActiveDelivery] = useState(false)
-const [slashingHistory, setSlashingHistory] = useState([])
-const [loading, setLoading] = useState(false)
+**Props** :
+```jsx
+{
+  address: string
+}
 ```
-
-**Méthodes** :
-- handleStake() : Effectuer staking
-- handleUnstake() : Retirer staking
-- fetchStakingInfo() : Récupérer infos staking
-- fetchSlashingHistory() : Récupérer historique slashing
 
 ---
 
@@ -183,85 +329,21 @@ const [loading, setLoading] = useState(false)
 **Rôle** : Liste des commandes disponibles à accepter.
 
 **Fonctionnalités** :
-
-**1. List nearby orders**
-- Fetch api.getAvailableOrders({ location: currentLocation })
-- Affiche commandes avec status PREPARING
+- Fetch des commandes avec status `PREPARING`
 - Tri par distance (plus proche en premier)
 - Auto-refresh toutes les 10 secondes
-- Socket.io listener pour nouvelles commandes
-
-**2. Distance to restaurant**
-- Calcule distance depuis position actuelle
-- Utilise geolocation.getDistance(currentLat, currentLng, restaurantLat, restaurantLng)
-- Affiche en km avec précision
-- Icône indicateur : vert si < 2km, orange si 2-5km, rouge si > 5km
-
-**3. Estimated earnings**
-- Affiche deliveryFee (20% du total)
-- Calcule earnings = deliveryFee
-- Affiche en MATIC et USD
+- Socket.io listener `orderReady` pour nouvelles commandes
+- Affichage distance au restaurant :
+  - Calculée depuis position actuelle
+  - Icône indicateur : vert < 2km, orange 2-5km, rouge > 5km
+- Gains estimés (deliveryFee = 20% du total, MATIC + USD)
 - Temps estimé de livraison
-
-**4. Accept order button**
 - Bouton "Accepter" par commande
-- Vérifie staking avant acceptation
-- Appelle api.acceptOrder(orderId)
-- Appelle blockchain.acceptOrderOnChain(orderId)
-- Redirige vers ActiveDelivery
-- Notification au restaurant
+- Vérification staking avant acceptation
 
-**State** :
-```javascript
-const [orders, setOrders] = useState([])
-const [currentLocation, setCurrentLocation] = useState(null)
-const [loading, setLoading] = useState(false)
-const [accepting, setAccepting] = useState(null) // orderId en cours d'acceptation
-```
-
-**Socket.io listeners** :
-```javascript
-useEffect(() => {
-  socket.on('orderReady', (order) => {
-    // Nouvelle commande disponible
-    setOrders(prev => [order, ...prev])
-    // Notification sonore
-    playNotificationSound()
-  })
-
-  return () => socket.off('orderReady')
-}, [])
-```
-
-**Méthodes** :
-- fetchAvailableOrders() : Récupérer commandes disponibles
-- handleAcceptOrder(orderId) : Accepter commande
-- calculateDistance(order) : Calculer distance
-- calculateEarnings(order) : Calculer gains estimés
-
-**Render** :
-```javascript
-<div className="available-orders">
-  <h2>Commandes disponibles</h2>
-
-  {orders.map(order => (
-    <div key={order.orderId} className="order-card">
-      <div className="restaurant-info">
-        <span>{order.restaurant.name}</span>
-        <span>{calculateDistance(order)} km</span>
-      </div>
-
-      <div className="earnings">
-        <span>{calculateEarnings(order)} MATIC</span>
-      </div>
-
-      <button onClick={() => handleAcceptOrder(order.orderId)}>
-        Accepter
-      </button>
-    </div>
-  ))}
-</div>
-```
+**Socket.io events** :
+- `orderReady` : Nouvelle commande disponible
+- `orderAccepted` : Commande acceptée par un autre livreur
 
 ---
 
@@ -270,70 +352,32 @@ useEffect(() => {
 **Rôle** : Affichage et gestion de la livraison en cours.
 
 **Fonctionnalités** :
-
-**1. Order details**
-- Affiche orderId, client name
-- Liste items commandés
-- Total de la commande
-- Delivery fee (earnings)
-
-**2. Restaurant address**
-- Nom du restaurant
-- Adresse complète
-- Bouton "Appeler restaurant"
-- Distance actuelle
-
-**3. Client address**
-- Nom du client
-- Adresse de livraison complète
-- Bouton "Appeler client"
-- Distance depuis position actuelle
-
-**4. Navigation button**
-- Bouton "Naviguer vers restaurant" (si pas encore récupéré)
-- Bouton "Naviguer vers client" (si récupéré)
-- Ouvre NavigationMap en plein écran
-- Instructions turn-by-turn
-
-**5. Confirm pickup button**
-- Visible quand proche du restaurant (< 100m)
-- Appelle api.confirmPickup(orderId)
-- Appelle blockchain.confirmPickupOnChain(orderId)
-- Start GPS tracking automatique
-- Change status : PREPARING → IN_DELIVERY
-- Notifie client
-
-**6. Confirm delivery button**
-- Visible quand proche du client (< 100m)
-- Appelle api.confirmDelivery(orderId)
-- Appelle blockchain.confirmDeliveryOnChain(orderId)
-- Stop GPS tracking
-- Trigger payment split automatique
-- Affiche earnings reçus
-- Redirige vers HomePage
-
-**7. GPS tracking active**
-- Update position toutes les 5 secondes
-- Appelle api.updateGPSLocation(orderId, lat, lng)
-- Affiche sur carte en temps réel
-- Client voit position livreur
-
-**State** :
-```javascript
-const [order, setOrder] = useState(null)
-const [currentLocation, setCurrentLocation] = useState(null)
-const [step, setStep] = useState('pickup') // pickup ou delivery
-const [isNearRestaurant, setIsNearRestaurant] = useState(false)
-const [isNearClient, setIsNearClient] = useState(false)
-const [tracking, setTracking] = useState(false)
-```
-
-**Méthodes** :
-- handleConfirmPickup() : Confirmer récupération
-- handleConfirmDelivery() : Confirmer livraison
-- startGPSTracking() : Démarrer tracking GPS
-- stopGPSTracking() : Arrêter tracking GPS
-- checkProximity() : Vérifier proximité restaurant/client
+- Détails de la commande (orderId, client, items, total, delivery fee)
+- Adresse restaurant :
+  - Nom du restaurant
+  - Adresse complète
+  - Bouton "Appeler restaurant"
+  - Distance actuelle
+- Adresse client :
+  - Nom du client
+  - Adresse de livraison complète
+  - Bouton "Appeler client"
+  - Distance depuis position actuelle
+- Navigation :
+  - Bouton "Naviguer vers restaurant" (si pas encore récupéré)
+  - Bouton "Naviguer vers client" (si récupéré)
+- Confirmation pickup :
+  - Visible si proche restaurant (< 100m)
+  - Appelle `api.confirmPickup()` + `blockchain.confirmPickupOnChain()`
+  - Démarre GPS tracking automatique
+- Confirmation delivery :
+  - Visible si proche client (< 100m)
+  - Appelle `api.confirmDelivery()` + `blockchain.confirmDeliveryOnChain()`
+  - Arrête GPS tracking
+  - Déclenche paiement automatique (20%)
+- GPS tracking actif :
+  - Update position toutes les 5 secondes
+  - Envoi au backend via `api.updateGPSLocation()`
 
 ---
 
@@ -342,52 +386,25 @@ const [tracking, setTracking] = useState(false)
 **Rôle** : Carte de navigation interactive avec Google Maps.
 
 **Fonctionnalités** :
-
-**1. Google Maps integration**
-- Intègre @react-google-maps/api
-- Affiche carte interactive
+- Intégration Google Maps via `@react-google-maps/api`
 - Markers : position livreur, restaurant, client
 - Zoom automatique sur itinéraire
-
-**2. Route to restaurant**
-- Si step = 'pickup' : itinéraire vers restaurant
-- DirectionsService Google Maps
-- Affiche route optimisée
-- Polyline sur la carte
-
-**3. Route to client**
-- Si step = 'delivery' : itinéraire vers client
-- Mise à jour automatique de la route
-- Temps estimé d'arrivée (ETA)
-
-**4. Real-time location updates**
-- Watchposition GPS toutes les 5 secondes
-- Update marker livreur
-- Recalcule route si déviation
-- Affiche position en temps réel
+- Itinéraire vers restaurant (si step = 'pickup')
+- Itinéraire vers client (si step = 'delivery')
+- DirectionsService Google Maps avec polyline
+- Mise à jour position temps réel (watchPosition GPS)
+- Recalcul route si déviation
+- ETA affiché (temps estimé d'arrivée)
 
 **Props** :
-```javascript
+```jsx
 {
-  origin: { lat, lng }, // Position livreur
-  destination: { lat, lng }, // Restaurant ou client
+  origin: { lat: number, lng: number },      // Position livreur
+  destination: { lat: number, lng: number }, // Restaurant ou client
   step: 'pickup' | 'delivery',
-  onArrival: Function
+  onArrival: () => void
 }
 ```
-
-**State** :
-```javascript
-const [map, setMap] = useState(null)
-const [directions, setDirections] = useState(null)
-const [currentPosition, setCurrentPosition] = useState(origin)
-const [eta, setEta] = useState(null)
-```
-
-**Méthodes** :
-- calculateRoute() : Calculer itinéraire
-- updatePosition(lat, lng) : Mettre à jour position
-- checkArrival() : Vérifier arrivée destination
 
 ---
 
@@ -396,56 +413,28 @@ const [eta, setEta] = useState(null)
 **Rôle** : Suivi des gains du livreur.
 
 **Fonctionnalités** :
-
-**1. Today's earnings**
-- Fetch earnings depuis api.getEarnings(address, { period: 'today' })
-- Affiche total du jour en MATIC
-- Conversion USD
-- Nombre de livraisons aujourd'hui
-
-**2. Week/month earnings**
+- Gains aujourd'hui (MATIC + USD, nombre livraisons)
 - Tabs : Jour / Semaine / Mois
 - Graphique line chart des earnings
 - Total période sélectionnée
 - Comparaison avec période précédente
-
-**3. Pending payments**
-- Fetch blockchain events PaymentSplit
-- Calcule total payments en attente (non encore withdrawable)
-- Affiche montant disponible
+- Paiements en attente (non withdrawable)
 - Bouton "Retirer" si solde > 0
+- Statistiques :
+  - Nombre livraisons complétées
+  - Taux de succès (%)
+  - Temps moyen par livraison
+  - Rating moyen
 
-**4. Completed deliveries count**
-- Total livraisons complétées
-- Taux de succès (%)
-- Temps moyen par livraison
-- Rating moyen
-
-**State** :
+**Données affichées** :
 ```javascript
-const [earnings, setEarnings] = useState({
-  today: 0,
-  week: 0,
-  month: 0,
-  pending: 0,
-  total: 0
-})
-const [period, setPeriod] = useState('week')
-const [deliveriesCount, setDeliveriesCount] = useState(0)
-```
-
-**Fetch data** :
-```javascript
-useEffect(() => {
-  const fetchEarnings = async () => {
-    const data = await api.getEarnings(address, { period })
-    setEarnings(data)
-
-    const count = await api.getDeliveriesCount(address)
-    setDeliveriesCount(count)
-  }
-  fetchEarnings()
-}, [period])
+{
+  today: { earnings: 50, deliveries: 5 }, // MATIC
+  week: { earnings: 350, deliveries: 35 },
+  month: { earnings: 1500, deliveries: 150 },
+  pending: 20, // MATIC en attente
+  total: 2000  // MATIC total
+}
 ```
 
 ---
@@ -455,392 +444,158 @@ useEffect(() => {
 **Rôle** : Affichage des notes et avis du livreur.
 
 **Fonctionnalités** :
-
-**1. Note moyenne**
-- Fetch api.getRating(address)
-- Affiche rating sur 5 étoiles
-- Graphique en étoiles visuel
+- Note moyenne sur 5 étoiles (graphique visuel)
 - Nombre total d'avis
-
-**2. Nombre total de livraisons**
-- Total commandes livrées
-- Total commandes annulées
+- Nombre total de livraisons
+- Nombre d'annulations
 - Taux de succès (%)
-
-**3. Avis récents des clients**
-- Liste des 5 derniers avis
-- Affiche : nom client, rating, commentaire, date
-- Pagination si plus de 5
-
-**4. Graphique d'évolution des notes**
-- Line chart : évolution rating dans le temps
-- Axe X : dates (30 derniers jours)
-- Axe Y : rating (0-5)
-
-**5. Objectifs de performance**
-- Badges : "100 livraisons", "Rating > 4.5", etc.
-- Progression vers objectifs
-- Récompenses débloquées
-
-**State** :
-```javascript
-const [rating, setRating] = useState(0)
-const [totalDeliveries, setTotalDeliveries] = useState(0)
-const [reviews, setReviews] = useState([])
-const [ratingHistory, setRatingHistory] = useState([])
-const [achievements, setAchievements] = useState([])
-```
+- Avis récents clients :
+  - Liste des 5 derniers (nom, rating, commentaire, date)
+  - Pagination si plus de 5
+- Graphique évolution notes :
+  - Line chart des 30 derniers jours
+  - Axe X : dates, Axe Y : rating (0-5)
+- Objectifs de performance :
+  - Badges : "100 livraisons", "Rating > 4.5", etc.
+  - Progression vers objectifs
+  - Récompenses débloquées
 
 ---
 
-## Pages (src/pages/)
+## 📄 Pages
 
 ### HomePage.jsx
 
-**Rôle** : Page d'accueil du livreur.
+**Route** : `/`
 
 **Fonctionnalités** :
-
-**1. Statut (en ligne/hors ligne)**
-- Toggle switch : Online / Offline
+- Statut en ligne/hors ligne (toggle switch)
 - Si Online : livreur visible pour commandes
 - Si Offline : ne reçoit plus de commandes
-- Update api.updateStatus(address, isOnline)
-
-**2. Commandes disponibles**
-- Intègre AvailableOrders
-- Affiche 5 premières commandes
+- Commandes disponibles (intègre AvailableOrders, limite 5)
 - Bouton "Voir toutes"
-
-**3. Livraison active (si en cours)**
-- Intègre ActiveDelivery si activeDelivery existe
-- Prend toute la page si active
-
-**4. Statistiques rapides**
-- Cards :
-  - Livraisons aujourd'hui : X
-  - Gains aujourd'hui : Y MATIC
-  - Rating : Z/5
-  - Montant staké : W MATIC
-
-**5. Accès rapide aux autres pages**
-- Boutons navigation : Deliveries, Earnings, Profile
-
-**Layout** :
-```javascript
-<div className="home-page">
-  <Header deliverer={deliverer} />
-
-  <div className="status-toggle">
-    <Toggle checked={isOnline} onChange={setIsOnline} />
-    <span>{isOnline ? 'En ligne' : 'Hors ligne'}</span>
-  </div>
-
-  {activeDelivery ? (
-    <ActiveDelivery order={activeDelivery} />
-  ) : (
-    <>
-      <div className="stats-grid">
-        <StatCard title="Aujourd'hui" value={todayDeliveries} />
-        <StatCard title="Gains" value={todayEarnings} />
-        <StatCard title="Rating" value={rating} />
-      </div>
-
-      <AvailableOrders limit={5} />
-    </>
-  )}
-</div>
-```
+- Livraison active (intègre ActiveDelivery si activeDelivery existe)
+- Statistiques rapides (cards) :
+  - Livraisons aujourd'hui
+  - Gains aujourd'hui
+  - Rating
+  - Montant staké
+- Accès rapide aux autres pages
 
 ---
 
 ### DeliveriesPage.jsx
 
-**Rôle** : Gestion et historique des livraisons.
+**Route** : `/deliveries`
 
 **Fonctionnalités** :
-
-**1. Liste des livraisons (passées et en cours)**
-- Fetch api.getDelivererOrders(address)
-- Table avec colonnes :
-  - Order ID
-  - Restaurant
-  - Client
-  - Status
-  - Earnings
-  - Date
-  - Actions
-
-**2. Filtres par statut**
-- Dropdown : Toutes / En cours / Complétées / Annulées
-- Filter orders array selon status
-
-**3. Détails de chaque livraison**
-- Modal avec full order details
-- Items list
-- Timeline des étapes
-- GPS tracking history (replay)
-- Transaction hash
-- Rating client (si disponible)
-
-**4. Actions sur les livraisons**
-- Si IN_DELIVERY : bouton "Continuer livraison"
-- Si DELIVERED : bouton "Voir détails"
+- Liste des livraisons (passées et en cours)
+- Table avec colonnes : Order ID, Restaurant, Client, Status, Earnings, Date, Actions
+- Filtres par statut (Toutes / En cours / Complétées / Annulées)
+- Modal détails livraison complète :
+  - Timeline des étapes
+  - GPS tracking history (replay)
+  - Transaction hash
+  - Rating client (si disponible)
+- Actions :
+  - "Continuer livraison" (si IN_DELIVERY)
+  - "Voir détails" (si DELIVERED)
 - Export historique CSV
-
-**State** :
-```javascript
-const [deliveries, setDeliveries] = useState([])
-const [filter, setFilter] = useState('all')
-const [selectedDelivery, setSelectedDelivery] = useState(null)
-```
 
 ---
 
 ### EarningsPage.jsx
 
-**Rôle** : Page détaillée des revenus.
+**Route** : `/earnings`
 
 **Fonctionnalités** :
-
-**1. Intègre EarningsTracker**
-- Composant EarningsTracker en full-page
-- Graphiques détaillés
-
-**2. Graphiques détaillés**
-- Multiple charts :
+- Intègre EarningsTracker en full-page
+- Graphiques détaillés :
   - Earnings over time
   - Deliveries over time
   - Average earnings per delivery
   - Peak hours
-
-**3. Historique complet**
-- Table transactions blockchain
-- Colonnes :
-  - Date
-  - Order ID
-  - Amount earned (20%)
-  - Transaction hash
-  - Status
-- Pagination
-
-**4. Export de données**
-- Bouton "Export CSV"
-- Export earnings history
-- Export blockchain transactions
-
-**Layout** :
-```javascript
-<div className="earnings-page">
-  <Header title="Mes Revenus" />
-
-  <div className="filters">
-    <PeriodSelector value={period} onChange={setPeriod} />
-  </div>
-
-  <EarningsTracker address={address} period={period} />
-
-  <div className="transactions-history">
-    <h3>Historique des transactions</h3>
-    <Table data={transactions} />
-  </div>
-
-  <button onClick={exportData}>Export CSV</button>
-</div>
-```
+- Historique complet transactions blockchain :
+  - Table : Date, Order ID, Amount earned (20%), Transaction hash, Status
+  - Pagination
+- Export de données (bouton "Export CSV")
 
 ---
 
 ### ProfilePage.jsx
 
-**Rôle** : Profil et paramètres du livreur.
+**Route** : `/profile`
 
 **Fonctionnalités** :
-
-**1. Informations personnelles**
-- Nom, téléphone, adresse wallet
-- Formulaire édition
-- Update api.updateProfile(address, data)
-
-**2. Statut de staking**
-- Intègre StakingPanel
-- Affiche montant staké
-- Boutons stake/unstake
-
-**3. Notes et avis**
-- Intègre RatingDisplay
-- Historique avis clients
-
-**4. Historique des livraisons**
-- Statistiques globales :
+- Informations personnelles (nom, téléphone, wallet, formulaire édition)
+- Statut staking (intègre StakingPanel)
+- Notes et avis (intègre RatingDisplay)
+- Historique livraisons (statistiques globales) :
   - Total livraisons
   - Taux de succès
   - Temps moyen
   - Distance totale parcourue
-
-**5. Paramètres**
-- Langue
-- Notifications
-- Thème (light/dark)
-- Sons activés/désactivés
-
-**Layout** :
-```javascript
-<div className="profile-page">
-  <Header title="Mon Profil" />
-
-  <div className="profile-info">
-    <input value={name} onChange={setName} />
-    <input value={phone} onChange={setPhone} />
-    <button onClick={saveProfile}>Sauvegarder</button>
-  </div>
-
-  <StakingPanel address={address} />
-
-  <RatingDisplay address={address} />
-
-  <div className="settings">
-    <h3>Paramètres</h3>
-    {/* Settings form */}
-  </div>
-</div>
-```
+- Paramètres :
+  - Langue
+  - Notifications
+  - Thème (light/dark)
+  - Sons activés/désactivés
 
 ---
 
-## Services (src/services/)
+## 🔌 Services
 
 ### api.js
 
 **Rôle** : Service pour les appels API backend.
 
-**Configuration** :
-```javascript
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-
-const authHeaders = (address) => ({
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${address}`
-})
-```
-
 **Fonctions principales** :
+- `getAvailableOrders(location)` : Commandes disponibles avec location
+- `acceptOrder(orderId, delivererAddress)` : Accepter commande
+- `confirmPickup(orderId, delivererAddress)` : Confirmation récupération
+- `confirmDelivery(orderId, delivererAddress)` : Confirmation livraison
+- `updateGPSLocation(orderId, lat, lng)` : Mise à jour position GPS
+- `getEarnings(address, period)` : Revenus (jour/semaine/mois)
+- `getRating(address)` : Notes et avis
+- `updateStatus(address, isOnline)` : Mise à jour disponibilité
+- `getDelivererOrders(address, filters)` : Livraisons avec filtres
+- `getDeliverer(address)` : Profil livreur
+- `registerDeliverer(delivererData)` : Inscription livreur
 
-**1. getAvailableOrders(params)**
-- GET /api/deliverers/available?location=...
-- Params : { location: { lat, lng } }
-- Retourne : array of available orders
+**Exemple** :
+```javascript
+import api from './services/api'
 
-**2. acceptOrder(orderId)**
-- POST /api/deliverers/orders/:id/accept
-- Body : { delivererAddress }
-- Retourne : { success, order, txHash }
-
-**3. confirmPickup(orderId)**
-- POST /api/orders/:id/confirm-pickup
-- Body : { delivererAddress }
-- Retourne : { success, txHash }
-
-**4. confirmDelivery(orderId)**
-- POST /api/orders/:id/confirm-delivery
-- Body : { delivererAddress }
-- Retourne : { success, txHash, earnings }
-
-**5. updateGPSLocation(orderId, lat, lng)**
-- POST /api/orders/:id/update-gps
-- Body : { lat, lng }
-- Retourne : { success }
-
-**6. getEarnings(address, params)**
-- GET /api/deliverers/:address/earnings?period=...
-- Retourne : { today, week, month, total }
-
-**7. getRating(address)**
-- GET /api/deliverers/:address/rating
-- Retourne : { rating, totalDeliveries, reviews[] }
-
-**8. updateStatus(address, isOnline)**
-- PUT /api/deliverers/:address/status
-- Body : { isAvailable: isOnline }
-- Retourne : { success }
-
-**9. getDelivererOrders(address, filters)**
-- GET /api/deliverers/:address/orders?status=...
-- Retourne : array of deliveries
+const orders = await api.getAvailableOrders({ lat: 48.8566, lng: 2.3522 })
+const { txHash } = await api.acceptOrder(orderId, address)
+```
 
 ---
 
 ### blockchain.js
 
-**Rôle** : Service pour les interactions Web3.
-
-**Configuration** :
-```javascript
-import { ethers } from 'ethers'
-import DoneOrderManager from '../../../contracts/artifacts/DoneOrderManager.json'
-import DoneStaking from '../../../contracts/artifacts/DoneStaking.json'
-
-const provider = new ethers.BrowserProvider(window.ethereum)
-const orderManagerAddress = import.meta.env.VITE_ORDER_MANAGER_ADDRESS
-const stakingAddress = import.meta.env.VITE_STAKING_ADDRESS
-```
+**Rôle** : Service pour les interactions Web3 directes.
 
 **Fonctions principales** :
+- `connectWallet()` : Connexion MetaMask
+- `hasRole(role, address)` : Vérification rôle DELIVERER
+- `isStaked(address)` : Vérification staking
+- `getStakeInfo(address)` : Infos staking (montant, statut)
+- `stake(amount)` : Effectuer staking
+- `unstake()` : Retirer staking
+- `acceptOrderOnChain(orderId)` : Accepter commande on-chain
+- `confirmPickupOnChain(orderId)` : Confirmation pickup on-chain
+- `confirmDeliveryOnChain(orderId)` : Confirmation delivery on-chain
+- `getSlashingEvents(address)` : Historique slashing
+- `getEarningsEvents(address)` : Events PaymentSplit
 
-**1. connectWallet()**
-- Request accounts depuis MetaMask
-- Retourne : { address, signer }
+**Exemple** :
+```javascript
+import blockchain from './services/blockchain'
 
-**2. hasRole(role, address)**
-- Call orderManager.hasRole(role, address)
-- Retourne : boolean
-
-**3. isStaked(address)**
-- Call staking.isStaked(address)
-- Retourne : boolean
-
-**4. getStakeInfo(address)**
-- Call staking.stakes(address)
-- Retourne : { amount, isStaked }
-
-**5. stake(amount)**
-- Get signer
-- Call staking.stakeAsDeliverer({ value: amount })
-- Wait transaction
-- Retourne : { txHash, receipt }
-
-**6. unstake()**
-- Get signer
-- Call staking.unstake()
-- Wait transaction
-- Retourne : { txHash, amount }
-
-**7. acceptOrderOnChain(orderId)**
-- Get signer
-- Call orderManager.assignDeliverer(orderId)
-- Wait transaction
-- Retourne : { txHash, receipt }
-
-**8. confirmPickupOnChain(orderId)**
-- Get signer
-- Call orderManager.confirmPickup(orderId)
-- Wait transaction
-- Retourne : { txHash, receipt }
-
-**9. confirmDeliveryOnChain(orderId)**
-- Get signer
-- Call orderManager.confirmDelivery(orderId)
-- Parse events pour récupérer earnings
-- Retourne : { txHash, earnings }
-
-**10. getSlashingEvents(address)**
-- Query events Slashed where deliverer = address
-- Retourne : array of slashing events
-
-**11. getEarningsEvents(address)**
-- Query events PaymentSplit where deliverer = address
-- Sum delivererAmount (20% de chaque commande)
-- Retourne : { events[], totalEarnings }
+const isStaked = await blockchain.isStaked(address)
+const { txHash } = await blockchain.stake(ethers.parseEther('0.1'))
+```
 
 ---
 
@@ -849,440 +604,63 @@ const stakingAddress = import.meta.env.VITE_STAKING_ADDRESS
 **Rôle** : Service de géolocalisation et calculs GPS.
 
 **Fonctions principales** :
+- `getCurrentPosition()` : Position actuelle (Promise)
+- `watchPosition(callback)` : Suivi position continue (retourne watchId)
+- `calculateRoute(origin, destination)` : Itinéraire Google Maps
+- `getDistance(lat1, lng1, lat2, lng2)` : Distance Haversine (km)
+- `isNearLocation(currentLat, currentLng, targetLat, targetLng, radius)` : Vérification proximité
 
-**1. getCurrentPosition()**
-- Utilise navigator.geolocation.getCurrentPosition()
-- Retourne : Promise<{ lat, lng, accuracy }>
-- Gestion erreurs (permission denied, timeout)
-
-**2. watchPosition(callback)**
-- Utilise navigator.geolocation.watchPosition()
-- Appelle callback à chaque update position
-- Retourne : watchId (pour cleanup)
-- Options : enableHighAccuracy, timeout, maximumAge
-
-**3. calculateRoute(origin, destination)**
-- Utilise Google Maps DirectionsService
-- Retourne : Promise<{ route, distance, duration }>
-- Mode : DRIVING
-
-**4. getDistance(lat1, lng1, lat2, lng2)**
-- Formule Haversine pour distance entre 2 points
-- Retourne : distance en km (number)
-
-**5. isNearLocation(currentLat, currentLng, targetLat, targetLng, radius)**
-- Calcule distance via getDistance()
-- Compare avec radius (en km)
-- Retourne : boolean (true si distance <= radius)
-
-**Implémentation** :
+**Exemple** :
 ```javascript
-export const getCurrentPosition = () => {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('Geolocation not supported'))
-    }
+import geolocation from './services/geolocation'
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy
-        })
-      },
-      (error) => reject(error),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    )
-  })
-}
-
-export const watchPosition = (callback) => {
-  if (!navigator.geolocation) {
-    throw new Error('Geolocation not supported')
-  }
-
-  return navigator.geolocation.watchPosition(
-    (position) => {
-      callback({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-        accuracy: position.coords.accuracy
-      })
-    },
-    (error) => console.error('Geolocation error:', error),
-    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-  )
-}
-
-export const getDistance = (lat1, lng1, lat2, lng2) => {
-  // Haversine formula
-  const R = 6371 // Rayon de la Terre en km
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLng = (lng2 - lng1) * Math.PI / 180
-
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLng / 2) * Math.sin(dLng / 2)
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return R * c // Distance en km
-}
+const position = await geolocation.getCurrentPosition()
+const distance = geolocation.getDistance(lat1, lng1, lat2, lng2)
+const isNear = geolocation.isNearLocation(lat1, lng1, lat2, lng2, 0.1) // 100m
 ```
 
 ---
 
-## Variables d'environnement
+## 🌐 Intégration API
 
-Fichier `.env.example` :
+### Endpoints utilisés
 
-```
-VITE_API_URL=http://localhost:3000/api
-VITE_ORDER_MANAGER_ADDRESS=0x...
-VITE_STAKING_ADDRESS=0x...
-VITE_SOCKET_URL=http://localhost:3000
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key
-```
+#### Livreurs
+- `GET /api/deliverers/:address` : Profil livreur
+- `GET /api/deliverers/available` : Commandes disponibles
+- `PUT /api/deliverers/:address/status` : Mise à jour disponibilité
+- `GET /api/deliverers/:address/orders` : Historique livraisons
+- `GET /api/deliverers/:address/earnings` : Revenus
+- `GET /api/deliverers/:address/rating` : Notes et avis
+- `POST /api/deliverers/stake` : Staking
+- `POST /api/deliverers/unstake` : Retrait staking
 
----
+#### Commandes
+- `POST /api/deliverers/orders/:id/accept` : Accepter commande
+- `POST /api/orders/:id/confirm-pickup` : Confirmer pickup
+- `POST /api/orders/:id/confirm-delivery` : Confirmer delivery
+- `POST /api/orders/:id/update-gps` : Mise à jour GPS
+- `GET /api/orders/:id` : Détails commande
+- `GET /api/deliverers/:address/active-delivery` : Livraison active
 
-## Intégration API Backend
+### Socket.io
 
-Cette section décrit comment intégrer les API du backend Node.js/Express dans l'application livreur. Toutes les requêtes API sont gérées via le fichier `src/services/api.js`.
-
-### Configuration de base
-
-**URL de l'API** :
-```javascript
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-```
-
-**Headers d'authentification** :
-```javascript
-const authHeaders = (address) => ({
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${address}`
-})
-```
-
-### Endpoints API utilisés par le livreur
-
-#### 1. Livreurs (Deliverers)
-
-**POST /api/deliverers/register**
-- **Description** : Enregistrer un nouveau livreur
-- **Body** :
-```javascript
-{
-  address: String,
-  name: String,
-  phone: String,
-  vehicleType: String, // 'bike', 'scooter', 'car'
-  location: { lat: Number, lng: Number }
-}
-```
-- **Retourne** : `{ success: true, deliverer }`
-- **Utilisation** : Lors de la première connexion wallet
-- **Exemple** :
-```javascript
-const registerDeliverer = async (delivererData) => {
-  const response = await fetch(`${API_BASE_URL}/deliverers/register`, {
-    method: 'POST',
-    headers: authHeaders(delivererData.address),
-    body: JSON.stringify(delivererData)
-  })
-  return response.json()
-}
-```
-
-**GET /api/deliverers/:address**
-- **Description** : Récupérer le profil du livreur avec statut staking
-- **Retourne** : `{ deliverer, isStaked, stakedAmount }`
-- **Utilisation** : `ProfilePage.jsx` et `ConnectWallet.jsx`
-- **Exemple** :
-```javascript
-const getDeliverer = async (address) => {
-  const response = await fetch(`${API_BASE_URL}/deliverers/${address}`)
-  return response.json()
-}
-```
-
-**GET /api/deliverers/available**
-- **Description** : Récupérer les commandes disponibles à proximité
-- **Paramètres** : `{ location: { lat, lng } }`
-- **Retourne** : Array of available orders triées par distance
-- **Utilisation** : `AvailableOrders.jsx`
-- **Exemple** :
-```javascript
-const getAvailableOrders = async (location) => {
-  const params = new URLSearchParams({
-    lat: location.lat,
-    lng: location.lng
-  })
-  const response = await fetch(`${API_BASE_URL}/deliverers/available?${params}`)
-  return response.json()
-}
-```
-
-**PUT /api/deliverers/:address/status**
-- **Description** : Mettre à jour le statut de disponibilité du livreur
-- **Body** : `{ isAvailable: Boolean }`
-- **Retourne** : `{ success: true }`
-- **Utilisation** : `HomePage.jsx` toggle online/offline
-- **Exemple** :
-```javascript
-const updateStatus = async (address, isAvailable) => {
-  const response = await fetch(`${API_BASE_URL}/deliverers/${address}/status`, {
-    method: 'PUT',
-    headers: authHeaders(address),
-    body: JSON.stringify({ isAvailable })
-  })
-  return response.json()
-}
-```
-
-**GET /api/deliverers/:address/orders**
-- **Description** : Récupérer l'historique des livraisons du livreur
-- **Paramètres** : `{ status: String }` (optionnel)
-- **Retourne** : Array of orders
-- **Utilisation** : `DeliveriesPage.jsx` et `ProfilePage.jsx`
-- **Exemple** :
-```javascript
-const getDelivererOrders = async (address, status) => {
-  const params = status ? `?status=${status}` : ''
-  const response = await fetch(`${API_BASE_URL}/deliverers/${address}/orders${params}`)
-  return response.json()
-}
-```
-
-**GET /api/deliverers/:address/earnings**
-- **Description** : Récupérer les revenus du livreur par période
-- **Paramètres** : `{ startDate, endDate, period }`
-- **Retourne** : `{ totalEarnings, completedDeliveries, averageEarning }`
-- **Utilisation** : `EarningsTracker.jsx` et `EarningsPage.jsx`
-- **Exemple** :
-```javascript
-const getEarnings = async (address, period = 'week') => {
-  const response = await fetch(`${API_BASE_URL}/deliverers/${address}/earnings?period=${period}`)
-  return response.json()
-}
-```
-
-**GET /api/deliverers/:address/rating**
-- **Description** : Récupérer la note et les avis du livreur
-- **Retourne** : `{ rating, totalDeliveries, reviews[] }`
-- **Utilisation** : `RatingDisplay.jsx`
-- **Exemple** :
-```javascript
-const getRating = async (address) => {
-  const response = await fetch(`${API_BASE_URL}/deliverers/${address}/rating`)
-  return response.json()
-}
-```
-
-#### 2. Staking
-
-**POST /api/deliverers/stake**
-- **Description** : Staker des MATIC pour devenir livreur actif
-- **Body** : `{ address: String, amount: Number }` (amount en wei)
-- **Retourne** : `{ success: true, txHash }`
-- **Utilisation** : `StakingPanel.jsx`
-- **Exemple** :
-```javascript
-const stakeAsDeliverer = async (address, amount) => {
-  const response = await fetch(`${API_BASE_URL}/deliverers/stake`, {
-    method: 'POST',
-    headers: authHeaders(address),
-    body: JSON.stringify({ address, amount })
-  })
-  return response.json()
-}
-```
-
-**POST /api/deliverers/unstake**
-- **Description** : Retirer le staking (si aucune livraison active)
-- **Body** : `{ address: String }`
-- **Retourne** : `{ success: true, txHash }`
-- **Utilisation** : `StakingPanel.jsx`
-- **Exemple** :
-```javascript
-const unstake = async (address) => {
-  const response = await fetch(`${API_BASE_URL}/deliverers/unstake`, {
-    method: 'POST',
-    headers: authHeaders(address),
-    body: JSON.stringify({ address })
-  })
-  return response.json()
-}
-```
-
-#### 3. Commandes (Orders)
-
-**POST /api/deliverers/orders/:id/accept**
-- **Description** : Accepter une commande disponible
-- **Body** : `{ delivererAddress: String }`
-- **Retourne** : `{ success: true, order, txHash }`
-- **Utilisation** : `AvailableOrders.jsx`
-- **Exemple** :
-```javascript
-const acceptOrder = async (orderId, delivererAddress) => {
-  const response = await fetch(`${API_BASE_URL}/deliverers/orders/${orderId}/accept`, {
-    method: 'POST',
-    headers: authHeaders(delivererAddress),
-    body: JSON.stringify({ delivererAddress })
-  })
-  return response.json()
-}
-```
-
-**POST /api/orders/:id/confirm-pickup**
-- **Description** : Confirmer la récupération de la commande au restaurant
-- **Body** : `{ delivererAddress: String }`
-- **Retourne** : `{ success: true, txHash }`
-- **Utilisation** : `ActiveDelivery.jsx`
-- **Exemple** :
-```javascript
-const confirmPickup = async (orderId, delivererAddress) => {
-  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/confirm-pickup`, {
-    method: 'POST',
-    headers: authHeaders(delivererAddress),
-    body: JSON.stringify({ delivererAddress })
-  })
-  return response.json()
-}
-```
-
-**POST /api/orders/:id/update-gps**
-- **Description** : Mettre à jour la position GPS du livreur en temps réel
-- **Body** : `{ lat: Number, lng: Number }`
-- **Retourne** : `{ success: true }`
-- **Utilisation** : `ActiveDelivery.jsx` - appelé toutes les 5 secondes
-- **Exemple** :
-```javascript
-const updateGPSLocation = async (orderId, lat, lng) => {
-  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/update-gps`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ lat, lng })
-  })
-  return response.json()
-}
-```
-
-**POST /api/orders/:id/confirm-delivery**
-- **Description** : Confirmer la livraison au client (déclenche paiement automatique)
-- **Body** : `{ delivererAddress: String }`
-- **Retourne** : `{ success: true, txHash, earnings }`
-- **Utilisation** : `ActiveDelivery.jsx`
-- **Exemple** :
-```javascript
-const confirmDelivery = async (orderId, delivererAddress) => {
-  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/confirm-delivery`, {
-    method: 'POST',
-    headers: authHeaders(delivererAddress),
-    body: JSON.stringify({ delivererAddress })
-  })
-  return response.json()
-}
-```
-
-**GET /api/orders/:id**
-- **Description** : Récupérer les détails d'une commande
-- **Retourne** : Full order data avec restaurant, client, items, GPS tracking
-- **Utilisation** : `ActiveDelivery.jsx` et `DeliveriesPage.jsx`
-- **Exemple** :
-```javascript
-const getOrder = async (orderId) => {
-  const response = await fetch(`${API_BASE_URL}/orders/${orderId}`)
-  return response.json()
-}
-```
-
-**GET /api/deliverers/:address/active-delivery**
-- **Description** : Récupérer la livraison active en cours (s'il y en a une)
-- **Retourne** : Order data ou null
-- **Utilisation** : `HomePage.jsx` pour afficher la livraison active
-- **Exemple** :
-```javascript
-const getActiveDelivery = async (address) => {
-  const response = await fetch(`${API_BASE_URL}/deliverers/${address}/active-delivery`)
-  return response.json()
-}
-```
-
-### Gestion des erreurs
-
-Toutes les fonctions API doivent gérer les erreurs :
-
-```javascript
-const apiCall = async (url, options) => {
-  try {
-    const response = await fetch(url, options)
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'API Error')
-    }
-
-    return response.json()
-  } catch (error) {
-    console.error('API Error:', error)
-    throw error
-  }
-}
-```
-
-### Socket.io pour temps réel
-
-**Connexion Socket.io** :
+**Connexion** :
 ```javascript
 import io from 'socket.io-client'
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
-const socket = io(SOCKET_URL)
-
-// Rejoindre room deliverer
-socket.emit('joinRoom', `deliverer_${delivererAddress}`)
+const socket = io(import.meta.env.VITE_SOCKET_URL)
+socket.emit('join-deliverer-room', delivererAddress)
 ```
 
-**Events Socket.io écoutés** :
-
-**1. orderReady**
-- Émis quand un restaurant confirme qu'une commande est prête
-- Payload : `{ orderId, restaurant, location, earnings }`
-- Utilisation : `AvailableOrders.jsx` pour afficher nouvelle commande
-```javascript
-socket.on('orderReady', (order) => {
-  setOrders(prev => [order, ...prev])
-  playNotificationSound()
-})
-```
-
-**2. orderAccepted**
-- Émis quand un autre livreur accepte une commande
-- Payload : `{ orderId }`
-- Utilisation : `AvailableOrders.jsx` pour retirer commande de la liste
-```javascript
-socket.on('orderAccepted', (data) => {
-  setOrders(prev => prev.filter(o => o.orderId !== data.orderId))
-})
-```
-
-**3. clientLocationUpdate**
-- Émis si le client met à jour son adresse de livraison
-- Payload : `{ orderId, newAddress, location }`
-- Utilisation : `ActiveDelivery.jsx`
-```javascript
-socket.on('clientLocationUpdate', (data) => {
-  if (data.orderId === activeDelivery.orderId) {
-    setClientLocation(data.location)
-  }
-})
-```
+**Events écoutés** :
+- `orderReady` : Nouvelle commande disponible
+- `orderAccepted` : Commande acceptée par un autre livreur
+- `clientLocationUpdate` : Mise à jour adresse client
 
 ### GPS Tracking automatique
 
-Pendant une livraison active, le livreur doit envoyer sa position toutes les 5 secondes :
+Pendant une livraison active, le livreur envoie sa position toutes les 5 secondes :
 
 ```javascript
 // ActiveDelivery.jsx
@@ -1292,14 +670,9 @@ useEffect(() => {
   const watchId = navigator.geolocation.watchPosition(
     (position) => {
       const { latitude, longitude } = position.coords
-
-      // Envoyer position au backend
       updateGPSLocation(activeDelivery.orderId, latitude, longitude)
-
-      // Mettre à jour position locale
       setCurrentLocation({ lat: latitude, lng: longitude })
     },
-    (error) => console.error('GPS Error:', error),
     { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
   )
 
@@ -1307,143 +680,41 @@ useEffect(() => {
 }, [activeDelivery])
 ```
 
-### Variables d'environnement requises
-
-Fichier `.env` :
-```
-VITE_API_URL=http://localhost:3000/api
-VITE_SOCKET_URL=http://localhost:3000
-VITE_ORDER_MANAGER_ADDRESS=0x...
-VITE_STAKING_ADDRESS=0x...
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key
-```
-
 ---
 
-## Technologies utilisées
+## 📱 PWA (Progressive Web App)
 
-**Frontend** :
-- React 18
-- Vite (build tool)
-- React Router DOM
-- TailwindCSS (responsive web-first)
+### Configuration PWA
 
-**Web3** :
-- Ethers.js v6
-- MetaMask integration
+L'application est configurée comme PWA pour permettre :
 
-**Maps & GPS** :
-- @react-google-maps/api
-- Google Maps JavaScript API
-- Geolocation API (browser native)
+- **Installation sur écran d'accueil** : Sur mobile et desktop
+- **Fonctionnement offline partiel** : Cache des données essentielles
+- **Notifications push** : Alertes pour nouvelles commandes
+- **Accès GPS natif** : Utilisation de l'API Geolocation du navigateur
 
-**Temps réel** :
-- Socket.io-client
+### Configuration dans vite.config.js
 
-**Charts** :
-- Chart.js ou Recharts
-
-**UI Components** :
-- Headless UI ou Shadcn UI
-- React Icons
-
----
-
-## Dépendances
-
-```json
-{
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.11.0",
-    "ethers": "^6.4.0",
-    "socket.io-client": "^4.6.0",
-    "@react-google-maps/api": "^2.19.0",
-    "chart.js": "^4.3.0",
-    "react-chartjs-2": "^5.2.0",
-    "axios": "^1.4.0",
-    "date-fns": "^2.30.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.0.0",
-    "vite": "^4.3.9",
-    "vite-plugin-pwa": "^0.16.0",
-    "tailwindcss": "^3.3.2",
-    "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.24"
-  }
-}
-```
-
----
-
-## Scripts NPM
-
-```json
-{
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  }
-}
-```
-
----
-
-## Démarrage
-
-```bash
-# Installation
-cd frontend/deliverer
-npm install
-
-# Configuration
-cp .env.example .env
-# Éditer .env avec les bonnes adresses et Google Maps API key
-
-# Développement
-npm run dev
-
-# Build production
-npm run build
-
-# Preview production
-npm run preview
-```
-
----
-
-## PWA pour mobile
-
-L'application est configurée comme PWA (Progressive Web App) pour permettre :
-- Installation sur écran d'accueil mobile
-- Fonctionnement offline partiel
-- Notifications push
-- Accès GPS natif
-
-Configuration PWA dans `vite.config.js` :
 ```javascript
 import { VitePWA } from 'vite-plugin-pwa'
 
-export default {
+export default defineConfig({
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'DONE Deliverer',
-        short_name: 'DONE',
-        description: 'Application de livraison DONE Food Delivery',
-        theme_color: '#ffffff',
+        name: 'Done Food Delivery - Livreur',
+        short_name: 'Done Livreur',
+        description: 'Application pour livreurs Done Food Delivery',
+        theme_color: '#0ea5e9',
         icons: [
           {
-            src: 'icon-192.png',
+            src: 'pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'icon-512.png',
+            src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png'
           }
@@ -1451,23 +722,261 @@ export default {
       }
     })
   ]
-}
+})
+```
+
+### Installation sur mobile
+
+1. Ouvrir l'application dans le navigateur mobile
+2. Menu du navigateur → "Ajouter à l'écran d'accueil"
+3. L'application s'installe comme une app native
+4. Accès GPS natif disponible
+
+---
+
+## ▶️ Démarrage
+
+### Mode développement
+
+```bash
+npm run dev
+```
+
+L'application démarre sur `http://localhost:5175` (ou un autre port si occupé).
+
+### Build production
+
+```bash
+npm run build
+```
+
+Les fichiers optimisés sont générés dans le dossier `dist/`.
+
+### Preview production
+
+```bash
+npm run preview
+```
+
+Prévisualise le build de production localement.
+
+---
+
+## 🚀 Déploiement
+
+### Vercel (Recommandé)
+
+1. Installer Vercel CLI :
+```bash
+npm i -g vercel
+```
+
+2. Déployer :
+```bash
+vercel
+```
+
+3. Configurer les variables d'environnement dans le dashboard Vercel.
+
+### Netlify
+
+1. Installer Netlify CLI :
+```bash
+npm i -g netlify-cli
+```
+
+2. Déployer :
+```bash
+netlify deploy --prod
+```
+
+3. Configurer les variables d'environnement dans le dashboard Netlify.
+
+### Variables d'environnement à configurer
+
+Assurez-vous de configurer toutes les variables d'environnement dans votre plateforme de déploiement :
+- `VITE_API_URL`
+- `VITE_SOCKET_URL`
+- `VITE_ORDER_MANAGER_ADDRESS`
+- `VITE_STAKING_ADDRESS`
+- `VITE_GOOGLE_MAPS_API_KEY`
+
+---
+
+## 🚴 Workflow utilisateur
+
+### Parcours complet d'un livreur
+
+1. **Connexion** : Le livreur se connecte avec MetaMask
+2. **Vérification** : Vérification du rôle DELIVERER_ROLE
+3. **Staking** : Staking minimum de 0.1 MATIC (si pas déjà fait)
+4. **En ligne** : Le livreur passe en ligne (toggle status)
+5. **Commandes** : Affichage des commandes disponibles à proximité
+6. **Acceptation** : Le livreur accepte une commande (on-chain + off-chain)
+7. **Navigation** : Navigation GPS vers le restaurant
+8. **Pickup** : Confirmation de récupération quand proche (< 100m)
+9. **Tracking** : GPS tracking démarre automatiquement
+10. **Livraison** : Navigation GPS vers le client
+11. **Delivery** : Confirmation de livraison quand proche (< 100m)
+12. **Paiement** : Réception automatique du paiement (20% du total)
+13. **Analytics** : Consultation des gains et ratings
+
+### Gestion d'une livraison
+
+1. **Réception** : Nouvelle commande arrive via Socket.io
+2. **Affichage** : Commande apparaît dans AvailableOrders
+3. **Acceptation** : Clic sur "Accepter"
+4. **Blockchain** : Transaction on-chain confirmée
+5. **Navigation** : Ouverture de NavigationMap vers restaurant
+6. **Arrivée restaurant** : Bouton "Confirmer pickup" apparaît (< 100m)
+7. **Pickup confirmé** : GPS tracking démarre automatiquement
+8. **Navigation client** : Itinéraire vers client
+9. **Arrivée client** : Bouton "Confirmer delivery" apparaît (< 100m)
+10. **Delivery confirmée** : Paiement automatique déclenché
+11. **Gains** : 20% du total ajouté aux earnings
+
+---
+
+## 🎨 Personnalisation
+
+### Thème TailwindCSS
+
+Modifiez `tailwind.config.js` pour personnaliser les couleurs, polices, etc.
+
+### Graphiques
+
+Les graphiques utilisent Chart.js. Personnalisez les couleurs et styles dans les composants `EarningsTracker.jsx` et `RatingDisplay.jsx`.
+
+---
+
+## 🐛 Dépannage
+
+### MetaMask non détecté
+
+**Problème** : "MetaMask not found"
+
+**Solution** :
+1. Installer MetaMask depuis [metamask.io](https://metamask.io/)
+2. Rafraîchir la page
+3. Vérifier que MetaMask est déverrouillé
+
+### Rôle DELIVERER non trouvé
+
+**Problème** : "You don't have DELIVERER_ROLE"
+
+**Solution** :
+1. Vérifier que le wallet a bien le rôle DELIVERER_ROLE
+2. Contacter l'administrateur pour attribution du rôle
+3. Vérifier que le livreur est enregistré dans la base de données
+
+### Staking insuffisant
+
+**Problème** : "Minimum 0.1 MATIC required"
+
+**Solution** :
+1. Aller dans ProfilePage
+2. Utiliser StakingPanel
+3. Staker au minimum 0.1 MATIC
+
+### Réseau incorrect
+
+**Problème** : "Wrong network"
+
+**Solution** :
+1. Ouvrir MetaMask
+2. Changer le réseau vers "Polygon Amoy"
+3. Si le réseau n'existe pas, l'ajouter manuellement :
+   - Network Name: Polygon Amoy
+   - RPC URL: https://rpc-amoy.polygon.technology
+   - Chain ID: 80002
+   - Currency: MATIC
+
+### Erreur GPS
+
+**Problème** : "Geolocation not available"
+
+**Solution** :
+1. Vérifier que l'accès GPS est autorisé dans le navigateur
+2. Sur mobile : Activer la localisation dans les paramètres
+3. Vérifier que l'application est en HTTPS (requis pour GPS)
+
+### Google Maps ne s'affiche pas
+
+**Problème** : Carte vide
+
+**Solution** :
+1. Vérifier `VITE_GOOGLE_MAPS_API_KEY` dans `.env`
+2. Vérifier que les APIs sont activées :
+   - Maps JavaScript API
+   - Directions API
+   - Geocoding API
+3. Vérifier les restrictions de la clé API
+
+### Commandes ne s'affichent pas
+
+**Problème** : Aucune commande dans AvailableOrders
+
+**Solution** :
+1. Vérifier que le livreur est en ligne (toggle Online)
+2. Vérifier la connexion Socket.io
+3. Vérifier que le livreur a rejoint la room `deliverer_${address}`
+4. Vérifier les logs du backend pour les events émis
+
+---
+
+## 📚 Ressources
+
+- **React Documentation** : https://react.dev/
+- **Vite Documentation** : https://vitejs.dev/
+- **TailwindCSS Documentation** : https://tailwindcss.com/
+- **Chart.js Documentation** : https://www.chartjs.org/
+- **Google Maps API** : https://developers.google.com/maps/documentation
+- **Ethers.js Documentation** : https://docs.ethers.org/
+- **Socket.io Documentation** : https://socket.io/docs/
+- **PWA Guide** : https://web.dev/progressive-web-apps/
+
+---
+
+## 📝 Scripts NPM
+
+```bash
+# Développement
+npm run dev              # Démarrer le serveur de développement
+
+# Build
+npm run build            # Build pour production
+npm run preview          # Prévisualiser le build
+
+# Linting (si configuré)
+npm run lint             # Vérifier le code
+npm run lint:fix         # Corriger automatiquement
 ```
 
 ---
 
-## Workflow utilisateur
+## 🤝 Contribution
 
-1. Livreur se connecte avec MetaMask
-2. Vérification du rôle DELIVERER_ROLE
-3. Vérification du staking (minimum 0.1 MATIC)
-4. Livreur passe en ligne (toggle status)
-5. Voit les commandes disponibles à proximité
-6. Accepte une commande (on-chain + off-chain)
-7. Navigation vers restaurant avec GPS
-8. Confirme récupération (on-chain)
-9. GPS tracking démarre automatiquement
-10. Navigation vers client
-11. Confirme livraison (on-chain)
-12. Reçoit paiement automatique (20% du total)
-13. Consulte earnings et rating
+### Workflow
+
+1. Créer une branche depuis `main`
+2. Développer la fonctionnalité
+3. Tester localement (sur mobile si possible)
+4. Créer une pull request
+
+### Standards de code
+
+- Utiliser ESLint (si configuré)
+- Suivre les conventions React
+- Ajouter des commentaires pour les fonctions complexes
+- Tester sur mobile et desktop
+- Vérifier le fonctionnement PWA
+
+---
+
+## 📄 Licence
+
+MIT License - Voir le fichier `LICENSE` pour plus de détails.
+
+---
+
+**Développé avec ❤️ pour DONE Food Delivery**

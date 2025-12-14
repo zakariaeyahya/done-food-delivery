@@ -10,6 +10,7 @@ import {
   ChartBarIcon,
   Bars3Icon,
   XMarkIcon,
+  LinkIcon,
 } from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
@@ -23,6 +24,7 @@ export default function Sidebar() {
     { name: "Commandes", path: "/orders", icon: <ClipboardDocumentListIcon className="h-5 w-5" /> },
     { name: "Litiges", path: "/disputes", icon: <ExclamationTriangleIcon className="h-5 w-5" /> },
     { name: "Analytics", path: "/analytics", icon: <ChartBarIcon className="h-5 w-5" /> },
+    { name: "Blockchain", path: "/blockchain", icon: <LinkIcon className="h-5 w-5" /> },
   ];
 
   return (
