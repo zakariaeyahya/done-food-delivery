@@ -126,7 +126,7 @@ const fetchData = useCallback(async () => {
           <div>
             <p className="text-sm text-gray-600">Votre solde</p>
             <p className="text-3xl font-bold text-gray-800">
-              {loading ? '...' : `${parseFloat(balance || 0).toFixed(2)} DONE`}
+              {loading ? '...' : `${parseFloat(balance || 0).toFixed(5)} DONE`}
             </p>
           </div>
         </div>
@@ -167,7 +167,7 @@ const fetchData = useCallback(async () => {
                   <p className="text-xs text-gray-500">{formatDateTime(tx.date)}</p>
                 </div>
                 <div className={`text-sm font-bold ${parseFloat(tx.amount) > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {parseFloat(tx.amount) > 0 ? '+' : ''}{parseFloat(tx.amount).toFixed(2)} DONE
+                  {parseFloat(tx.amount) > 0 ? '+' : ''}{parseFloat(tx.amount).toFixed(5)} DONE
                 </div>
               </div>
             ))}

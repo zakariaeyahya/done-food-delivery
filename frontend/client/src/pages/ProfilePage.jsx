@@ -359,7 +359,7 @@ const ProfilePage = () => {
                 </svg>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-800">{user?.tokenBalance || 0}</p>
+                <p className="text-2xl font-bold text-gray-800">{parseFloat(user?.tokenBalance || 0).toFixed(5)}</p>
                 <p className="text-xs text-gray-500">DONE Tokens</p>
               </div>
             </div>

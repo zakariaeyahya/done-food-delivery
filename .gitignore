@@ -86,3 +86,11 @@ sprint */SPRINT_*.txt
 sprint */ETAPES_*.txt
 promt.txt
 prompt2.txt
+
+# Grafana
+docker-compose.grafana.yml
+grafana/
+grafana-storage/
+start-grafana.ps1
+Sprint/sprint7_grafana_integration.md
+Sprint/sprint7_blockchain_analytics.md
