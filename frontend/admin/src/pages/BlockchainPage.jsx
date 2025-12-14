@@ -37,7 +37,7 @@ function BlockchainPage() {
 
       {/* Header */}
       <div className="border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="w-full px-6 py-4">
           <div className="flex justify-between items-center">
 
             {/* Title Section */}
@@ -121,7 +121,7 @@ function BlockchainPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="w-full px-6 py-8">
 
         {/* Error Banner */}
         {error && (
