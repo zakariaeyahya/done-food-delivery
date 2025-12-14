@@ -22,16 +22,21 @@ frontend/admin/
 │   │   ├── RestaurantsTable.jsx
 │   │   ├── DeliverersTable.jsx
 │   │   ├── DisputesManager.jsx
-│   │   └── TokenomicsPanel.jsx
+│   │   ├── TokenomicsPanel.jsx
+│   │   └── blockchain/         ← Composants Blockchain Analytics
+│   │       ├── NetworkStatsCard.jsx
+│   │       └── MetricsGrid.jsx
 │   ├── pages/                  ← Pages de l'application
 │   │   ├── DashboardPage.jsx
 │   │   ├── OrdersPage.jsx
 │   │   ├── UsersPage.jsx
 │   │   ├── DisputesPage.jsx
-│   │   └── SettingsPage.jsx
+│   │   ├── SettingsPage.jsx
+│   │   └── BlockchainPage.jsx  ← Page Blockchain Analytics
 │   ├── services/               ← Services API et Blockchain
 │   │   ├── api.js
-│   │   └── blockchain.js
+│   │   ├── blockchain.js
+│   │   └── blockchainMetrics.js ← Service metriques blockchain
 │   ├── App.jsx                 ← Composant racine avec routing
 │   ├── index.jsx               ← Point d'entrée React
 │   └── index.css               ← Styles globaux TailwindCSS
@@ -123,6 +128,7 @@ FONCTION App():
                     <Route path="/orders" element={<OrdersPage />} />
                     <Route path="/users" element={<UsersPage />} />
                     <Route path="/disputes" element={<DisputesPage />} />
+                    <Route path="/blockchain" element={<BlockchainPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
@@ -1484,7 +1490,216 @@ FONCTION SettingsPage():
 
 ---
 
-### 20. `tailwind.config.js` - Configuration TailwindCSS
+### 20. `src/pages/BlockchainPage.jsx` - Page Blockchain Analytics
+
+**Rôle:** Monitoring en temps reel du reseau blockchain Polygon Amoy avec KPIs.
+
+**Code:**
+
+```jsx
+import React, { useState, useEffect } from 'react';
+import blockchainMetrics from '../services/blockchainMetrics';
+import NetworkStatsCard from '../components/blockchain/NetworkStatsCard';
+import MetricsGrid from '../components/blockchain/MetricsGrid';
+
+function BlockchainPage() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [refreshInterval, setRefreshInterval] = useState(30000);
+
+  async function loadData() {
+    try {
+      setLoading(true);
+      const dashboard = await blockchainMetrics.getDashboard();
+      setData(dashboard);
+      setLastUpdate(new Date());
+      setError(null);
+    } catch (err) {
+      setError('Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, refreshInterval);
+    return () => clearInterval(interval);
+  }, [refreshInterval]);
+
+  return (
+    <div className="p-6 bg-gray-900 min-h-screen">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Blockchain Analytics</h1>
+          <p className="text-gray-400 mt-1">Monitoring du reseau Polygon Amoy</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <select value={refreshInterval} onChange={(e) => setRefreshInterval(Number(e.target.value))}>
+            <option value={10000}>10s</option>
+            <option value={30000}>30s</option>
+            <option value={60000}>1min</option>
+          </select>
+          <button onClick={loadData} disabled={loading}>
+            {loading ? '...' : 'Actualiser'}
+          </button>
+        </div>
+      </div>
+      {error && <div className="error">{error}</div>}
+      <NetworkStatsCard network={data?.network} health={data?.health} />
+      <MetricsGrid data={data} />
+    </div>
+  );
+}
+
+export default BlockchainPage;
+```
+
+**Points importants:**
+- Auto-refresh configurable (10s, 30s, 1min)
+- Affiche donnees reseau en temps reel
+- Gestion erreurs et loading states
+
+---
+
+### 21. `src/services/blockchainMetrics.js` - Service Metriques Blockchain
+
+**Rôle:** Service pour recuperer les metriques blockchain depuis l'API backend.
+
+**Code:**
+
+```javascript
+import axios from 'axios';
+
+const API_URL = 'http://localhost:3000/api';
+
+const blockchainMetrics = {
+  async getDashboard() {
+    const response = await axios.get(`${API_URL}/blockchain/dashboard`);
+    return response.data.data;
+  },
+
+  async getNetworkStats() {
+    const response = await axios.get(`${API_URL}/blockchain/network`);
+    return response.data.data;
+  },
+
+  async getHealth() {
+    const response = await axios.get(`${API_URL}/blockchain/health`);
+    return response.data.data;
+  }
+};
+
+export default blockchainMetrics;
+```
+
+**Endpoints API:**
+- `GET /api/blockchain/dashboard` - Toutes les metriques
+- `GET /api/blockchain/network` - Stats reseau uniquement
+- `GET /api/blockchain/health` - Sante systeme uniquement
+
+---
+
+### 22. `src/components/blockchain/NetworkStatsCard.jsx` - Carte Stats Reseau
+
+**Rôle:** Afficher le statut de connexion au reseau Polygon et l'etat des smart contracts.
+
+**KPIs affiches:**
+- Block number actuel
+- Gas price (Gwei)
+- Chain ID (80002 pour Amoy)
+- Temps depuis dernier bloc
+- Statut des 4 contrats (OrderManager, PaymentSplitter, Token, Staking)
+
+**Code:**
+
+```jsx
+function NetworkStatsCard({ network, health }) {
+  return (
+    <div className={`rounded-xl p-6 ${
+      health?.overall === 'healthy' ? 'bg-green-900/20' : 'bg-red-900/20'
+    }`}>
+      <div className="flex items-center gap-3">
+        <span>{network?.isConnected ? '🟢' : '🔴'}</span>
+        <h3>Polygon Amoy</h3>
+        <span>{health?.overall === 'healthy' ? 'OK' : 'ERREUR'}</span>
+      </div>
+      <div className="grid grid-cols-4 gap-4">
+        <div>Block: {network?.blockNumber}</div>
+        <div>Gas: {network?.gasPrice?.gwei} Gwei</div>
+        <div>Chain: {network?.chainId}</div>
+        <div>Dernier bloc: {network?.timeSinceLastBlock}s</div>
+      </div>
+      <div>
+        {Object.entries(health?.contracts || {}).map(([name, info]) => (
+          <span key={name}>{name}: {info.status === 'deployed' ? '✓' : '✗'}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+### 23. `src/components/blockchain/MetricsGrid.jsx` - Grille Metriques
+
+**Rôle:** Afficher les KPIs blockchain dans une grille de cartes.
+
+**KPIs affiches:**
+
+| Carte | Metriques | Source |
+|-------|-----------|--------|
+| Transactions | Total, Aujourd'hui, Taux succes | MongoDB (reel) |
+| Latence | Moyenne, Min, Max, P95 | Polygon RPC |
+| Gas | Prix Gwei, Units/Tx, Cout Total POL | Polygon RPC + calcul |
+| Volume | Total POL, Commandes, Split 70/20/10 | MongoDB (reel, converti wei→POL) |
+
+**Conversion wei → POL:**
+```javascript
+// Les montants sont stockes en wei dans MongoDB
+// Conversion: 1 POL = 1e18 wei
+const polValue = weiValue / 1e18;
+```
+
+**Code:**
+
+```jsx
+function MetricsGrid({ data }) {
+  const { transactions, latency, gas, volume } = data;
+
+  return (
+    <div className="grid grid-cols-2 gap-6">
+      {/* Transactions */}
+      <div>Total: {transactions.total}</div>
+      <div>Aujourd'hui: {transactions.today}</div>
+      <div>Succes: {transactions.successRate}%</div>
+
+      {/* Latence */}
+      <div>Moyenne: {latency.average}s</div>
+      <div>Min: {latency.min}s | Max: {latency.max}s</div>
+
+      {/* Gas */}
+      <div>Prix: {gas.priceGwei} Gwei</div>
+      <div>Units/Tx: {gas.averageUsed}</div>
+      <div>Cout Total: {gas.totalSpent} POL</div>
+
+      {/* Volume */}
+      <div>Total: {volume.totalPol} POL</div>
+      <div>Commandes: {volume.ordersProcessed}</div>
+      <div>Restaurants: {volume.paymentsplit.restaurants} POL</div>
+      <div>Livreurs: {volume.paymentsplit.deliverers} POL</div>
+      <div>Plateforme: {volume.paymentsplit.platform} POL</div>
+    </div>
+  );
+}
+```
+
+---
+
+### 24. `tailwind.config.js` - Configuration TailwindCSS
 
 **Rôle:** Configuration TailwindCSS pour styling.
 
@@ -1838,6 +2053,15 @@ L'application sera accessible sur `http://localhost:3003`
 ✅ Gestion litiges avec interface vote
 ✅ Tokenomics DONE avec statistiques
 ✅ Configuration plateforme et rôles
+✅ **Blockchain Analytics** - Monitoring réseau Polygon Amoy:
+   - Statut connexion RPC en temps réel
+   - Block number, Gas price (Gwei), Chain ID
+   - Vérification déploiement des 4 smart contracts
+   - Métriques transactions (total, aujourd'hui, taux succès)
+   - Latence réseau (moyenne, min, max, P95)
+   - Volume économique en POL (converti depuis wei)
+   - Répartition PaymentSplit (70% restaurants, 20% livreurs, 10% plateforme)
+   - Auto-refresh configurable (10s, 30s, 1min)
 
 ---
 

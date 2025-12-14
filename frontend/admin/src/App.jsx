@@ -19,6 +19,7 @@ import OrdersPage from "./pages/OrdersPage";
 import DisputesPage from "./pages/DisputesPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage"; // optionnel
+import BlockchainPage from "./pages/BlockchainPage";
 
 // COMPONENTS
 import ConnectWallet from "./components/ConnectWallet";
@@ -191,6 +192,18 @@ export default function App() {
               <ProtectedRoute>
                 <AdminLayout>
                   <SettingsPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* BLOCKCHAIN */}
+          <Route
+            path="/blockchain"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BlockchainPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

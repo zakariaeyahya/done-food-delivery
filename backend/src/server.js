@@ -38,6 +38,7 @@ const tokenRoutes = require("./routes/tokens");
 const uploadRoutes = require("./routes/upload");
 const cartRoutes = require("./routes/cart");
 const reviewRoutes = require("./routes/reviews");
+const blockchainRoutes = require("./routes/blockchain");
 
 /**
  * Serveur principal de l'application backend
@@ -255,6 +256,7 @@ app.use("/api/tokens", tokenRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/blockchain", blockchainRoutes);
 
 // === GESTION DES ERREURS ===
 
