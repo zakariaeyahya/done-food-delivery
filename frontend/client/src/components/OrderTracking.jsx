@@ -488,7 +488,7 @@ const OrderTracking = ({ order }) => {
               <div className="flex-1">
                 <h3 className="text-xl font-bold">Tokens DONE reçus !</h3>
                 <p className="text-white/90 mt-1">
-                  Vous avez reçu <strong className="text-2xl">{parseFloat(tokensEarned).toFixed(2)} DONE</strong> pour cette commande !
+                  Vous avez reçu <strong className="text-2xl">{parseFloat(tokensEarned).toFixed(5)} DONE</strong> pour cette commande !
                 </p>
                 <p className="text-white/80 text-sm mt-2">
                   Utilisez vos tokens DONE pour obtenir des réductions sur vos prochaines commandes.
