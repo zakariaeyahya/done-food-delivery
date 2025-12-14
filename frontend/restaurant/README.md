@@ -1,109 +1,240 @@
-# Dossier frontend/restaurant/
+# DONE Food Delivery - Frontend Restaurant Dashboard
 
-Application React pour les restaurants permettant de gérer les commandes, le menu et consulter les statistiques en temps réel.
+## 📋 Table des matières
 
-## Structure
+- [Introduction](#introduction)
+- [Architecture](#architecture)
+- [Technologies](#technologies)
+- [Prérequis](#prérequis)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Structure du projet](#structure-du-projet)
+- [Composants](#composants)
+- [Pages](#pages)
+- [Services](#services)
+- [Intégration API](#intégration-api)
+- [Démarrage](#démarrage)
+- [Déploiement](#déploiement)
+- [Workflow utilisateur](#workflow-utilisateur)
+
+---
+
+## 🎯 Introduction
+
+Le dashboard restaurant de DONE Food Delivery est une interface React moderne permettant aux restaurants de gérer leurs commandes en temps réel, administrer leur menu et consulter leurs statistiques et revenus. L'application utilise Web3 pour les interactions blockchain et s'intègre avec Socket.io pour les notifications en temps réel.
+
+### Fonctionnalités principales
+
+- ✅ **Gestion des commandes** : Réception et suivi des commandes en temps réel
+- ✅ **Confirmation de préparation** : Validation on-chain des commandes prêtes
+- ✅ **Gestion du menu** : CRUD complet des items avec upload IPFS
+- ✅ **Analytics avancées** : Statistiques détaillées avec graphiques
+- ✅ **Revenus on-chain** : Suivi des gains depuis la blockchain
+- ✅ **Retraits** : Retrait des fonds depuis le PaymentSplitter
+- ✅ **Notifications temps réel** : Alertes instantanées pour nouvelles commandes
+- ✅ **Design responsive** : Interface optimisée pour desktop et tablette
+
+---
+
+## 🏗️ Architecture
+
+### Vue d'ensemble
 
 ```
-frontend/restaurant/
-├── src/
-│   ├── App.jsx
-│   ├── index.jsx
-│   ├── components/
-│   │   ├── ConnectWallet.jsx
-│   │   ├── OrdersQueue.jsx
-│   │   ├── OrderCard.jsx
-│   │   ├── MenuManager.jsx
-│   │   ├── Analytics.jsx
-│   │   └── EarningsChart.jsx
-│   ├── pages/
-│   │   ├── DashboardPage.jsx
-│   │   ├── OrdersPage.jsx
-│   │   ├── MenuPage.jsx
-│   │   └── AnalyticsPage.jsx
-│   ├── services/
-│   │   ├── api.js
-│   │   └── blockchain.js
-│   └── index.css
-├── package.json
-└── .env.example
+┌─────────────────────────────────────────────────────────────┐
+│              Frontend Restaurant Dashboard                   │
+│                      (React + Vite)                           │
+└─────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+┌───────▼────────┐   ┌────────▼────────┐   ┌───────▼────────┐
+│  Backend API  │   │   Blockchain    │   │  Services      │
+│  (REST)       │   │   (Polygon)     │   │  Externes      │
+├────────────────┤   ├─────────────────┤   ├────────────────┤
+│ - Orders       │   │ - OrderManager  │   │ - IPFS (Pinata)│
+│ - Restaurants  │   │ - PaymentSplit  │   │ - Socket.io    │
+│ - Analytics    │   │ - Token         │   │                │
+└────────────────┘   └─────────────────┘   └────────────────┘
 ```
 
-## Fichiers
+### Flux de données
 
-### App.jsx
-
-**Rôle** : Composant racine de l'application restaurant.
-
-**Fonctionnalités** :
-- Configuration du router (React Router)
-- Gestion de l'état global (Context API ou Redux)
-- Authentification restaurant via wallet
-- Layout avec navigation sidebar/header
-- Gestion des notifications Socket.io
-
-**Structure** :
-```javascript
-// Imports
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { WalletProvider } from './contexts/WalletContext'
-import { SocketProvider } from './contexts/SocketContext'
-
-// State global
-const [restaurant, setRestaurant] = useState(null)
-const [isConnected, setIsConnected] = useState(false)
-
-// Routes
-<Routes>
-  <Route path="/" element={<DashboardPage />} />
-  <Route path="/orders" element={<OrdersPage />} />
-  <Route path="/menu" element={<MenuPage />} />
-  <Route path="/analytics" element={<AnalyticsPage />} />
-</Routes>
-
-// Sidebar navigation
-// Socket.io connection pour notifications temps réel
+```
+Nouvelle Commande → Socket.io → OrdersQueue → Confirmation → Blockchain
+                                                              ↓
+                                                         PaymentSplit
+                                                              ↓
+                                                         Analytics
 ```
 
 ---
 
-## Components (src/components/)
+## 🛠️ Technologies
+
+### Core
+- **React** 18.2 : Bibliothèque UI
+- **Vite** 4.3 : Build tool et dev server
+- **React Router DOM** 6.11 : Routing client-side
+- **TailwindCSS** 3.3 : Framework CSS utility-first
+
+### Web3 & Blockchain
+- **Ethers.js** 6.4 : Bibliothèque pour interagir avec Ethereum/Polygon
+- **MetaMask** : Wallet pour transactions Web3
+
+### Temps réel
+- **Socket.io-client** 4.6 : Notifications temps réel
+
+### Visualisation
+- **Chart.js** 4.3 : Bibliothèque de graphiques
+- **react-chartjs-2** 5.2 : Wrapper React pour Chart.js
+
+### Services
+- **Axios** 1.4 : Client HTTP pour appels API
+- **date-fns** 2.30 : Manipulation de dates
+
+---
+
+## 📦 Prérequis
+
+Avant de commencer, assurez-vous d'avoir :
+
+- **Node.js** >= 18.0.0
+- **npm** >= 9.0.0
+- **MetaMask** installé dans le navigateur
+- Un wallet avec le rôle **RESTAURANT_ROLE** sur la blockchain
+- L'URL de l'API backend (Sprint 2)
+- Les adresses des contrats déployés (Sprint 1)
+
+---
+
+## 🚀 Installation
+
+### 1. Naviguer vers le dossier
+
+```bash
+cd frontend/restaurant
+```
+
+### 2. Installer les dépendances
+
+```bash
+npm install
+```
+
+### 3. Configuration
+
+Copiez le fichier `.env.example` vers `.env` :
+
+```bash
+cp .env.example .env
+```
+
+Puis éditez `.env` avec vos valeurs (voir section [Configuration](#configuration)).
+
+---
+
+## ⚙️ Configuration
+
+### Variables d'environnement
+
+Créez un fichier `.env` à la racine du dossier `frontend/restaurant/` :
+
+```env
+# === API BACKEND ===
+VITE_API_URL=http://localhost:3000/api
+VITE_SOCKET_URL=http://localhost:3000
+
+# === BLOCKCHAIN (Polygon Amoy) ===
+VITE_ORDER_MANAGER_ADDRESS=0x...
+VITE_PAYMENT_SPLITTER_ADDRESS=0x...
+VITE_TOKEN_ADDRESS=0x...
+
+# === IPFS ===
+VITE_IPFS_GATEWAY=https://gateway.pinata.cloud/ipfs/
+
+# === RÉSEAU ===
+VITE_CHAIN_ID=80002
+VITE_NETWORK_NAME=Polygon Amoy
+```
+
+### Vérification du rôle RESTAURANT
+
+Le restaurant doit avoir le rôle `RESTAURANT_ROLE` sur le contrat `DoneOrderManager`. Si ce n'est pas le cas, contactez l'administrateur de la plateforme.
+
+---
+
+## 📁 Structure du projet
+
+```
+frontend/restaurant/
+├── public/
+│   ├── index.html              # HTML de base
+│   └── manifest.json           # Manifest PWA
+│
+├── src/
+│   ├── App.jsx                 # Composant racine + routing
+│   ├── index.jsx               # Point d'entrée React
+│   ├── index.css               # Styles globaux TailwindCSS
+│   │
+│   ├── components/             # Composants réutilisables
+│   │   ├── ConnectWallet.jsx  # Connexion MetaMask
+│   │   ├── OrdersQueue.jsx     # File d'attente commandes
+│   │   ├── OrderCard.jsx      # Carte commande individuelle
+│   │   ├── MenuManager.jsx    # Gestion menu (CRUD)
+│   │   ├── Analytics.jsx       # Statistiques restaurant
+│   │   └── EarningsChart.jsx  # Graphique revenus on-chain
+│   │
+│   ├── pages/                  # Pages de l'application
+│   │   ├── DashboardPage.jsx  # Tableau de bord principal
+│   │   ├── OrdersPage.jsx     # Gestion complète commandes
+│   │   ├── MenuPage.jsx       # Gestion menu
+│   │   ├── AnalyticsPage.jsx   # Analytics détaillées
+│   │   └── RegisterPage.jsx   # Inscription restaurant
+│   │
+│   ├── services/               # Services API et blockchain
+│   │   ├── api.js             # Appels API backend
+│   │   ├── blockchain.js      # Interactions Web3
+│   │   └── ipfs.js            # Interactions IPFS
+│   │
+│   ├── contexts/               # Context API (état global)
+│   │   ├── WalletContext.jsx  # État wallet connecté
+│   │   └── SocketContext.jsx   # Connexion Socket.io
+│   │
+│   └── utils/                  # Utilitaires
+│       ├── web3.js            # Helpers Web3
+│       └── formatters.js      # Formatage données
+│
+├── package.json                # Dépendances et scripts
+├── vite.config.js              # Configuration Vite
+├── tailwind.config.js          # Configuration TailwindCSS
+├── postcss.config.js           # Configuration PostCSS
+└── .env                        # Variables d'environnement
+```
+
+---
+
+## 🧩 Composants
 
 ### ConnectWallet.jsx
 
-**Rôle** : Connexion au wallet MetaMask pour le restaurant.
+**Rôle** : Gestion de la connexion au wallet MetaMask pour le restaurant.
 
 **Fonctionnalités** :
+- Détection de MetaMask installé
+- Connexion au wallet
+- Vérification du réseau (Polygon Amoy)
+- Vérification du rôle `RESTAURANT_ROLE` sur la blockchain
+- Récupération du profil restaurant depuis l'API
+- Affichage de l'adresse connectée (format court)
+- Indicateur de réseau
 
-**1. Connexion wallet**
-- Détecte MetaMask installé
-- Appelle window.ethereum.request({ method: 'eth_requestAccounts' })
-- Récupère l'adresse du restaurant
-- Vérifie le réseau (Polygon Mumbai)
+**Utilisation** :
+```jsx
+import ConnectWallet from './components/ConnectWallet'
 
-**2. Vérification du rôle RESTAURANT**
-- Call blockchain.hasRole(RESTAURANT_ROLE, address)
-- Si pas de rôle : afficher message d'erreur
-- Si rôle validé : fetch restaurant profile depuis API
-
-**3. Affichage de l'adresse connectée**
-- Format court : 0x1234...5678
-- Bouton déconnexion
-- Indicateur de réseau (Mumbai/Polygon)
-
-**State** :
-```javascript
-const [address, setAddress] = useState(null)
-const [isConnecting, setIsConnecting] = useState(false)
-const [hasRole, setHasRole] = useState(false)
-const [restaurant, setRestaurant] = useState(null)
+<ConnectWallet onConnect={handleConnect} />
 ```
-
-**Méthodes** :
-- connectWallet() : Connexion MetaMask
-- checkRole() : Vérification RESTAURANT_ROLE
-- fetchRestaurantProfile() : Récupération données restaurant
-- disconnect() : Déconnexion
 
 ---
 
@@ -112,59 +243,18 @@ const [restaurant, setRestaurant] = useState(null)
 **Rôle** : File d'attente des commandes en temps réel.
 
 **Fonctionnalités** :
+- Réception des nouvelles commandes via Socket.io (`orderCreated`)
+- Notification sonore + badge pour nouvelles commandes
+- Animation d'entrée des commandes
+- Filtres par statut (Toutes / Nouvelles / En préparation / Prêtes)
+- Estimation du temps de préparation
+- Bouton "Confirmer préparation" (on-chain + off-chain)
+- Accept/Reject order (optionnel)
 
-**1. Affichage des nouvelles commandes (Socket.io)**
-- Écoute event 'orderCreated' depuis backend
-- Ajoute nouvelle commande en haut de la liste
-- Notification sonore + badge
-- Animation d'entrée de la commande
-
-**2. Accept/Reject order (optionnel)**
-- Bouton "Accepter" : update status, notify client
-- Bouton "Refuser" : cancel order, refund client
-- Modal de confirmation
-
-**3. Estimation du temps de préparation**
-- Input pour saisir temps estimé (minutes)
-- Calcule heure de disponibilité prévue
-- Envoie estimation au client via API
-
-**4. Bouton "Confirmer préparation"**
-- Appelle api.confirmPreparation(orderId)
-- Appelle blockchain.confirmPreparationOnChain(orderId)
-- Met à jour status : CREATED → PREPARING
-- Notifie livreurs disponibles
-
-**5. Filtres par statut**
-- Tabs : Toutes / Nouvelles / En préparation / Prêtes
-- Filter orders array selon status
-
-**State** :
-```javascript
-const [orders, setOrders] = useState([])
-const [filter, setFilter] = useState('all')
-const [loading, setLoading] = useState(false)
-```
-
-**Socket.io listeners** :
-```javascript
-useEffect(() => {
-  socket.on('orderCreated', (order) => {
-    // Ajouter order à la liste
-    setOrders(prev => [order, ...prev])
-    // Notification sonore
-    playNotificationSound()
-  })
-
-  return () => socket.off('orderCreated')
-}, [])
-```
-
-**Méthodes** :
-- handleConfirmPreparation(orderId) : Confirmer préparation
-- handleAcceptOrder(orderId) : Accepter commande
-- handleRejectOrder(orderId) : Refuser commande
-- filterOrders(status) : Filtrer par statut
+**Socket.io events** :
+- `orderCreated` : Nouvelle commande
+- `delivererAssigned` : Livreur assigné
+- `orderDelivered` : Commande livrée
 
 ---
 
@@ -173,144 +263,66 @@ useEffect(() => {
 **Rôle** : Carte individuelle d'une commande.
 
 **Props** :
-```javascript
+```jsx
 {
   order: {
-    orderId: Number,
-    client: { name, address },
-    items: [{ name, quantity, price, image }],
-    deliveryAddress: String,
-    totalAmount: Number,
-    status: String,
+    orderId: number,
+    client: { name: string, address: string },
+    items: Array<{ name: string, quantity: number, price: number, image: string }>,
+    deliveryAddress: string,
+    totalAmount: number,
+    status: string,
     createdAt: Date
   },
-  onConfirmPreparation: Function
+  onConfirmPreparation: (orderId: number) => void
 }
 ```
 
 **Fonctionnalités** :
-
-**1. Détails de la commande**
-- Liste des items avec quantités
-- Prix unitaire et total par item
-- Total de la commande
-- Images des plats (IPFS)
-
-**2. Adresse de livraison**
-- Affichage adresse complète
-- Bouton "Voir sur carte" (Google Maps)
-
-**3. Informations client**
-- Nom du client
-- Adresse wallet (format court)
-- Numéro de téléphone (si disponible)
-
-**4. Statut de la commande**
-- Badge coloré selon status :
-  - CREATED : jaune
-  - PREPARING : orange
-  - IN_DELIVERY : bleu
-  - DELIVERED : vert
-
-**5. Actions**
-- Bouton "Confirmer préparation" si status = CREATED
+- Affichage des détails de la commande (items, quantités, prix)
+- Images des plats depuis IPFS
+- Informations client (nom, wallet, téléphone)
+- Adresse de livraison
+- Badge de statut coloré :
+  - `CREATED` : Jaune
+  - `PREPARING` : Orange
+  - `IN_DELIVERY` : Bleu
+  - `DELIVERED` : Vert
 - Timer : temps écoulé depuis création
-- Temps de préparation estimé
-
-**Render** :
-```javascript
-<div className="order-card">
-  <div className="order-header">
-    <span>Commande #{order.orderId}</span>
-    <Badge status={order.status} />
-  </div>
-
-  <div className="order-items">
-    {order.items.map(item => (
-      <div key={item.name}>
-        <img src={ipfsGateway + item.image} />
-        <span>{item.quantity}x {item.name}</span>
-        <span>{item.price} MATIC</span>
-      </div>
-    ))}
-  </div>
-
-  <div className="order-footer">
-    <span>Total: {order.totalAmount} MATIC</span>
-    <button onClick={() => onConfirmPreparation(order.orderId)}>
-      Confirmer préparation
-    </button>
-  </div>
-</div>
-```
+- Bouton "Confirmer préparation" si status = CREATED
 
 ---
 
 ### MenuManager.jsx
 
-**Rôle** : Gestion complète du menu restaurant.
+**Rôle** : Gestion complète du menu restaurant (CRUD).
 
 **Fonctionnalités** :
 
-**1. CRUD des items du menu**
-
 **Create (Ajouter item)** :
-- Modal formulaire : name, description, price, category, image
-- Upload image vers IPFS via api.uploadImage(file)
-- Call api.addMenuItem(restaurantId, itemData)
-- Refresh liste menu
+- Modal formulaire : nom, description, prix, catégorie, image
+- Upload image vers IPFS
+- Validation des données
+- Ajout au menu
 
 **Read (Lire menu)** :
-- Fetch menu depuis api.getRestaurant(restaurantId)
 - Affichage grid des items avec images IPFS
 - Groupage par catégories
+- Filtres par catégorie
 
 **Update (Modifier item)** :
-- Modal pré-remplie avec données item
-- Modification name, description, price, availability
+- Modal pré-remplie avec données existantes
+- Modification nom, description, prix, disponibilité
 - Upload nouvelle image si changée
-- Call api.updateMenuItem(restaurantId, itemId, updates)
 
 **Delete (Supprimer item)** :
-- Confirmation modal
-- Call api.deleteMenuItem(restaurantId, itemId)
-- Retrait de la liste
+- Confirmation avant suppression
+- Retrait du menu
 
-**2. Upload d'images vers IPFS**
-- Input file avec preview
-- Upload vers IPFS via api.uploadImage()
-- Récupère ipfsHash
-- Stocke hash dans item.image
-
-**3. Définition des prix**
-- Input number pour price (MATIC)
-- Validation : price > 0
-- Conversion MATIC/USD affichée
-
-**4. Activation/désactivation d'items**
-- Toggle switch pour item.available
-- Si available=false : grisé dans menu client
-- Update en temps réel
-
-**5. Catégorisation des plats**
-- Dropdown categories : Entrées, Plats, Desserts, Boissons
-- Filtre par catégorie
-- Création de nouvelles catégories
-
-**State** :
-```javascript
-const [menu, setMenu] = useState([])
-const [selectedItem, setSelectedItem] = useState(null)
-const [isModalOpen, setIsModalOpen] = useState(false)
-const [uploading, setUploading] = useState(false)
-```
-
-**Méthodes** :
-- handleAddItem(itemData) : Ajouter item
-- handleUpdateItem(itemId, updates) : Modifier item
-- handleDeleteItem(itemId) : Supprimer item
-- handleImageUpload(file) : Upload image IPFS
-- toggleAvailability(itemId) : Toggle disponibilité
+**Autres fonctionnalités** :
+- Activation/désactivation d'items (toggle)
+- Catégorisation (Entrées, Plats, Desserts, Boissons)
+- Prix en MATIC + conversion EUR
 
 ---
 
@@ -319,63 +331,29 @@ const [uploading, setUploading] = useState(false)
 **Rôle** : Statistiques et analytics du restaurant.
 
 **Fonctionnalités** :
-
-**1. Total des commandes (jour/semaine/mois)**
-- Fetch analytics depuis api.getAnalytics(restaurantId, { startDate, endDate })
-- Affichage cards avec icônes :
-  - Commandes aujourd'hui : 15
-  - Commandes cette semaine : 87
-  - Commandes ce mois : 342
-- Pourcentage de variation vs période précédente
-
-**2. Graphique des revenus**
-- Line chart (Chart.js ou Recharts)
-- Axe X : dates (7 derniers jours / 30 derniers jours)
-- Axe Y : revenus en MATIC
-- Filtres : Jour / Semaine / Mois
-
-**3. Plats les plus populaires**
-- Bar chart horizontal
-- Top 5 plats commandés
-- Nombre de commandes par plat
-- Revenue par plat
-
-**4. Temps moyen de préparation**
-- Calcul depuis MongoDB orders
-- Moyenne temps entre CREATED et PREPARING
-- Affichage en minutes
-- Comparaison avec objectif
-
-**5. Vue d'ensemble des notes**
-- Rating moyen : 4.5/5 étoiles
+- **Total commandes** : Jour / Semaine / Mois avec variation %
+- **Graphique revenus** : Line chart des revenus dans le temps
+- **Plats populaires** : Bar chart horizontal (Top 5)
+- **Temps moyen de préparation** : Calcul depuis les commandes
+- **Vue d'ensemble notes** :
+  - Rating moyen
 - Nombre total d'avis
 - Répartition des notes (1-5 étoiles)
 - Derniers commentaires clients
+- **Filtres période** : Jour / Semaine / Mois
 
-**State** :
+**Données affichées** :
 ```javascript
-const [analytics, setAnalytics] = useState({
-  totalOrders: 0,
-  revenue: 0,
-  popularDishes: [],
-  averagePreparationTime: 0,
-  rating: 0
-})
-const [period, setPeriod] = useState('week') // day, week, month
-```
-
-**Fetch data** :
-```javascript
-useEffect(() => {
-  const fetchAnalytics = async () => {
-    const data = await api.getAnalytics(restaurantId, {
-      startDate: getStartDate(period),
-      endDate: new Date()
-    })
-    setAnalytics(data)
-  }
-  fetchAnalytics()
-}, [period])
+{
+  totalOrders: { today: 15, week: 87, month: 342 },
+  revenue: { today: 150, week: 870, month: 3420 }, // MATIC
+  popularDishes: [
+    { name: "Pizza Margherita", orderCount: 45, revenue: 450 }
+  ],
+  averagePreparationTime: 25, // minutes
+  rating: 4.5,
+  totalReviews: 120
+}
 ```
 
 ---
@@ -385,949 +363,425 @@ useEffect(() => {
 **Rôle** : Graphique des revenus et gains on-chain.
 
 **Fonctionnalités** :
+- **Revenus quotidiens/hebdomadaires** : Line chart depuis events PaymentSplit
+- **Retraits en attente** : Solde disponible dans PaymentSplitter
+- **Bouton "Retirer"** : Retrait des fonds vers wallet restaurant
+- **Montants retirés** : Historique des retraits
+- **Historique transactions** : Table avec dates, orderId, montant, txHash
+- **Pagination** : Pour l'historique des transactions
 
-**1. Revenus quotidiens/hebdomadaires**
-- Line chart revenus dans le temps
-- Data depuis blockchain events PaymentSplit
-- Filter events où restaurant = restaurantAddress
-- Calcul : 70% de chaque foodPrice
-
-**2. Retraits en attente**
-- Total MATIC disponible pour retrait
-- Fetch balance du contrat PaymentSplitter
-- Bouton "Retirer" : call blockchain.withdraw()
-
-**3. Montants retirés**
-- Historique des retraits
-- Liste transactions avec dates et montants
-- Links vers PolygonScan
-
-**4. Historique des transactions on-chain**
-- Table avec colonnes :
-  - Date
-  - Commande ID
-  - Montant reçu (70%)
-  - Transaction hash
-- Pagination
-
-**State** :
-```javascript
-const [earnings, setEarnings] = useState({
-  daily: [],
-  weekly: [],
-  pending: 0,
-  withdrawn: 0,
-  transactions: []
-})
-```
-
-**Fetch blockchain data** :
-```javascript
-useEffect(() => {
-  const fetchEarnings = async () => {
-    // Fetch PaymentSplit events
-    const events = await blockchain.getPaymentSplitEvents(restaurantAddress)
-
-    // Calculer earnings
-    const totalEarnings = events.reduce((sum, event) => {
-      return sum + parseFloat(event.args.restaurantAmount)
-    }, 0)
-
-    // Fetch pending balance
-    const pending = await blockchain.getPendingBalance(restaurantAddress)
-
-    setEarnings({
-      daily: groupByDay(events),
-      weekly: groupByWeek(events),
-      pending,
-      transactions: events
-    })
-  }
-  fetchEarnings()
-}, [])
-```
-
-**Méthodes** :
-- handleWithdraw() : Retirer fonds vers wallet
-- groupByDay(events) : Grouper revenus par jour
-- groupByWeek(events) : Grouper revenus par semaine
+**Données blockchain** :
+- Events `PaymentSplit` filtrés par restaurant
+- Calcul : 70% de chaque `foodPrice`
+- Balance du contrat `PaymentSplitter`
 
 ---
 
-## Pages (src/pages/)
+## 📄 Pages
 
 ### DashboardPage.jsx
 
-**Rôle** : Tableau de bord principal du restaurant.
+**Route** : `/`
 
 **Fonctionnalités** :
-
-**1. Vue d'ensemble des commandes du jour**
-- Nombre de commandes aujourd'hui
-- Revenus du jour
-- Temps moyen de préparation
-
-**2. Statistiques rapides**
-- Cards avec KPIs :
-  - Commandes en attente : 3
-  - Commandes en préparation : 5
-  - Commandes livrées aujourd'hui : 12
-  - Revenue aujourd'hui : 150 MATIC
-
-**3. Commandes en attente**
-- Intègre OrdersQueue avec filter='CREATED'
-- Notifications temps réel
-
-**4. Revenus du jour**
-- Mini graph des revenus (dernières 24h)
+- Vue d'ensemble des commandes du jour
+- Statistiques rapides (KPIs) :
+  - Commandes en attente
+  - Commandes en préparation
+  - Commandes livrées aujourd'hui
+  - Revenue aujourd'hui
+- Commandes en attente (intègre OrdersQueue)
+- Mini graphique des revenus (dernières 24h)
 - Comparaison avec hier
-
-**5. Accès rapide aux autres pages**
-- Boutons vers Orders, Menu, Analytics
-
-**Layout** :
-```javascript
-<div className="dashboard">
-  <Header restaurant={restaurant} />
-
-  <div className="stats-grid">
-    <StatCard title="Commandes aujourd'hui" value={todayOrders} />
-    <StatCard title="Revenue" value={todayRevenue} />
-    <StatCard title="Rating" value={rating} />
-  </div>
-
-  <div className="content-grid">
-    <OrdersQueue filter="pending" />
-    <EarningsChart period="day" />
-  </div>
-</div>
-```
+- Accès rapide aux autres pages
 
 ---
 
 ### OrdersPage.jsx
 
-**Rôle** : Gestion complète des commandes.
+**Route** : `/orders`
 
 **Fonctionnalités** :
-
-**1. Liste de toutes les commandes**
-- Fetch api.getRestaurantOrders(restaurantId)
-- Table avec colonnes :
-  - Order ID
-  - Client
-  - Items
-  - Total
-  - Status
-  - Date
-  - Actions
-
-**2. Filtres par statut et date**
-- Dropdown statut : Toutes / CREATED / PREPARING / IN_DELIVERY / DELIVERED
-- Date range picker : startDate, endDate
-- Search bar : recherche par order ID ou client
-
-**3. Actions sur les commandes**
-- Confirmer préparation (si CREATED)
-- Voir détails
-- Export CSV
-
-**4. Détails de chaque commande**
-- Modal avec full order details
-- Items list
-- Client info
-- Deliverer info (si assigné)
+- Liste de toutes les commandes
+- Table avec colonnes : Order ID, Client, Items, Total, Status, Date, Actions
+- Filtres par statut et date
+- Date range picker
+- Search bar (order ID ou client)
+- Actions : Confirmer préparation, Voir détails, Export CSV
+- Modal détails commande complète avec :
 - Timeline des statuts
 - Transaction hash
-
-**State** :
-```javascript
-const [orders, setOrders] = useState([])
-const [filter, setFilter] = useState({ status: 'all', startDate: null, endDate: null })
-const [selectedOrder, setSelectedOrder] = useState(null)
-```
+  - Informations client et livreur
 
 ---
 
 ### MenuPage.jsx
 
-**Rôle** : Gestion du menu restaurant.
+**Route** : `/menu`
 
 **Fonctionnalités** :
-
-**1. Intègre MenuManager**
-- Composant MenuManager en mode full-page
-- Tous les CRUD operations
-
-**2. Interface complète de gestion**
+- Intègre MenuManager en mode full-page
 - Sidebar avec catégories
 - Grid des items avec images
 - Bouton "Ajouter item" en header
-
-**3. Prévisualisation du menu client**
-- Toggle "Mode aperçu"
-- Affiche menu tel que vu par clients
-- Avec prices et disponibilités
-
-**Layout** :
-```javascript
-<div className="menu-page">
-  <Header title="Gestion du Menu" />
-
-  <div className="menu-actions">
-    <button onClick={openAddItemModal}>Ajouter un plat</button>
-    <button onClick={togglePreview}>Aperçu client</button>
-  </div>
-
-  <MenuManager
-    restaurantId={restaurantId}
-    onUpdate={handleMenuUpdate}
-  />
-</div>
-```
+- Toggle "Mode aperçu" (vue client)
+- Gestion complète du menu (CRUD)
 
 ---
 
 ### AnalyticsPage.jsx
 
-**Rôle** : Analytics détaillées du restaurant.
+**Route** : `/analytics`
 
 **Fonctionnalités** :
-
-**1. Intègre Analytics et EarningsChart**
-- Section Analytics en haut
-- Section EarningsChart en bas
-
-**2. Graphiques détaillés**
-- Multiple charts :
+- Intègre Analytics et EarningsChart
+- Graphiques détaillés :
   - Revenue over time
   - Orders over time
   - Popular dishes
   - Peak hours
   - Customer ratings
-
-**3. Export de données**
-- Bouton "Export CSV"
-- Export analytics data
-- Export transactions history
-
-**4. Rapports personnalisés**
+- Export de données (bouton "Export CSV")
+- Rapports personnalisés
 - Date range selector
-- Filtres multiples
-- Comparaison périodes
-
-**Layout** :
-```javascript
-<div className="analytics-page">
-  <Header title="Statistiques & Revenus" />
-
-  <div className="filters">
-    <DateRangePicker onChange={setDateRange} />
-    <PeriodSelector value={period} onChange={setPeriod} />
-  </div>
-
-  <Analytics restaurantId={restaurantId} period={period} />
-
-  <EarningsChart restaurantId={restaurantId} period={period} />
-
-  <button onClick={exportData}>Export CSV</button>
-</div>
-```
+- Comparaison entre périodes
 
 ---
 
-## Services (src/services/)
+### RegisterPage.jsx
+
+**Route** : `/register`
+
+**Fonctionnalités** :
+- Inscription d'un nouveau restaurant
+- Formulaire : nom, cuisine, description, adresse, images
+- Upload images vers IPFS
+- Création du menu initial
+- Attribution du rôle RESTAURANT_ROLE (via admin)
+
+---
+
+## 🔌 Services
 
 ### api.js
 
 **Rôle** : Service pour les appels API backend.
 
-**Configuration** :
-```javascript
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-
-const authHeaders = (address) => ({
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${address}`
-})
-```
-
 **Fonctions principales** :
+- `getRestaurant(restaurantId)` : Détails restaurant avec menu
+- `getOrders(restaurantId, filters)` : Commandes avec filtres
+- `confirmPreparation(orderId, restaurantAddress)` : Confirmation préparation
+- `updateMenu(restaurantId, menu)` : Mise à jour menu complet
+- `addMenuItem(restaurantId, item)` : Ajouter item au menu
+- `updateMenuItem(restaurantId, itemId, updates)` : Modifier item
+- `deleteMenuItem(restaurantId, itemId)` : Supprimer item
+- `getAnalytics(restaurantId, params)` : Statistiques
+- `uploadImage(file)` : Upload image IPFS
+- `getEarnings(restaurantId, period)` : Revenus on-chain
+- `withdraw(restaurantId, restaurantAddress)` : Retirer fonds
 
-**1. getRestaurant(restaurantId)**
-- GET /api/restaurants/:id
-- Retourne : restaurant data avec menu
+**Exemple** :
+```javascript
+import api from './services/api'
 
-**2. getOrders(restaurantId, filters)**
-- GET /api/restaurants/:id/orders?status=...&startDate=...
-- Retourne : array of orders
-
-**3. confirmPreparation(orderId)**
-- POST /api/orders/:id/confirm-preparation
-- Body : { restaurantAddress }
-- Retourne : { success, txHash }
-
-**4. updateMenu(restaurantId, menu)**
-- PUT /api/restaurants/:id/menu
-- Body : { menu: [...] }
-- Retourne : { success, menu }
-
-**5. addMenuItem(restaurantId, item)**
-- POST /api/restaurants/:id/menu/item
-- Body : { name, description, price, image, category }
-- Retourne : { success, item }
-
-**6. updateMenuItem(restaurantId, itemId, updates)**
-- PUT /api/restaurants/:id/menu/item/:itemId
-- Body : { ...updates }
-- Retourne : { success, item }
-
-**7. deleteMenuItem(restaurantId, itemId)**
-- DELETE /api/restaurants/:id/menu/item/:itemId
-- Retourne : { success }
-
-**8. getAnalytics(restaurantId, params)**
-- GET /api/restaurants/:id/analytics?startDate=...&endDate=...
-- Retourne : { totalOrders, revenue, popularDishes, rating }
-
-**9. uploadImage(file)**
-- POST /api/upload/image
-- FormData avec file
-- Retourne : { ipfsHash, url }
+const orders = await api.getOrders(restaurantId, { status: 'CREATED' })
+const analytics = await api.getAnalytics(restaurantId, { period: 'week' })
+```
 
 ---
 
 ### blockchain.js
 
-**Rôle** : Service pour les interactions Web3.
-
-**Configuration** :
-```javascript
-import { ethers } from 'ethers'
-import DoneOrderManager from '../../../contracts/artifacts/DoneOrderManager.json'
-
-const provider = new ethers.BrowserProvider(window.ethereum)
-const orderManagerAddress = import.meta.env.VITE_ORDER_MANAGER_ADDRESS
-```
+**Rôle** : Service pour les interactions Web3 directes.
 
 **Fonctions principales** :
+- `connectWallet()` : Connexion MetaMask
+- `hasRole(role, address)` : Vérification rôle RESTAURANT
+- `confirmPreparationOnChain(orderId)` : Confirmation on-chain
+- `getRestaurantOrders(restaurantAddress)` : Commandes on-chain
+- `getEarningsOnChain(restaurantAddress)` : Revenus on-chain
+- `getPaymentSplitEvents(restaurantAddress)` : Events PaymentSplit
+- `getPendingBalance(restaurantAddress)` : Solde en attente
+- `withdraw()` : Retirer fonds depuis PaymentSplitter
 
-**1. connectWallet()**
-- Request accounts depuis MetaMask
-- Retourne : { address, signer }
+**Exemple** :
+```javascript
+import blockchain from './services/blockchain'
 
-**2. hasRole(role, address)**
-- Call orderManager.hasRole(role, address)
-- Retourne : boolean
-
-**3. confirmPreparationOnChain(orderId)**
-- Get signer
-- Call orderManager.confirmPreparation(orderId)
-- Wait transaction
-- Retourne : { txHash, receipt }
-
-**4. getRestaurantOrders(restaurantAddress)**
-- Query events OrderCreated where restaurant = restaurantAddress
-- Parse events pour récupérer orderIds
-- Pour chaque orderId : call orderManager.orders(orderId)
-- Retourne : array of orders
-
-**5. getEarningsOnChain(restaurantAddress)**
-- Query events PaymentSplit where restaurant = restaurantAddress
-- Sum restaurantAmount (70% de chaque commande)
-- Retourne : totalEarnings
-
-**6. getPaymentSplitEvents(restaurantAddress)**
-- Filter events PaymentSplit
-- Retourne : array of events avec { orderId, restaurantAmount, txHash, blockNumber }
-
-**7. getPendingBalance(restaurantAddress)**
-- Call paymentSplitter.balances(restaurantAddress)
-- Retourne : pending balance en MATIC
-
-**8. withdraw()**
-- Get signer
-- Call paymentSplitter.withdraw()
-- Wait transaction
-- Retourne : { txHash, amount }
-
----
-
-## Variables d'environnement
-
-Fichier `.env.example` :
-
-```
-VITE_API_URL=http://localhost:3000/api
-VITE_ORDER_MANAGER_ADDRESS=0x...
-VITE_PAYMENT_SPLITTER_ADDRESS=0x...
-VITE_SOCKET_URL=http://localhost:3000
-VITE_IPFS_GATEWAY=https://gateway.pinata.cloud/ipfs/
+const hasRole = await blockchain.hasRole('RESTAURANT_ROLE', address)
+const { txHash } = await blockchain.confirmPreparationOnChain(orderId)
 ```
 
 ---
 
-## Intégration API Backend
+### ipfs.js
 
-Cette section décrit comment intégrer les API du backend Node.js/Express dans l'application restaurant. Toutes les requêtes API sont gérées via le fichier `src/services/api.js`.
+**Rôle** : Service pour les interactions IPFS.
 
-### Configuration de base
+**Fonctions principales** :
+- `uploadImage(file)` : Upload image via backend
+- `getImage(hash)` : URL image IPFS
+- `uploadJSON(data)` : Upload JSON via backend
+- `getJSON(hash)` : Récupération JSON
 
-**URL de l'API** :
-```javascript
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-```
+---
 
-**Headers d'authentification** :
-```javascript
-const authHeaders = (address) => ({
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${address}`
-})
-```
+## 🌐 Intégration API
 
-### Endpoints API utilisés par le restaurant
+### Endpoints utilisés
 
-#### 1. Restaurants
+#### Restaurants
+- `GET /api/restaurants/:id` : Détails restaurant
+- `PUT /api/restaurants/:id` : Mettre à jour restaurant
+- `PUT /api/restaurants/:id/menu` : Mettre à jour menu
+- `POST /api/restaurants/:id/menu/item` : Ajouter item
+- `PUT /api/restaurants/:id/menu/item/:itemId` : Modifier item
+- `DELETE /api/restaurants/:id/menu/item/:itemId` : Supprimer item
+- `GET /api/restaurants/:id/analytics` : Statistiques
+- `GET /api/restaurants/:id/orders` : Commandes restaurant
+- `GET /api/restaurants/:id/earnings` : Revenus on-chain
+- `POST /api/restaurants/:id/withdraw` : Retirer fonds
 
-**POST /api/restaurants/register**
-- **Description** : Enregistrer un nouveau restaurant
-- **Body** :
-```javascript
-{
-  address: String,
-  name: String,
-  cuisine: String,
-  description: String,
-  location: {
-    address: String,
-    lat: Number,
-    lng: Number
-  },
-  images: [String], // IPFS hashes
-  menu: [{
-    name: String,
-    description: String,
-    price: Number,
-    image: String, // IPFS hash
-    category: String
-  }]
-}
-```
-- **Retourne** : `{ success: true, restaurant }`
-- **Utilisation** : Lors de l'inscription initiale
-- **Exemple** :
-```javascript
-const registerRestaurant = async (restaurantData) => {
-  const response = await fetch(`${API_BASE_URL}/restaurants/register`, {
-    method: 'POST',
-    headers: authHeaders(restaurantData.address),
-    body: JSON.stringify(restaurantData)
-  })
-  return response.json()
-}
-```
+#### Commandes
+- `GET /api/orders/:id` : Détails commande
+- `POST /api/orders/:id/confirm-preparation` : Confirmer préparation
 
-**GET /api/restaurants/:id**
-- **Description** : Récupérer les détails complets du restaurant avec menu
-- **Retourne** : Restaurant data avec menu complet
-- **Utilisation** : `DashboardPage.jsx`, `MenuPage.jsx`
-- **Exemple** :
-```javascript
-const getRestaurant = async (restaurantId) => {
-  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}`)
-  return response.json()
-}
-```
+#### Upload
+- `POST /api/upload/image` : Upload image IPFS
+- `POST /api/upload/multiple-images` : Upload multiples images
 
-**PUT /api/restaurants/:id**
-- **Description** : Mettre à jour les informations du restaurant
-- **Body** : `{ name, cuisine, description, location, images[] }`
-- **Retourne** : `{ success: true, restaurant }`
-- **Utilisation** : Page de paramètres
-- **Exemple** :
-```javascript
-const updateRestaurant = async (restaurantId, updates) => {
-  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}`, {
-    method: 'PUT',
-    headers: authHeaders(restaurantAddress),
-    body: JSON.stringify(updates)
-  })
-  return response.json()
-}
-```
+### Socket.io
 
-**PUT /api/restaurants/:id/menu**
-- **Description** : Mettre à jour le menu complet du restaurant
-- **Body** : `{ menu: [...] }`
-- **Retourne** : `{ success: true, menu }`
-- **Utilisation** : `MenuManager.jsx`
-- **Exemple** :
-```javascript
-const updateMenu = async (restaurantId, menu) => {
-  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/menu`, {
-    method: 'PUT',
-    headers: authHeaders(restaurantAddress),
-    body: JSON.stringify({ menu })
-  })
-  return response.json()
-}
-```
-
-**POST /api/restaurants/:id/menu/item**
-- **Description** : Ajouter un nouvel item au menu
-- **Body** :
-```javascript
-{
-  name: String,
-  description: String,
-  price: Number,
-  image: String, // IPFS hash
-  category: String,
-  available: Boolean
-}
-```
-- **Retourne** : `{ success: true, item }`
-- **Utilisation** : `MenuManager.jsx` - Modal d'ajout
-- **Exemple** :
-```javascript
-const addMenuItem = async (restaurantId, item) => {
-  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/menu/item`, {
-    method: 'POST',
-    headers: authHeaders(restaurantAddress),
-    body: JSON.stringify(item)
-  })
-  return response.json()
-}
-```
-
-**PUT /api/restaurants/:id/menu/item/:itemId**
-- **Description** : Modifier un item existant du menu
-- **Body** : `{ name, description, price, image, category, available }`
-- **Retourne** : `{ success: true, item }`
-- **Utilisation** : `MenuManager.jsx` - Modal d'édition
-- **Exemple** :
-```javascript
-const updateMenuItem = async (restaurantId, itemId, updates) => {
-  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/menu/item/${itemId}`, {
-    method: 'PUT',
-    headers: authHeaders(restaurantAddress),
-    body: JSON.stringify(updates)
-  })
-  return response.json()
-}
-```
-
-**DELETE /api/restaurants/:id/menu/item/:itemId**
-- **Description** : Supprimer un item du menu
-- **Retourne** : `{ success: true }`
-- **Utilisation** : `MenuManager.jsx`
-- **Exemple** :
-```javascript
-const deleteMenuItem = async (restaurantId, itemId) => {
-  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/menu/item/${itemId}`, {
-    method: 'DELETE',
-    headers: authHeaders(restaurantAddress)
-  })
-  return response.json()
-}
-```
-
-**GET /api/restaurants/:id/analytics**
-- **Description** : Récupérer les statistiques du restaurant
-- **Paramètres** : `{ startDate, endDate }` (query)
-- **Retourne** :
-```javascript
-{
-  totalOrders: Number,
-  revenue: Number,
-  averageRating: Number,
-  popularDishes: [{
-    name: String,
-    orderCount: Number,
-    revenue: Number
-  }],
-  averagePreparationTime: Number
-}
-```
-- **Utilisation** : `Analytics.jsx`, `AnalyticsPage.jsx`
-- **Exemple** :
-```javascript
-const getAnalytics = async (restaurantId, params) => {
-  const query = new URLSearchParams(params)
-  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/analytics?${query}`)
-  return response.json()
-}
-```
-
-#### 2. Commandes (Orders)
-
-**GET /api/restaurants/:id/orders**
-- **Description** : Récupérer toutes les commandes du restaurant
-- **Paramètres** : `{ status, startDate, endDate }` (query optionnels)
-- **Retourne** : Array of orders
-- **Utilisation** : `OrdersQueue.jsx`, `OrdersPage.jsx`
-- **Exemple** :
-```javascript
-const getRestaurantOrders = async (restaurantId, filters = {}) => {
-  const params = new URLSearchParams(filters)
-  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/orders?${params}`)
-  return response.json()
-}
-```
-
-**GET /api/orders/:id**
-- **Description** : Récupérer les détails d'une commande spécifique
-- **Retourne** : Full order data avec items, client, deliverer, GPS tracking
-- **Utilisation** : `OrderCard.jsx` pour afficher détails
-- **Exemple** :
-```javascript
-const getOrder = async (orderId) => {
-  const response = await fetch(`${API_BASE_URL}/orders/${orderId}`)
-  return response.json()
-}
-```
-
-**POST /api/orders/:id/confirm-preparation**
-- **Description** : Confirmer qu'une commande est prête (déclenche notification aux livreurs)
-- **Body** : `{ restaurantAddress: String }`
-- **Retourne** : `{ success: true, txHash }`
-- **Utilisation** : `OrdersQueue.jsx`, `OrderCard.jsx`
-- **Exemple** :
-```javascript
-const confirmPreparation = async (orderId, restaurantAddress) => {
-  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/confirm-preparation`, {
-    method: 'POST',
-    headers: authHeaders(restaurantAddress),
-    body: JSON.stringify({ restaurantAddress })
-  })
-  return response.json()
-}
-```
-
-**POST /api/orders/:id/accept**
-- **Description** : Accepter une nouvelle commande (optionnel)
-- **Body** : `{ restaurantAddress: String }`
-- **Retourne** : `{ success: true }`
-- **Utilisation** : `OrdersQueue.jsx` si validation manuelle requise
-- **Exemple** :
-```javascript
-const acceptOrder = async (orderId, restaurantAddress) => {
-  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/accept`, {
-    method: 'POST',
-    headers: authHeaders(restaurantAddress),
-    body: JSON.stringify({ restaurantAddress })
-  })
-  return response.json()
-}
-```
-
-**POST /api/orders/:id/reject**
-- **Description** : Refuser une commande (remboursement client automatique)
-- **Body** : `{ restaurantAddress: String, reason: String }`
-- **Retourne** : `{ success: true, txHash }`
-- **Utilisation** : `OrdersQueue.jsx`
-- **Exemple** :
-```javascript
-const rejectOrder = async (orderId, restaurantAddress, reason) => {
-  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/reject`, {
-    method: 'POST',
-    headers: authHeaders(restaurantAddress),
-    body: JSON.stringify({ restaurantAddress, reason })
-  })
-  return response.json()
-}
-```
-
-#### 3. Upload IPFS
-
-**POST /api/upload/image**
-- **Description** : Upload une image vers IPFS via Pinata
-- **Body** : FormData avec file
-- **Retourne** : `{ ipfsHash, url }`
-- **Utilisation** : `MenuManager.jsx` pour upload images des plats
-- **Exemple** :
-```javascript
-const uploadImage = async (file) => {
-  const formData = new FormData()
-  formData.append('file', file)
-
-  const response = await fetch(`${API_BASE_URL}/upload/image`, {
-    method: 'POST',
-    body: formData
-  })
-  return response.json()
-}
-```
-
-**POST /api/upload/multiple-images**
-- **Description** : Upload plusieurs images simultanément
-- **Body** : FormData avec multiple files
-- **Retourne** : `[{ ipfsHash, url }, ...]`
-- **Utilisation** : Lors de l'enregistrement du restaurant
-- **Exemple** :
-```javascript
-const uploadMultipleImages = async (files) => {
-  const formData = new FormData()
-  files.forEach(file => formData.append('files', file))
-
-  const response = await fetch(`${API_BASE_URL}/upload/multiple-images`, {
-    method: 'POST',
-    body: formData
-  })
-  return response.json()
-}
-```
-
-#### 4. Revenus (Earnings)
-
-**GET /api/restaurants/:id/earnings**
-- **Description** : Récupérer les revenus on-chain du restaurant
-- **Paramètres** : `{ startDate, endDate, period }` (query)
-- **Retourne** :
-```javascript
-{
-  daily: [{ date: String, amount: Number }],
-  weekly: [{ week: String, amount: Number }],
-  pending: Number,
-  withdrawn: Number,
-  transactions: [{
-    orderId: Number,
-    amount: Number, // 70% du foodPrice
-    txHash: String,
-    date: Date
-  }]
-}
-```
-- **Utilisation** : `EarningsChart.jsx`
-- **Exemple** :
-```javascript
-const getEarnings = async (restaurantId, period = 'week') => {
-  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/earnings?period=${period}`)
-  return response.json()
-}
-```
-
-**POST /api/restaurants/:id/withdraw**
-- **Description** : Retirer les fonds du PaymentSplitter vers le wallet restaurant
-- **Body** : `{ restaurantAddress: String }`
-- **Retourne** : `{ success: true, txHash, amount }`
-- **Utilisation** : `EarningsChart.jsx`
-- **Exemple** :
-```javascript
-const withdrawEarnings = async (restaurantId, restaurantAddress) => {
-  const response = await fetch(`${API_BASE_URL}/restaurants/${restaurantId}/withdraw`, {
-    method: 'POST',
-    headers: authHeaders(restaurantAddress),
-    body: JSON.stringify({ restaurantAddress })
-  })
-  return response.json()
-}
-```
-
-### Gestion des erreurs
-
-Toutes les fonctions API doivent gérer les erreurs :
-
-```javascript
-const apiCall = async (url, options) => {
-  try {
-    const response = await fetch(url, options)
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'API Error')
-    }
-
-    return response.json()
-  } catch (error) {
-    console.error('API Error:', error)
-    throw error
-  }
-}
-```
-
-### Socket.io pour temps réel
-
-**Connexion Socket.io** :
+**Connexion** :
 ```javascript
 import io from 'socket.io-client'
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
-const socket = io(SOCKET_URL)
-
-// Rejoindre room restaurant
-socket.emit('joinRoom', `restaurant_${restaurantId}`)
+const socket = io(import.meta.env.VITE_SOCKET_URL)
+socket.emit('join-restaurant-room', restaurantId)
 ```
 
-**Events Socket.io écoutés** :
-
-**1. orderCreated**
-- Émis quand un client crée une nouvelle commande pour ce restaurant
-- Payload :
-```javascript
-{
-  orderId: Number,
-  client: { name, address },
-  items: [...],
-  totalAmount: Number,
-  deliveryAddress: String
-}
-```
-- Utilisation : `OrdersQueue.jsx` pour afficher nouvelle commande en temps réel
-```javascript
-socket.on('orderCreated', (order) => {
-  setOrders(prev => [order, ...prev])
-  playNotificationSound()
-})
-```
-
-**2. delivererAssigned**
-- Émis quand un livreur accepte une commande
-- Payload : `{ orderId, deliverer: { name, address, phone } }`
-- Utilisation : `OrdersQueue.jsx` pour mettre à jour status
-```javascript
-socket.on('delivererAssigned', (data) => {
-  setOrders(prev => prev.map(o =>
-    o.orderId === data.orderId
-      ? { ...o, deliverer: data.deliverer, status: 'IN_DELIVERY' }
-      : o
-  ))
-})
-```
-
-**3. orderDelivered**
-- Émis quand une commande est livrée avec succès
-- Payload : `{ orderId, completedAt: Date }`
-- Utilisation : `OrdersPage.jsx` pour mettre à jour historique
-```javascript
-socket.on('orderDelivered', (data) => {
-  setOrders(prev => prev.map(o =>
-    o.orderId === data.orderId
-      ? { ...o, status: 'DELIVERED', completedAt: data.completedAt }
-      : o
-  ))
-})
-```
-
-**4. disputeOpened**
-- Émis quand un client ouvre un litige sur une commande
-- Payload : `{ orderId, reason: String, evidence: String }`
-- Utilisation : Notification au restaurant
-```javascript
-socket.on('disputeOpened', (data) => {
-  showNotification(`Litige ouvert sur commande #${data.orderId}`)
-})
-```
-
-### Variables d'environnement requises
-
-Fichier `.env` :
-```
-VITE_API_URL=http://localhost:3000/api
-VITE_SOCKET_URL=http://localhost:3000
-VITE_ORDER_MANAGER_ADDRESS=0x...
-VITE_PAYMENT_SPLITTER_ADDRESS=0x...
-VITE_IPFS_GATEWAY=https://gateway.pinata.cloud/ipfs/
-```
+**Events écoutés** :
+- `orderCreated` : Nouvelle commande
+- `delivererAssigned` : Livreur assigné
+- `orderDelivered` : Commande livrée
+- `disputeOpened` : Litige ouvert
 
 ---
 
-## Technologies utilisées
+## ▶️ Démarrage
 
-**Frontend** :
-- React 18
-- Vite (build tool)
-- React Router DOM
-- TailwindCSS
-
-**Web3** :
-- Ethers.js v6
-- MetaMask integration
-
-**Temps réel** :
-- Socket.io-client
-
-**Charts** :
-- Chart.js ou Recharts
-
-**UI Components** :
-- Headless UI ou Shadcn UI
-- React Icons
-
----
-
-## Dépendances
-
-```json
-{
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.11.0",
-    "ethers": "^6.4.0",
-    "socket.io-client": "^4.6.0",
-    "chart.js": "^4.3.0",
-    "react-chartjs-2": "^5.2.0",
-    "axios": "^1.4.0",
-    "date-fns": "^2.30.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.0.0",
-    "vite": "^4.3.9",
-    "tailwindcss": "^3.3.2",
-    "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.24"
-  }
-}
-```
-
----
-
-## Scripts NPM
-
-```json
-{
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  }
-}
-```
-
----
-
-## Démarrage
+### Mode développement
 
 ```bash
-# Installation
-cd frontend/restaurant
-npm install
-
-# Configuration
-cp .env.example .env
-# Éditer .env avec les bonnes adresses de contrats
-
-# Développement
 npm run dev
+```
 
-# Build production
+L'application démarre sur `http://localhost:5174` (ou un autre port si occupé).
+
+### Build production
+
+```bash
 npm run build
+```
 
-# Preview production
+Les fichiers optimisés sont générés dans le dossier `dist/`.
+
+### Preview production
+
+```bash
 npm run preview
 ```
 
+Prévisualise le build de production localement.
+
 ---
 
-## Workflow utilisateur
+## 🚀 Déploiement
 
-1. Restaurant se connecte avec MetaMask
-2. Vérification du rôle RESTAURANT_ROLE
-3. Accès au dashboard avec commandes en temps réel
-4. Nouvelle commande arrive via Socket.io
-5. Restaurant confirme préparation (on-chain + off-chain)
-6. Livreurs sont notifiés
-7. Restaurant suit analytics et revenus
-8. Gestion du menu via MenuManager
+### Vercel (Recommandé)
+
+1. Installer Vercel CLI :
+```bash
+npm i -g vercel
+```
+
+2. Déployer :
+```bash
+vercel
+```
+
+3. Configurer les variables d'environnement dans le dashboard Vercel.
+
+### Netlify
+
+1. Installer Netlify CLI :
+```bash
+npm i -g netlify-cli
+```
+
+2. Déployer :
+```bash
+netlify deploy --prod
+```
+
+3. Configurer les variables d'environnement dans le dashboard Netlify.
+
+### Variables d'environnement à configurer
+
+Assurez-vous de configurer toutes les variables d'environnement dans votre plateforme de déploiement :
+- `VITE_API_URL`
+- `VITE_SOCKET_URL`
+- `VITE_ORDER_MANAGER_ADDRESS`
+- `VITE_PAYMENT_SPLITTER_ADDRESS`
+- `VITE_IPFS_GATEWAY`
+
+---
+
+## 👨‍🍳 Workflow utilisateur
+
+### Parcours complet d'un restaurant
+
+1. **Connexion** : Le restaurant se connecte avec MetaMask
+2. **Vérification** : Vérification du rôle RESTAURANT_ROLE
+3. **Dashboard** : Accès au tableau de bord
+4. **Nouvelle commande** : Réception via Socket.io avec notification
+5. **Confirmation** : Le restaurant confirme la préparation (on-chain)
+6. **Livreur** : Un livreur est assigné automatiquement
+7. **Livraison** : Suivi de la livraison
+8. **Revenus** : Les revenus (70%) sont ajoutés au PaymentSplitter
+9. **Retrait** : Le restaurant peut retirer ses fonds
+10. **Analytics** : Consultation des statistiques et graphiques
+11. **Menu** : Gestion du menu (ajout, modification, suppression d'items)
+
+### Gestion d'une commande
+
+1. **Réception** : Nouvelle commande arrive via Socket.io
+2. **Affichage** : Commande apparaît dans OrdersQueue
+3. **Préparation** : Le restaurant prépare la commande
+4. **Confirmation** : Clic sur "Confirmer préparation"
+5. **Blockchain** : Transaction on-chain confirmée
+6. **Notification** : Les livreurs disponibles sont notifiés
+7. **Assignation** : Un livreur accepte la commande
+8. **Livraison** : Suivi jusqu'à la livraison
+9. **Paiement** : Split automatique (70% restaurant, 20% livreur, 10% plateforme)
+
+---
+
+## 🎨 Personnalisation
+
+### Thème TailwindCSS
+
+Modifiez `tailwind.config.js` pour personnaliser les couleurs, polices, etc.
+
+### Graphiques
+
+Les graphiques utilisent Chart.js. Personnalisez les couleurs et styles dans les composants `Analytics.jsx` et `EarningsChart.jsx`.
+
+---
+
+## 🐛 Dépannage
+
+### MetaMask non détecté
+
+**Problème** : "MetaMask not found"
+
+**Solution** :
+1. Installer MetaMask depuis [metamask.io](https://metamask.io/)
+2. Rafraîchir la page
+3. Vérifier que MetaMask est déverrouillé
+
+### Rôle RESTAURANT non trouvé
+
+**Problème** : "You don't have RESTAURANT_ROLE"
+
+**Solution** :
+1. Vérifier que le wallet a bien le rôle RESTAURANT_ROLE
+2. Contacter l'administrateur pour attribution du rôle
+3. Vérifier que le restaurant est enregistré dans la base de données
+
+### Réseau incorrect
+
+**Problème** : "Wrong network"
+
+**Solution** :
+1. Ouvrir MetaMask
+2. Changer le réseau vers "Polygon Amoy"
+3. Si le réseau n'existe pas, l'ajouter manuellement :
+   - Network Name: Polygon Amoy
+   - RPC URL: https://rpc-amoy.polygon.technology
+   - Chain ID: 80002
+   - Currency: MATIC
+
+### Erreur API
+
+**Problème** : "Failed to fetch"
+
+**Solution** :
+1. Vérifier que le backend est démarré
+2. Vérifier `VITE_API_URL` dans `.env`
+3. Vérifier CORS dans le backend
+
+### Commandes ne s'affichent pas
+
+**Problème** : Aucune commande dans OrdersQueue
+
+**Solution** :
+1. Vérifier la connexion Socket.io
+2. Vérifier que le restaurant a rejoint la room `restaurant_${restaurantId}`
+3. Vérifier les logs du backend pour les events émis
+
+---
+
+## 📚 Ressources
+
+- **React Documentation** : https://react.dev/
+- **Vite Documentation** : https://vitejs.dev/
+- **TailwindCSS Documentation** : https://tailwindcss.com/
+- **Chart.js Documentation** : https://www.chartjs.org/
+- **Ethers.js Documentation** : https://docs.ethers.org/
+- **Socket.io Documentation** : https://socket.io/docs/
+
+---
+
+## 📝 Scripts NPM
+
+```bash
+# Développement
+npm run dev              # Démarrer le serveur de développement
+
+# Build
+npm run build            # Build pour production
+npm run preview          # Prévisualiser le build
+
+# Linting (si configuré)
+npm run lint             # Vérifier le code
+npm run lint:fix         # Corriger automatiquement
+```
+
+---
+
+## 🤝 Contribution
+
+### Workflow
+
+1. Créer une branche depuis `main`
+2. Développer la fonctionnalité
+3. Tester localement
+4. Créer une pull request
+
+### Standards de code
+
+- Utiliser ESLint (si configuré)
+- Suivre les conventions React
+- Ajouter des commentaires pour les fonctions complexes
+- Tester sur desktop et tablette
+
+---
+
+## 📄 Licence
+
+MIT License - Voir le fichier `LICENSE` pour plus de détails.
+
+---
+
+**Développé avec ❤️ pour DONE Food Delivery**
