@@ -25,17 +25,6 @@ apiClient.interceptors.request.use((config) => {
     config.headers['x-wallet-address'] = address;
     config.headers['x-message'] = 'auth';
     
-    // Log pour déboguer (seulement en développement)
-    if (import.meta.env.DEV) {
-      console.log('[API] Headers d\'authentification ajoutés:', {
-        'Authorization': 'Bearer mock_signature_for_testing',
-        'x-wallet-address': address,
-        'x-message': 'auth',
-        'URL': config.url
-      });
-    }
-  } else {
-    console.warn('[API] Aucune adresse wallet trouvée pour l\'authentification');
   }
 
   return config;
@@ -202,7 +191,6 @@ export const confirmDelivery = (orderId) => {
  * @returns {Promise<AxiosResponse<any>>}
  */
 export const openDispute = (orderId, disputeData) => {
-  console.log('[API] Opening dispute:', { orderId, disputeData });
   return apiClient.post(`/orders/${orderId}/dispute`, disputeData);
 };
 
@@ -238,7 +226,6 @@ export const getCart = (address) => {
  * @param {object} itemData - Item data including menuItemId, name, price, quantity, image, restaurantId, restaurantAddress
  */
 export const addToCart = (address, itemData) => {
-  console.log('[API] Adding to cart:', { address, itemData });
   return apiClient.post(`/cart/${address}/add`, itemData);
 };
 

@@ -578,13 +578,13 @@ console.log('ABIs exportés avec succès');
 
 ## Best Practices
 
-✅ **À faire** :
+ **À faire** :
 - Utiliser interfaces pour tous les contrats externes
 - Documenter chaque fonction avec NatSpec
 - Définir events dans l'interface
 - Versionner les interfaces (IOrderManagerV1, V2, etc.)
 
-❌ **À éviter** :
+ **À éviter** :
 - Implémenter logique dans une interface (impossible de toute façon)
 - Importer contrats complets quand interface suffit
 - Changer signature de fonction dans interface (breaking change)

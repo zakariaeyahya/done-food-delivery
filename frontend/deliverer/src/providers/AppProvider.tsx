@@ -23,7 +23,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
   const [activeDelivery, setActiveDelivery] = useState<any | null>(null);
 
-  // Init Socket.io
   useEffect(() => {
     const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.VITE_SOCKET_URL || "http://localhost:3000";
     let newSocket: Socket | null = null;
@@ -42,30 +41,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
 
       newSocket.on("connect", () => {
-        console.log("✅ WebSocket connected to backend");
         connectionWarningShown = false;
         isConnected = true;
       });
 
       newSocket.on("connect_error", () => {
         if (!connectionWarningShown && !isCleaningUp) {
-          console.warn("⚠️ Backend server not available. Real-time features disabled. Start backend at:", SOCKET_URL);
           connectionWarningShown = true;
         }
       });
 
       newSocket.on("disconnect", () => {
         if (isConnected && !isCleaningUp) {
-          console.log("WebSocket disconnected");
         }
         isConnected = false;
       });
 
-      // Start connection attempt
       newSocket.connect();
       setSocket(newSocket);
     } catch (err) {
-      console.warn("Failed to initialize WebSocket");
     }
 
     return () => {
@@ -77,36 +71,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
             newSocket.disconnect();
           }
         } catch (err) {
-          // Ignore cleanup errors
         }
       }
     };
   }, []);
 
-  // Join deliverer room
   useEffect(() => {
     if (socket && address) {
-      console.log(`[Livreur] 🏠 Rejoindre room Socket.io pour livreur ${address}`);
       socket.emit("join-deliverer-room", address);
-      console.log(`[Livreur] ✅ Room rejointe pour livreur ${address}`);
     }
   }, [socket, address]);
 
-  // Load GPS
   useEffect(() => {
-    console.log("[Livreur] 📍 Chargement position GPS...");
     geolocation
       .getCurrentPosition()
       .then((location) => {
-        console.log(`[Livreur] ✅ Position GPS chargée: lat=${location.lat}, lng=${location.lng}`);
         setCurrentLocation(location);
       })
       .catch((error) => {
-        console.warn("[Livreur] ⚠️ Géolocalisation indisponible:", error.message);
       });
   }, []);
 
-  // Auto-connect wallet
   useEffect(() => {
     if (typeof window !== "undefined" && window.ethereum) {
       window.ethereum
@@ -117,7 +102,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
             localStorage.setItem("walletAddress", accounts[0]);
           }
         })
-        .catch(console.error);
     }
   }, []);
 

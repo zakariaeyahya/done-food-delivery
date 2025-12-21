@@ -1,8 +1,3 @@
-/**
- * Page AnalyticsPage - Restaurant
- * @notice Analytics détaillées du restaurant
- * @dev Intègre Analytics et EarningsChart, export CSV
- */
 
 import { useMemo, useState } from "react";
 
@@ -156,7 +151,6 @@ function AnalyticsPage({ showSuccess, showError }) {
 
       showSuccess?.("Export CSV généré.");
     } catch (e) {
-      console.error("CSV export error:", e);
       showError?.(`Erreur export CSV: ${e.message}`);
     } finally {
       setExporting(false);

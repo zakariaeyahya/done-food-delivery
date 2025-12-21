@@ -48,7 +48,6 @@ const CheckoutPage = () => {
   };
 
   const handleCheckout = () => {
-    console.log('Review checkout clicked');
   };
 
   // Non connecté

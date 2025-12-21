@@ -19,11 +19,9 @@ function DeliveriesPage() {
       const filters = filter !== "all" ? { status: filter.toUpperCase() } : {};
       const response = await api.getDelivererOrders(address, filters);
 
-      // Ensure we have an array
       const orders = Array.isArray(response) ? response : (response?.orders || []);
       setDeliveries(orders);
     } catch (err) {
-      console.error(err);
       setDeliveries([]); // Set empty array on error
     } finally {
       setLoading(false);
@@ -35,7 +33,6 @@ function DeliveriesPage() {
     try {
       await loadDeliveries();
     } catch (err) {
-      console.error("Erreur lors de l'actualisation:", err);
       alert("Erreur lors de l'actualisation des données");
     } finally {
       setRefreshing(false);

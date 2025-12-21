@@ -26,19 +26,13 @@ async function registerRestaurant(req, res) {
         error: "Bad Request",
         message: "Invalid Ethereum address"
       });
-    }
-    
-    // Vérifier que le restaurant n'existe pas déjà
-    const existingRestaurant = await Restaurant.findByAddress(address.toLowerCase());
+    }    const existingRestaurant = await Restaurant.findByAddress(address.toLowerCase());
     if (existingRestaurant) {
       return res.status(409).json({
         error: "Conflict",
         message: "Restaurant already exists"
       });
-    }
-    
-    // Upload des images du restaurant sur IPFS
-    const images = [];
+    }    const images = [];
     if (req.files && req.files.images) {
       try {
         const imageFiles = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
@@ -47,26 +41,20 @@ async function registerRestaurant(req, res) {
           images.push(ipfsResult.ipfsHash);
         }
       } catch (ipfsError) {
-        console.warn("Error uploading restaurant images to IPFS:", ipfsError);
+        
       }
-    }
-    
-    // Traiter le menu avec upload d'images
-    const processedMenu = [];
+    }    const processedMenu = [];
     if (menu && Array.isArray(menu)) {
       for (let i = 0; i < menu.length; i++) {
         const menuItem = menu[i];
-        let imageHash = menuItem.image || null;
-        
-        // Upload image de l'item menu si fournie
-        const menuItemFileKey = `menuItem_${i}`;
+        let imageHash = menuItem.image || null;        const menuItemFileKey = `menuItem_${i}`;
         if (req.files && req.files[menuItemFileKey] && req.files[menuItemFileKey][0]) {
           try {
             const file = req.files[menuItemFileKey][0];
             const ipfsResult = await ipfsService.uploadImage(file.buffer, file.originalname);
             imageHash = ipfsResult.ipfsHash;
           } catch (ipfsError) {
-            console.warn(`Error uploading menu item ${i} image to IPFS:`, ipfsError);
+            
           }
         }
         
@@ -79,10 +67,7 @@ async function registerRestaurant(req, res) {
           available: menuItem.available !== undefined ? menuItem.available : true
         });
       }
-    }
-    
-    // Créer le restaurant
-    const restaurant = new Restaurant({
+    }    const restaurant = new Restaurant({
       address: address.toLowerCase(),
       name,
       cuisine,
@@ -122,7 +107,7 @@ async function registerRestaurant(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error registering restaurant:", error);
+    
     
     if (error.code === 11000) {
       return res.status(409).json({
@@ -148,16 +133,9 @@ async function registerRestaurant(req, res) {
  */
 async function getRestaurant(req, res) {
   try {
-    const restaurantId = req.params.id;
-    
-    // Chercher par ID MongoDB ou par adresse
-    let restaurant;
-    if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
-      // C'est un ObjectId MongoDB
-      restaurant = await Restaurant.findById(restaurantId);
-    } else if (ethers.isAddress(restaurantId)) {
-      // C'est une adresse Ethereum
-      restaurant = await Restaurant.findByAddress(restaurantId.toLowerCase());
+    const restaurantId = req.params.id;    let restaurant;
+    if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {      restaurant = await Restaurant.findById(restaurantId);
+    } else if (ethers.isAddress(restaurantId)) {      restaurant = await Restaurant.findByAddress(restaurantId.toLowerCase());
     } else {
       return res.status(400).json({
         error: "Bad Request",
@@ -170,10 +148,7 @@ async function getRestaurant(req, res) {
         error: "Not Found",
         message: "Restaurant not found"
       });
-    }
-    
-    // Convertir les hash IPFS en URLs complètes pour les images
-    const imageUrls = restaurant.images.map(hash => ipfsService.getImage(hash));
+    }    const imageUrls = restaurant.images.map(hash => ipfsService.getImage(hash));
     const menuWithUrls = restaurant.menu.map(item => ({
       ...item.toObject ? item.toObject() : item,
       imageUrl: item.image ? ipfsService.getImage(item.image) : null
@@ -198,7 +173,7 @@ async function getRestaurant(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error getting restaurant:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -217,23 +192,11 @@ async function getRestaurant(req, res) {
  */
 async function getAllRestaurants(req, res) {
   try {
-    const { cuisine, isActive, minRating, lat, lng, maxDistance } = req.query;
-    
-    // Construire la requête
-    const query = {};
+    const { cuisine, isActive, minRating, lat, lng, maxDistance } = req.query;    const query = {};
     if (cuisine) query.cuisine = cuisine;
-    if (isActive !== undefined) query.isActive = isActive === 'true';
-    
-    // Récupérer tous les restaurants
-    let restaurants = await Restaurant.find(query);
-    
-    // Filtrer par note minimale
-    if (minRating) {
+    if (isActive !== undefined) query.isActive = isActive === 'true';    let restaurants = await Restaurant.find(query);    if (minRating) {
       restaurants = restaurants.filter(r => r.rating >= parseFloat(minRating));
-    }
-    
-    // Filtrer par distance si coordonnées fournies
-    if (lat && lng && maxDistance) {
+    }    if (lat && lng && maxDistance) {
       const gpsTracker = require("../utils/gpsTracker");
       restaurants = restaurants.filter(restaurant => {
         const distance = gpsTracker.calculateDistance(
@@ -243,10 +206,7 @@ async function getAllRestaurants(req, res) {
           restaurant.location.lng
         );
         return distance <= parseFloat(maxDistance);
-      });
-      
-      // Trier par distance
-      restaurants.sort((a, b) => {
+      });      restaurants.sort((a, b) => {
         const distA = gpsTracker.calculateDistance(
           parseFloat(lat),
           parseFloat(lng),
@@ -261,10 +221,7 @@ async function getAllRestaurants(req, res) {
         );
         return distA - distB;
       });
-    }
-    
-    // Convertir les hash IPFS en URLs
-    const restaurantsWithUrls = restaurants.map(restaurant => ({
+    }    const restaurantsWithUrls = restaurants.map(restaurant => ({
       _id: restaurant._id,
       address: restaurant.address,
       name: restaurant.name,
@@ -282,7 +239,7 @@ async function getAllRestaurants(req, res) {
       count: restaurantsWithUrls.length
     });
   } catch (error) {
-    console.error("Error getting restaurants:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -302,10 +259,7 @@ async function getAllRestaurants(req, res) {
 async function updateRestaurant(req, res) {
   try {
     const restaurantId = req.params.id;
-    const restaurantAddress = req.userAddress;
-    
-    // Vérifier que le restaurant existe
-    let restaurant;
+    const restaurantAddress = req.userAddress;    let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
     } else if (ethers.isAddress(restaurantId)) {
@@ -322,18 +276,12 @@ async function updateRestaurant(req, res) {
         error: "Not Found",
         message: "Restaurant not found"
       });
-    }
-    
-    // Vérifier que l'utilisateur est le propriétaire
-    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+    }    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this restaurant"
       });
-    }
-    
-    // Mettre à jour les champs
-    const { name, cuisine, description, email, phone, location } = req.body;
+    }    const { name, cuisine, description, email, phone, location } = req.body;
     if (name) restaurant.name = name;
     if (cuisine) restaurant.cuisine = cuisine;
     if (description) restaurant.description = description;
@@ -345,10 +293,7 @@ async function updateRestaurant(req, res) {
         lat: location.lat,
         lng: location.lng
       };
-    }
-    
-    // Upload nouvelles images si fournies
-    if (req.files && req.files.images) {
+    }    if (req.files && req.files.images) {
       try {
         const imageFiles = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
         const newImages = [];
@@ -358,7 +303,7 @@ async function updateRestaurant(req, res) {
         }
         restaurant.images = [...restaurant.images, ...newImages];
       } catch (ipfsError) {
-        console.warn("Error uploading new images to IPFS:", ipfsError);
+        
       }
     }
     
@@ -375,7 +320,7 @@ async function updateRestaurant(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error updating restaurant:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -395,10 +340,7 @@ async function updateRestaurant(req, res) {
 async function getRestaurantOrders(req, res) {
   try {
     const restaurantId = req.params.id;
-    const restaurantAddress = req.userAddress;
-    
-    // Vérifier que le restaurant existe
-    let restaurant;
+    const restaurantAddress = req.userAddress;    let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
     } else if (ethers.isAddress(restaurantId)) {
@@ -415,10 +357,7 @@ async function getRestaurantOrders(req, res) {
         error: "Not Found",
         message: "Restaurant not found"
       });
-    }
-    
-    // Vérifier que l'utilisateur est le propriétaire
-    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+    }    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this restaurant"
@@ -428,14 +367,8 @@ async function getRestaurantOrders(req, res) {
     const { status, startDate, endDate } = req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    // Construire la query avec filtres de date
-    const query = { restaurant: restaurant._id };
-    if (status && status !== 'all') query.status = status;
-
-    // Ajouter filtre de date (utilise createdAt ou updatedAt comme fallback)
-    if (startDate || endDate) {
+    const skip = (page - 1) * limit;    const query = { restaurant: restaurant._id };
+    if (status && status !== 'all') query.status = status;    if (startDate || endDate) {
       const dateFilter = {};
       if (startDate) dateFilter.$gte = new Date(startDate);
       if (endDate) dateFilter.$lte = new Date(endDate);
@@ -480,7 +413,7 @@ async function getRestaurantOrders(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error getting restaurant orders:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -500,10 +433,7 @@ async function getRestaurantOrders(req, res) {
 async function getRestaurantAnalytics(req, res) {
   try {
     const restaurantId = req.params.id;
-    const restaurantAddress = req.userAddress;
-    
-    // Vérifier que le restaurant existe
-    let restaurant;
+    const restaurantAddress = req.userAddress;    let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
     } else if (ethers.isAddress(restaurantId)) {
@@ -520,36 +450,23 @@ async function getRestaurantAnalytics(req, res) {
         error: "Not Found",
         message: "Restaurant not found"
       });
-    }
-    
-    // Vérifier que l'utilisateur est le propriétaire
-    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+    }    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this restaurant"
       });
-    }
-    
-    // Calculer les statistiques
-    const totalOrders = await Order.countDocuments({ restaurant: restaurant._id });
+    }    const totalOrders = await Order.countDocuments({ restaurant: restaurant._id });
     const deliveredOrders = await Order.countDocuments({ 
       restaurant: restaurant._id, 
       status: 'DELIVERED' 
-    });
-    
-    // Calculer le revenu total (depuis MongoDB)
-    const orders = await Order.find({ 
+    });    const orders = await Order.find({ 
       restaurant: restaurant._id, 
       status: 'DELIVERED' 
     });
     const totalRevenue = orders.reduce((sum, order) => {
       const foodPriceMATIC = parseFloat(order.foodPrice) / 1e18;
       return sum + foodPriceMATIC;
-    }, 0);
-    
-    // Calculer la note moyenne (depuis les reviews si disponibles)
-    // Pour l'instant, on utilise la note du restaurant
-    const averageRating = restaurant.rating;
+    }, 0);    const averageRating = restaurant.rating;
     
     return res.status(200).json({
       success: true,
@@ -564,7 +481,7 @@ async function getRestaurantAnalytics(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error getting restaurant analytics:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -584,10 +501,7 @@ async function getRestaurantAnalytics(req, res) {
 async function updateMenu(req, res) {
   try {
     const restaurantId = req.params.id;
-    const restaurantAddress = req.userAddress;
-    
-    // Vérifier que le restaurant existe
-    let restaurant;
+    const restaurantAddress = req.userAddress;    let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
     } else if (ethers.isAddress(restaurantId)) {
@@ -604,10 +518,7 @@ async function updateMenu(req, res) {
         error: "Not Found",
         message: "Restaurant not found"
       });
-    }
-    
-    // Vérifier que l'utilisateur est le propriétaire
-    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+    }    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this restaurant"
@@ -621,23 +532,17 @@ async function updateMenu(req, res) {
         error: "Bad Request",
         message: "menu must be an array"
       });
-    }
-    
-    // Traiter le menu avec upload d'images
-    const processedMenu = [];
+    }    const processedMenu = [];
     for (let i = 0; i < menu.length; i++) {
       const menuItem = menu[i];
-      let imageHash = menuItem.image || null;
-      
-      // Upload image de l'item menu si fournie
-      const menuItemFileKey = `menuItem_${i}`;
+      let imageHash = menuItem.image || null;      const menuItemFileKey = `menuItem_${i}`;
       if (req.files && req.files[menuItemFileKey] && req.files[menuItemFileKey][0]) {
         try {
           const file = req.files[menuItemFileKey][0];
           const ipfsResult = await ipfsService.uploadImage(file.buffer, file.originalname);
           imageHash = ipfsResult.ipfsHash;
         } catch (ipfsError) {
-          console.warn(`Error uploading menu item ${i} image to IPFS:`, ipfsError);
+          
         }
       }
       
@@ -649,10 +554,7 @@ async function updateMenu(req, res) {
         category: menuItem.category || "",
         available: menuItem.available !== undefined ? menuItem.available : true
       });
-    }
-    
-    // Mettre à jour le menu
-    await Restaurant.updateMenu(restaurant._id, processedMenu);
+    }    await Restaurant.updateMenu(restaurant._id, processedMenu);
     
     return res.status(200).json({
       success: true,
@@ -660,7 +562,7 @@ async function updateMenu(req, res) {
       menu: processedMenu
     });
   } catch (error) {
-    console.error("Error updating menu:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -680,10 +582,7 @@ async function updateMenu(req, res) {
 async function addMenuItem(req, res) {
   try {
     const restaurantId = req.params.id;
-    const restaurantAddress = req.userAddress;
-    
-    // Vérifier que le restaurant existe
-    let restaurant;
+    const restaurantAddress = req.userAddress;    let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
     } else if (ethers.isAddress(restaurantId)) {
@@ -700,10 +599,7 @@ async function addMenuItem(req, res) {
         error: "Not Found",
         message: "Restaurant not found"
       });
-    }
-    
-    // Vérifier que l'utilisateur est le propriétaire
-    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+    }    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this restaurant"
@@ -712,55 +608,39 @@ async function addMenuItem(req, res) {
     
     const { name, description, price, category, available, image } = req.body;
 
-    console.log('📝 [addMenuItem] Received data:', { name, description, price, category, available, image });
+    
 
     if (!name || !price) {
       return res.status(400).json({
         error: "Bad Request",
         message: "name and price are required"
       });
-    }
-
-    // Upload image si fournie via file, sinon utiliser le hash IPFS du body
-    let imageHash = image || null;
+    }    let imageHash = image || null;
     if (req.file) {
       try {
         const ipfsResult = await ipfsService.uploadImage(req.file.buffer, req.file.originalname);
         imageHash = ipfsResult.ipfsHash;
-        console.log('📷 [addMenuItem] Image uploaded to IPFS:', imageHash);
+        
       } catch (ipfsError) {
-        console.warn("Error uploading menu item image to IPFS:", ipfsError);
+        
       }
-    }
-
-    // Créer le nouvel item
-    const newItem = {
+    }    const newItem = {
       name,
       description: description || "",
       price: parseFloat(price),
       image: imageHash,
       category: category || "",
       available: available !== undefined ? available : true
-    };
+    };    restaurant.menu.push(newItem);
 
-    console.log('✅ [addMenuItem] Adding item to menu:', newItem);
-
-    // Ajouter l'item au menu
-    restaurant.menu.push(newItem);
-
-    await restaurant.save();
-
-    console.log('💾 [addMenuItem] Restaurant saved. Total menu items:', restaurant.menu.length);
-
-    // Récupérer l'item avec son _id
-    const savedItem = restaurant.menu[restaurant.menu.length - 1];
+    await restaurant.save();    const savedItem = restaurant.menu[restaurant.menu.length - 1];
 
     return res.status(201).json({
       success: true,
       menuItem: savedItem
     });
   } catch (error) {
-    console.error("Error adding menu item:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -781,10 +661,7 @@ async function updateMenuItem(req, res) {
   try {
     const restaurantId = req.params.id;
     const itemId = req.params.itemId;
-    const restaurantAddress = req.userAddress;
-    
-    // Vérifier que le restaurant existe
-    let restaurant;
+    const restaurantAddress = req.userAddress;    let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
     } else if (ethers.isAddress(restaurantId)) {
@@ -801,26 +678,15 @@ async function updateMenuItem(req, res) {
         error: "Not Found",
         message: "Restaurant not found"
       });
-    }
-    
-    // Vérifier que l'utilisateur est le propriétaire
-    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+    }    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this restaurant"
       });
-    }
-    
-    // Trouver l'item dans le menu par _id ou par index
-    let menuItem;
-    let itemIndex;
+    }    let menuItem;
+    let itemIndex;    itemIndex = restaurant.menu.findIndex(item => item._id.toString() === itemId);
 
-    // Essayer de trouver par MongoDB _id
-    itemIndex = restaurant.menu.findIndex(item => item._id.toString() === itemId);
-
-    if (itemIndex === -1) {
-      // Essayer par index numérique
-      const numIndex = parseInt(itemId);
+    if (itemIndex === -1) {      const numIndex = parseInt(itemId);
       if (!isNaN(numIndex) && numIndex >= 0 && numIndex < restaurant.menu.length) {
         itemIndex = numIndex;
       }
@@ -833,24 +699,18 @@ async function updateMenuItem(req, res) {
       });
     }
 
-    menuItem = restaurant.menu[itemIndex];
-    
-    // Mettre à jour les champs
-    const { name, description, price, category, available, image } = req.body;
+    menuItem = restaurant.menu[itemIndex];    const { name, description, price, category, available, image } = req.body;
     if (name) menuItem.name = name;
     if (description !== undefined) menuItem.description = description;
     if (price) menuItem.price = parseFloat(price);
     if (category !== undefined) menuItem.category = category;
     if (available !== undefined) menuItem.available = available;
-    if (image !== undefined) menuItem.image = image;
-    
-    // Upload nouvelle image si fournie
-    if (req.file) {
+    if (image !== undefined) menuItem.image = image;    if (req.file) {
       try {
         const ipfsResult = await ipfsService.uploadImage(req.file.buffer, req.file.originalname);
         menuItem.image = ipfsResult.ipfsHash;
       } catch (ipfsError) {
-        console.warn("Error uploading menu item image to IPFS:", ipfsError);
+        
       }
     }
     
@@ -868,7 +728,7 @@ async function updateMenuItem(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error updating menu item:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -889,10 +749,7 @@ async function deleteMenuItem(req, res) {
   try {
     const restaurantId = req.params.id;
     const itemId = req.params.itemId;
-    const restaurantAddress = req.userAddress;
-    
-    // Vérifier que le restaurant existe
-    let restaurant;
+    const restaurantAddress = req.userAddress;    let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
     } else if (ethers.isAddress(restaurantId)) {
@@ -909,22 +766,14 @@ async function deleteMenuItem(req, res) {
         error: "Not Found",
         message: "Restaurant not found"
       });
-    }
-    
-    // Vérifier que l'utilisateur est le propriétaire
-    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+    }    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this restaurant"
       });
-    }
-    
-    // Trouver l'item par _id ou par index
-    let itemIndex = restaurant.menu.findIndex(item => item._id.toString() === itemId);
+    }    let itemIndex = restaurant.menu.findIndex(item => item._id.toString() === itemId);
 
-    if (itemIndex === -1) {
-      // Essayer par index numérique
-      const numIndex = parseInt(itemId);
+    if (itemIndex === -1) {      const numIndex = parseInt(itemId);
       if (!isNaN(numIndex) && numIndex >= 0 && numIndex < restaurant.menu.length) {
         itemIndex = numIndex;
       }
@@ -945,7 +794,7 @@ async function deleteMenuItem(req, res) {
       message: "Menu item deleted successfully"
     });
   } catch (error) {
-    console.error("Error deleting menu item:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -983,10 +832,7 @@ function formatDateLabel(dateString) {
 async function getRestaurantEarnings(req, res) {
   try {
     const restaurantId = req.params.id;
-    const restaurantAddress = req.userAddress;
-    
-    // Vérifier que le restaurant existe
-    let restaurant;
+    const restaurantAddress = req.userAddress;    let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
     } else if (ethers.isAddress(restaurantId)) {
@@ -1003,21 +849,12 @@ async function getRestaurantEarnings(req, res) {
         error: "Not Found",
         message: "Restaurant not found"
       });
-    }
-    
-    // Vérifier que l'utilisateur est le propriétaire
-    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+    }    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this restaurant"
       });
-    }
-    
-    // Récupérer le paramètre period (day, week, month)
-    const { period = 'week' } = req.query;
-    
-    // Calculer les dates selon la période
-    const now = new Date();
+    }    const { period = 'week' } = req.query;    const now = new Date();
     let startDate = new Date();
     
     if (period === 'day') {
@@ -1028,80 +865,40 @@ async function getRestaurantEarnings(req, res) {
     } else if (period === 'month') {
       startDate.setMonth(now.getMonth() - 1);
       startDate.setHours(0, 0, 0, 0);
-    }
-    
-    // Récupérer les commandes livrées pour cette période
-    // Utilise completedAt si disponible, sinon updatedAt comme fallback
-    const deliveredOrders = await Order.find({
+    }    const deliveredOrders = await Order.find({
       restaurant: restaurant._id,
       status: 'DELIVERED',
       $or: [
         { completedAt: { $gte: startDate, $lte: now } },
         { completedAt: null, updatedAt: { $gte: startDate, $lte: now } }
       ]
-    }).sort({ completedAt: 1, updatedAt: 1 });
-
-    // Calculer les revenus quotidiens
-    const dailyEarnings = {};
+    }).sort({ completedAt: 1, updatedAt: 1 });    const dailyEarnings = {};
     const weeklyEarnings = {};
 
-    deliveredOrders.forEach(order => {
-      // Utiliser completedAt ou updatedAt comme fallback
-      const orderDate = new Date(order.completedAt || order.updatedAt);
-      const dayKey = orderDate.toISOString().split('T')[0]; // YYYY-MM-DD
-      
-      // Calculer le revenu du restaurant (80% du totalAmount)
-      // totalAmount est stocké en wei dans MongoDB (comme Number ou String)
-      const totalAmountRaw = order.totalAmount || 0;
-      
-      // Convertir de wei en MATIC
-      // Utiliser BigNumber pour éviter les problèmes de précision avec les grands nombres
-      let totalAmountMATIC = 0;
-      try {
-        // Si c'est déjà une string, l'utiliser directement
-        // Sinon, convertir en string pour BigNumber
-        const amountStr = typeof totalAmountRaw === 'string' 
+    deliveredOrders.forEach(order => {      const orderDate = new Date(order.completedAt || order.updatedAt);
+      const dayKey = orderDate.toISOString().split('T')[0]; // YYYY-MM-DD      const totalAmountRaw = order.totalAmount || 0;      let totalAmountMATIC = 0;
+      try {        const amountStr = typeof totalAmountRaw === 'string' 
           ? totalAmountRaw 
-          : totalAmountRaw.toString();
-        
-        // Vérifier si c'est déjà en MATIC (si < 1e15, probablement déjà converti)
-        // Sinon, convertir de wei en MATIC
-        const amountNum = parseFloat(amountStr);
-        if (amountNum > 0 && amountNum < 1e15) {
-          // Probablement déjà en MATIC (montant raisonnable)
-          totalAmountMATIC = amountNum;
-        } else {
-          // En wei, convertir en MATIC
-          const totalAmountBN = ethers.BigNumber.from(amountStr);
+          : totalAmountRaw.toString();        const amountNum = parseFloat(amountStr);
+        if (amountNum > 0 && amountNum < 1e15) {          totalAmountMATIC = amountNum;
+        } else {          const totalAmountBN = ethers.BigNumber.from(amountStr);
           totalAmountMATIC = parseFloat(ethers.formatEther(totalAmountBN));
         }
-      } catch (e) {
-        console.warn(`Error converting totalAmount for order ${order.orderId}:`, e);
-        // Fallback: diviser par 1e18 manuellement
-        const amountNum = parseFloat(totalAmountRaw);
+      } catch (e) {        const amountNum = parseFloat(totalAmountRaw);
         totalAmountMATIC = amountNum >= 1e15 ? amountNum / 1e18 : amountNum;
       }
       
-      const restaurantRevenue = totalAmountMATIC * 0.8; // 80% pour le restaurant
-      
-      // Revenus quotidiens
-      if (!dailyEarnings[dayKey]) {
+      const restaurantRevenue = totalAmountMATIC * 0.8; // 80% pour le restaurant      if (!dailyEarnings[dayKey]) {
         dailyEarnings[dayKey] = { date: dayKey, amount: 0 };
       }
-      dailyEarnings[dayKey].amount += restaurantRevenue;
-      
-      // Revenus hebdomadaires (par semaine ISO)
-      const weekStart = getWeekStart(orderDate);
+      dailyEarnings[dayKey].amount += restaurantRevenue;      const weekStart = getWeekStart(orderDate);
       const weekKey = weekStart.toISOString().split('T')[0];
       
       if (!weeklyEarnings[weekKey]) {
         weeklyEarnings[weekKey] = { date: weekKey, amount: 0 };
       }
       weeklyEarnings[weekKey].amount += restaurantRevenue;
-    });
-    
-    // Convertir en tableaux triés
-    const daily = Object.values(dailyEarnings)
+    });    const daily = Object.values(dailyEarnings)
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .map(item => ({
         date: item.date,
@@ -1115,10 +912,7 @@ async function getRestaurantEarnings(req, res) {
         date: item.date,
         label: formatDateLabel(item.date),
         amount: parseFloat(item.amount.toFixed(5))
-      }));
-    
-    // Calculer le total retiré (depuis les transactions blockchain si disponible)
-    const totalWithdrawn = deliveredOrders.reduce((sum, order) => {
+      }));    const totalWithdrawn = deliveredOrders.reduce((sum, order) => {
       const totalAmountRaw = order.totalAmount || 0;
       
       let totalAmountMATIC;
@@ -1130,13 +924,7 @@ async function getRestaurantEarnings(req, res) {
       }
       
       return sum + (totalAmountMATIC * 0.8);
-    }, 0);
-    
-    // Formater avec 5 décimales
-    const totalWithdrawnFormatted = parseFloat(totalWithdrawn.toFixed(5));
-    
-    // Préparer l'historique des transactions
-    const transactions = deliveredOrders.map(order => {
+    }, 0);    const totalWithdrawnFormatted = parseFloat(totalWithdrawn.toFixed(5));    const transactions = deliveredOrders.map(order => {
       const totalAmountRaw = order.totalAmount || 0;
       
       let totalAmountMATIC;
@@ -1153,15 +941,12 @@ async function getRestaurantEarnings(req, res) {
         amount: parseFloat((totalAmountMATIC * 0.8).toFixed(4)),
         txHash: order.txHash || null
       };
-    }).sort((a, b) => new Date(b.date) - new Date(a.date));
-    
-    // Récupérer le solde en attente depuis PaymentSplitter
-    let pendingBalanceMATIC = 0;
+    }).sort((a, b) => new Date(b.date) - new Date(a.date));    let pendingBalanceMATIC = 0;
     try {
       const pendingBalance = await blockchainService.getPendingBalance(restaurant.address);
       pendingBalanceMATIC = parseFloat(ethers.formatEther(pendingBalance));
     } catch (blockchainError) {
-      console.warn("Error getting earnings from blockchain:", blockchainError);
+      
     }
     
     return res.status(200).json({
@@ -1176,7 +961,7 @@ async function getRestaurantEarnings(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error getting restaurant earnings:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -1196,10 +981,7 @@ async function getRestaurantEarnings(req, res) {
 async function withdrawEarnings(req, res) {
   try {
     const restaurantId = req.params.id;
-    const restaurantAddress = req.userAddress;
-    
-    // Vérifier que le restaurant existe
-    let restaurant;
+    const restaurantAddress = req.userAddress;    let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
     } else if (ethers.isAddress(restaurantId)) {
@@ -1216,18 +998,12 @@ async function withdrawEarnings(req, res) {
         error: "Not Found",
         message: "Restaurant not found"
       });
-    }
-    
-    // Vérifier que l'utilisateur est le propriétaire
-    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
+    }    if (restaurant.address.toLowerCase() !== restaurantAddress.toLowerCase()) {
       return res.status(403).json({
         error: "Forbidden",
         message: "You are not the owner of this restaurant"
       });
-    }
-    
-    // Retirer les fonds depuis PaymentSplitter
-    try {
+    }    try {
       const result = await blockchainService.withdraw(
         restaurant.address,
         req.body.restaurantPrivateKey || process.env.PRIVATE_KEY
@@ -1240,7 +1016,7 @@ async function withdrawEarnings(req, res) {
         amountMATIC: parseFloat(ethers.formatEther(result.amount))
       });
     } catch (blockchainError) {
-      console.error("Error withdrawing earnings from blockchain:", blockchainError);
+      
       return res.status(500).json({
         error: "Internal Server Error",
         message: "Failed to withdraw earnings from blockchain",
@@ -1248,7 +1024,7 @@ async function withdrawEarnings(req, res) {
       });
     }
   } catch (error) {
-    console.error("Error withdrawing earnings:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -1264,18 +1040,12 @@ async function withdrawEarnings(req, res) {
  */
 async function getRestaurantByAddress(req, res) {
   try {
-    const { address } = req.params;
-
-    // Validate Ethereum address
-    if (!address || !ethers.isAddress(address)) {
+    const { address } = req.params;    if (!address || !ethers.isAddress(address)) {
       return res.status(400).json({
         error: "Bad Request",
         message: "Invalid Ethereum address"
       });
-    }
-
-    // Find restaurant by address
-    const restaurant = await Restaurant.findByAddress(address.toLowerCase());
+    }    const restaurant = await Restaurant.findByAddress(address.toLowerCase());
 
     if (!restaurant) {
       return res.status(404).json({
@@ -1286,7 +1056,7 @@ async function getRestaurantByAddress(req, res) {
 
     return res.status(200).json(restaurant);
   } catch (error) {
-    console.error("Error getting restaurant by address:", error);
+    
 
     return res.status(500).json({
       error: "Internal Server Error",

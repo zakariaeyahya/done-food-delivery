@@ -22,7 +22,6 @@ function ProfilePage() {
         phone: data.deliverer.phone || "",
       });
     } catch (err) {
-      console.error(err);
     }
   }
 
@@ -43,7 +42,6 @@ function ProfilePage() {
     try {
       await loadProfile();
     } catch (err) {
-      console.error("Erreur lors de l'actualisation:", err);
       alert("Erreur lors de l'actualisation des données");
     } finally {
       setRefreshing(false);

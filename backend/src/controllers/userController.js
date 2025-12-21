@@ -54,7 +54,7 @@ async function registerUser(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error registering user:", error);
+    
     
     if (error.code === 11000) {
       return res.status(409).json({
@@ -90,16 +90,10 @@ async function getUserProfile(req, res) {
         error: "Not Found",
         message: "User not found"
       });
-    }
-    
-    // Récupérer la balance de tokens depuis la blockchain
-    let tokenBalance = "0";
+    }    let tokenBalance = "0";
     try {
       tokenBalance = await blockchainService.getTokenBalance(normalizedAddress);
-    } catch (blockchainError) {
-      console.warn("Error getting token balance from blockchain:", blockchainError.message);
-      // En cas d'erreur, continuer avec balance 0
-    }
+    } catch (blockchainError) {    }
     
     return res.status(200).json({
       success: true,
@@ -113,7 +107,7 @@ async function getUserProfile(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error getting user profile:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -164,7 +158,7 @@ async function updateUserProfile(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error updating user profile:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -222,7 +216,7 @@ async function getUserOrders(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error getting user orders:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -251,24 +245,12 @@ async function getUserTokens(req, res) {
         error: "Not Found",
         message: "User not found"
       });
-    }
-    
-    // Récupérer la balance de tokens depuis la blockchain
-    let balance = "0";
+    }    let balance = "0";
     let transactions = [];
     
     try {
-      balance = await blockchainService.getTokenBalance(normalizedAddress);
-      
-      // TODO: Récupérer l'historique des transactions depuis les events blockchain
-      // Pour l'instant, on retourne un tableau vide
-      // Les transactions peuvent être récupérées depuis les events Transfer du contrat Token
-      transactions = [];
-    } catch (blockchainError) {
-      console.warn("Error getting token balance from blockchain:", blockchainError.message);
-      // En cas d'erreur blockchain, retourner balance 0 mais continuer
-      // Cela permet à l'API de fonctionner même si la blockchain n'est pas configurée
-    }
+      balance = await blockchainService.getTokenBalance(normalizedAddress);      transactions = [];
+    } catch (blockchainError) {    }
     
     return res.status(200).json({
       success: true,
@@ -277,7 +259,7 @@ async function getUserTokens(req, res) {
       address: normalizedAddress
     });
   } catch (error) {
-    console.error("Error getting user tokens:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",

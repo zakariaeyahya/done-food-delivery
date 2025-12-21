@@ -48,7 +48,6 @@ export function ConnectWalletModal({
         await handleConnect(accounts[0]);
       }
     } catch (err) {
-      console.error("Erreur détection wallet :", err);
     }
   }
 
@@ -87,7 +86,6 @@ export function ConnectWalletModal({
         const profile = await api.getDeliverer(account);
         setDeliverer(profile.deliverer);
       } catch (err) {
-        console.log("Livreur non enregistré dans la base backend.");
       }
 
       if (!account) {

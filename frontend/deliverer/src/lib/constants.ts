@@ -1,6 +1,3 @@
-/**
- * Constantes de l'application
- */
 
 export const APP_NAME = "DONE Livreur";
 

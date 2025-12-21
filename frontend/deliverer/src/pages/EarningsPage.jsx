@@ -19,7 +19,6 @@ function EarningsPage() {
       const { events } = await blockchain.getEarningsEvents(address);
       setTransactions(events);
     } catch (err) {
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -30,7 +29,6 @@ function EarningsPage() {
     try {
       await loadTransactions();
     } catch (err) {
-      console.error("Erreur lors de l'actualisation:", err);
       alert("Erreur lors de l'actualisation des données");
     } finally {
       setRefreshing(false);
@@ -142,7 +140,7 @@ function EarningsPage() {
                       {tx.txHash.slice(0, 12)}...
                     </a>
                   </td>
-                  <td>✅</td>
+                  <td></td>
                 </tr>
               ))}
             </tbody>

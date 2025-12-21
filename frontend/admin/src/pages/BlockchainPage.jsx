@@ -18,7 +18,6 @@ function BlockchainPage() {
       setError(null);
     } catch (err) {
       setError('Erreur de connexion au reseau');
-      console.error(err);
     } finally {
       setLoading(false);
     }

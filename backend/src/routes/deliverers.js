@@ -44,12 +44,12 @@ router.post(
   },
   auth.verifySignature,                    // Vérifier signature
   (req, res, next) => {
-    console.log(`[Backend] ✅ verifySignature passé, req.userAddress: ${req.userAddress}`);
+    console.log(`[Backend]  verifySignature passé, req.userAddress: ${req.userAddress}`);
     next();
   },
   auth.requireRole("DELIVERER_ROLE"),      // Vérifier rôle livreur
   (req, res, next) => {
-    console.log(`[Backend] ✅ requireRole passé, req.userRole: ${req.userRole}`);
+    console.log(`[Backend]  requireRole passé, req.userRole: ${req.userRole}`);
     next();
   },
   delivererController.acceptOrder

@@ -4,8 +4,6 @@ const EventEmitter = require("events");
 
 /**
  * Service d'abstraction des interactions avec les smart contracts
- * @notice Fournit une couche d'abstraction pour toutes les opérations blockchain
- * @dev Utilise les instances de contrats configurées dans blockchain.js
  */
 const blockchainEvents = new EventEmitter();
 
@@ -22,27 +20,20 @@ const blockchainEvents = new EventEmitter();
  */
 async function createOrder(params) {
   try {
-    // En mode test, toujours utiliser des données mock pour éviter les problèmes de fonds/blockchain
     if (process.env.NODE_ENV === 'test' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.NODE_ENV === 'development') {
-      // Générer un orderId unique en trouvant le prochain disponible
       let mockOrderId;
       try {
         const Order = require("../models/Order");
-        // Trouver le dernier orderId utilisé
         const lastOrder = await Order.findOne().sort({ orderId: -1 }).limit(1);
         const lastOrderId = lastOrder ? lastOrder.orderId : 0;
-        // Utiliser le suivant (au moins 100000 pour éviter les conflits avec le seed)
         mockOrderId = Math.max(lastOrderId + 1, 100000);
       } catch (error) {
-        // Si erreur (DB non disponible), utiliser un timestamp-based ID
-        console.warn("Could not query database for last orderId, using timestamp-based ID:", error.message);
         const timestamp = Date.now();
         const random = Math.floor(Math.random() * 10000);
         mockOrderId = parseInt(`${timestamp}${random}`.slice(-10)) || Math.floor(Math.random() * 1000000) + 100000;
       }
-      
+
       const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-      console.log('⚠️  Using mock blockchain (test/dev mode):', { orderId: mockOrderId, txHash: mockTxHash });
 
       blockchainEvents.emit("OrderCreated", {
         orderId: mockOrderId,
@@ -60,24 +51,18 @@ async function createOrder(params) {
 
     const orderManager = getContractInstance("orderManager");
     const provider = getProvider();
-    
-    // Convertir les montants en BigNumber si nécessaire
+
     const foodPrice = ethers.parseEther(params.foodPrice.toString());
     const deliveryFee = ethers.parseEther(params.deliveryFee.toString());
-    
-    // Calculer platformFee = (foodPrice * 10) / 100
+
     const platformFee = (foodPrice * BigInt(10)) / BigInt(100);
-    
-    // Calculer totalAmount = foodPrice + deliveryFee + platformFee
+
     const totalAmount = foodPrice + deliveryFee + platformFee;
-    
-    // Créer un wallet signer depuis la clé privée du client
+
     const clientWallet = new ethers.Wallet(params.clientPrivateKey, provider);
-    
-    // Connecter le contrat au wallet du client
+
     const orderManagerWithSigner = orderManager.connect(clientWallet);
-    
-    // Appeler createOrder avec msg.value = totalAmount
+
     const tx = await orderManagerWithSigner.createOrder(
       params.restaurantAddress,
       foodPrice,
@@ -85,11 +70,9 @@ async function createOrder(params) {
       params.ipfsHash,
       { value: totalAmount }
     );
-    
-    // Attendre la confirmation de la transaction
+
     const receipt = await tx.wait();
-    
-    // Parser les events pour récupérer orderId depuis OrderCreated
+
     const orderCreatedEvent = receipt.logs.find(log => {
       try {
         const parsed = orderManager.interface.parseLog(log);
@@ -98,13 +81,12 @@ async function createOrder(params) {
         return false;
       }
     });
-    
+
     let orderId;
     if (orderCreatedEvent) {
       const parsed = orderManager.interface.parseLog(orderCreatedEvent);
       orderId = Number(parsed.args.orderId);
     } else {
-      // Fallback: chercher dans tous les logs
       for (const log of receipt.logs) {
         try {
           const parsed = orderManager.interface.parseLog(log);
@@ -115,27 +97,24 @@ async function createOrder(params) {
         } catch {}
       }
     }
-    
+
     if (!orderId) {
       throw new Error("OrderCreated event not found in transaction receipt");
     }
-    
-    // Émettre l'event via EventEmitter pour WebSocket
+
     blockchainEvents.emit("OrderCreated", {
       orderId,
       client: params.clientAddress,
       restaurant: params.restaurantAddress,
       totalAmount: totalAmount.toString()
     });
-    
-    // Retourner les résultats
+
     return {
       orderId,
       txHash: tx.hash,
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
-    console.error("Error creating order on blockchain:", error);
     throw error;
   }
 }
@@ -149,61 +128,47 @@ async function createOrder(params) {
  */
 async function confirmPreparation(orderId, restaurantAddress, restaurantPrivateKey) {
   try {
-    // En mode test/dev, utiliser des données mock
-    // Vérifier aussi si les contrats ne sont pas configurés
-    const isMockMode = process.env.NODE_ENV === 'test' || 
-                       process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || 
+    const isMockMode = process.env.NODE_ENV === 'test' ||
+                       process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' ||
                        process.env.NODE_ENV === 'development' ||
                        !process.env.CONTRACT_ORDER_MANAGER_ADDRESS;
-    
+
     if (isMockMode) {
       const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
       const mockBlockNumber = Math.floor(Math.random() * 1000000) + 1000000;
-      console.log('⚠️  Using mock blockchain for confirmPreparation (test/dev mode):', { orderId, txHash: mockTxHash, blockNumber: mockBlockNumber });
-      
-      // Émettre l'event via EventEmitter
+
       blockchainEvents.emit("PreparationConfirmed", { orderId, restaurant: restaurantAddress });
-      
+
       return {
         txHash: mockTxHash,
         blockNumber: mockBlockNumber
       };
     }
-    
-    // Mode production : utiliser la vraie blockchain
+
     if (!restaurantPrivateKey) {
       throw new Error("restaurantPrivateKey is required in production mode");
     }
-    
+
     const orderManager = getContractInstance("orderManager");
     const provider = getProvider();
-    
-    // Créer un wallet signer depuis la clé privée du restaurant
+
     const restaurantWallet = new ethers.Wallet(restaurantPrivateKey, provider);
-    
-    // Connecter le contrat au wallet du restaurant
+
     const orderManagerWithSigner = orderManager.connect(restaurantWallet);
-    
-    // Appeler confirmPreparation
+
     const tx = await orderManagerWithSigner.confirmPreparation(orderId);
-    
-    // Attendre la confirmation
+
     const receipt = await tx.wait();
-    
-    // Émettre l'event via EventEmitter
+
     blockchainEvents.emit("PreparationConfirmed", { orderId, restaurant: restaurantAddress });
-    
-    // Retourner les résultats
+
     return {
       txHash: tx.hash,
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
-    console.error("Error confirming preparation:", error);
-    // En mode développement, si l'erreur vient de la blockchain, utiliser le mode mock
-    if ((process.env.NODE_ENV === 'development' || !process.env.CONTRACT_ORDER_MANAGER_ADDRESS) && 
+    if ((process.env.NODE_ENV === 'development' || !process.env.CONTRACT_ORDER_MANAGER_ADDRESS) &&
         (error.message?.includes('contract') || error.message?.includes('provider') || error.message?.includes('network'))) {
-      console.warn('⚠️  Blockchain error in dev mode, falling back to mock:', error.message);
       const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
       const mockBlockNumber = Math.floor(Math.random() * 1000000) + 1000000;
       blockchainEvents.emit("PreparationConfirmed", { orderId, restaurant: restaurantAddress });
@@ -227,29 +192,22 @@ async function assignDeliverer(orderId, delivererAddress, platformPrivateKey) {
   try {
     const orderManager = getContractInstance("orderManager");
     const provider = getProvider();
-    
-    // Créer un wallet signer depuis la clé privée de la plateforme
+
     const platformWallet = new ethers.Wallet(platformPrivateKey, provider);
-    
-    // Connecter le contrat au wallet de la plateforme
+
     const orderManagerWithSigner = orderManager.connect(platformWallet);
-    
-    // Appeler assignDeliverer
+
     const tx = await orderManagerWithSigner.assignDeliverer(orderId, delivererAddress);
-    
-    // Attendre la confirmation
+
     const receipt = await tx.wait();
-    
-    // Émettre l'event via EventEmitter
+
     blockchainEvents.emit("DelivererAssigned", { orderId, deliverer: delivererAddress });
-    
-    // Retourner les résultats
+
     return {
       txHash: tx.hash,
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
-    console.error("Error assigning deliverer:", error);
     throw error;
   }
 }
@@ -265,29 +223,22 @@ async function confirmPickup(orderId, delivererAddress, delivererPrivateKey) {
   try {
     const orderManager = getContractInstance("orderManager");
     const provider = getProvider();
-    
-    // Créer un wallet signer depuis la clé privée du livreur
+
     const delivererWallet = new ethers.Wallet(delivererPrivateKey, provider);
-    
-    // Connecter le contrat au wallet du livreur
+
     const orderManagerWithSigner = orderManager.connect(delivererWallet);
-    
-    // Appeler confirmPickup
+
     const tx = await orderManagerWithSigner.confirmPickup(orderId);
-    
-    // Attendre la confirmation
+
     const receipt = await tx.wait();
-    
-    // Émettre l'event via EventEmitter
+
     blockchainEvents.emit("PickupConfirmed", { orderId, deliverer: delivererAddress });
-    
-    // Retourner les résultats
+
     return {
       txHash: tx.hash,
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
-    console.error("Error confirming pickup:", error);
     throw error;
   }
 }
@@ -304,41 +255,32 @@ async function confirmDelivery(orderId, clientAddress, clientPrivateKey) {
     const orderManager = getContractInstance("orderManager");
     const token = getContractInstance("token");
     const provider = getProvider();
-    
-    // Créer un wallet signer depuis la clé privée du client
+
     const clientWallet = new ethers.Wallet(clientPrivateKey, provider);
-    
-    // Connecter le contrat au wallet du client
+
     const orderManagerWithSigner = orderManager.connect(clientWallet);
-    
-    // Récupérer la balance de tokens avant (pour calculer les tokens gagnés)
+
     const balanceBefore = await token.balanceOf(clientAddress);
-    
-    // Appeler confirmDelivery (déclenche automatiquement split et mint dans le contrat)
+
     const tx = await orderManagerWithSigner.confirmDelivery(orderId);
-    
-    // Attendre la confirmation
+
     const receipt = await tx.wait();
-    
-    // Récupérer la balance de tokens après
+
     const balanceAfter = await token.balanceOf(clientAddress);
     const tokensEarned = balanceAfter - balanceBefore;
-    
-    // Émettre l'event via EventEmitter
-    blockchainEvents.emit("DeliveryConfirmed", { 
-      orderId, 
+
+    blockchainEvents.emit("DeliveryConfirmed", {
+      orderId,
       client: clientAddress,
       tokensEarned: tokensEarned.toString()
     });
-    
-    // Retourner les résultats
+
     return {
       txHash: tx.hash,
       blockNumber: receipt.blockNumber,
       tokensEarned: tokensEarned.toString()
     };
   } catch (error) {
-    console.error("Error confirming delivery:", error);
     throw error;
   }
 }
@@ -353,10 +295,8 @@ async function confirmDelivery(orderId, clientAddress, clientPrivateKey) {
  */
 async function openDispute(orderId, openerAddress, reason, openerPrivateKey) {
   try {
-    // En mode test, retourner des données mock
     if (process.env.NODE_ENV === 'test' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
       const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-      console.log('⚠️  Using mock blockchain for openDispute (test mode):', { orderId, txHash: mockTxHash });
       blockchainEvents.emit("DisputeOpened", { orderId, opener: openerAddress });
       return {
         txHash: mockTxHash,
@@ -366,30 +306,22 @@ async function openDispute(orderId, openerAddress, reason, openerPrivateKey) {
 
     const orderManager = getContractInstance("orderManager");
     const provider = getProvider();
-    
-    // Créer un wallet signer
+
     const openerWallet = new ethers.Wallet(openerPrivateKey, provider);
-    
-    // Connecter le contrat au wallet
+
     const orderManagerWithSigner = orderManager.connect(openerWallet);
-    
-    // Appeler openDispute (le contrat n'accepte qu'un seul paramètre: orderId)
-    // La raison est stockée off-chain dans MongoDB
+
     const tx = await orderManagerWithSigner.openDispute(orderId);
-    
-    // Attendre la confirmation
+
     const receipt = await tx.wait();
-    
-    // Émettre l'event via EventEmitter
+
     blockchainEvents.emit("DisputeOpened", { orderId, opener: openerAddress });
-    
-    // Retourner les résultats
+
     return {
       txHash: tx.hash,
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
-    console.error("Error opening dispute:", error);
     throw error;
   }
 }
@@ -407,33 +339,26 @@ async function resolveDispute(orderId, winner, refundPercent, arbitratorAddress,
   try {
     const orderManager = getContractInstance("orderManager");
     const provider = getProvider();
-    
-    // Créer un wallet signer depuis la clé privée de l'arbitre
+
     const arbitratorWallet = new ethers.Wallet(arbitratorPrivateKey, provider);
-    
-    // Connecter le contrat au wallet de l'arbitre
+
     const orderManagerWithSigner = orderManager.connect(arbitratorWallet);
-    
-    // Appeler resolveDispute
+
     const tx = await orderManagerWithSigner.resolveDispute(
-      orderId, 
-      winner, 
+      orderId,
+      winner,
       refundPercent
     );
-    
-    // Attendre la confirmation
+
     const receipt = await tx.wait();
-    
-    // Émettre l'event via EventEmitter
+
     blockchainEvents.emit("DisputeResolved", { orderId, winner, refundPercent });
-    
-    // Retourner les résultats
+
     return {
       txHash: tx.hash,
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
-    console.error("Error resolving dispute:", error);
     throw error;
   }
 }
@@ -446,11 +371,9 @@ async function resolveDispute(orderId, winner, refundPercent, arbitratorAddress,
 async function getOrder(orderId) {
   try {
     const orderManager = getContractInstance("orderManager");
-    
-    // Appeler la fonction view getOrder(orderId)
+
     const order = await orderManager.getOrder(orderId);
-    
-    // Convertir la structure en objet JavaScript lisible
+
     return {
       id: Number(order.id),
       client: order.client,
@@ -460,14 +383,13 @@ async function getOrder(orderId) {
       deliveryFee: order.deliveryFee.toString(),
       platformFee: order.platformFee.toString(),
       totalAmount: order.totalAmount.toString(),
-      status: Number(order.status), // 0=CREATED, 1=PREPARING, 2=ASSIGNED, 3=IN_DELIVERY, 4=DELIVERED, 5=DISPUTED
+      status: Number(order.status),
       ipfsHash: order.ipfsHash,
-      createdAt: new Date(Number(order.createdAt) * 1000), // Convertir timestamp
+      createdAt: new Date(Number(order.createdAt) * 1000),
       disputed: order.disputed,
       delivered: order.delivered
     };
   } catch (error) {
-    console.error("Error getting order from blockchain:", error);
     throw error;
   }
 }
@@ -483,32 +405,24 @@ async function stakeDeliverer(delivererAddress, amount, delivererPrivateKey) {
   try {
     const staking = getContractInstance("staking");
     const provider = getProvider();
-    
-    // Créer un wallet signer depuis la clé privée du livreur
+
     const delivererWallet = new ethers.Wallet(delivererPrivateKey, provider);
-    
-    // Connecter le contrat au wallet du livreur
+
     const stakingWithSigner = staking.connect(delivererWallet);
-    
-    // Convertir amount en BigNumber si nécessaire
+
     const amountWei = typeof amount === 'string' ? ethers.parseEther(amount) : BigInt(amount);
-    
-    // Appeler stakeAsDeliverer avec msg.value = amount
+
     const tx = await stakingWithSigner.stakeAsDeliverer({ value: amountWei });
-    
-    // Attendre la confirmation
+
     const receipt = await tx.wait();
-    
-    // Émettre l'event via EventEmitter
+
     blockchainEvents.emit("Staked", { deliverer: delivererAddress, amount: amountWei.toString() });
-    
-    // Retourner les résultats
+
     return {
       txHash: tx.hash,
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
-    console.error("Error staking deliverer:", error);
     throw error;
   }
 }
@@ -523,29 +437,22 @@ async function unstake(delivererAddress, delivererPrivateKey) {
   try {
     const staking = getContractInstance("staking");
     const provider = getProvider();
-    
-    // Créer un wallet signer depuis la clé privée du livreur
+
     const delivererWallet = new ethers.Wallet(delivererPrivateKey, provider);
-    
-    // Connecter le contrat au wallet du livreur
+
     const stakingWithSigner = staking.connect(delivererWallet);
-    
-    // Appeler unstake
+
     const tx = await stakingWithSigner.unstake();
-    
-    // Attendre la confirmation
+
     const receipt = await tx.wait();
-    
-    // Émettre l'event via EventEmitter
+
     blockchainEvents.emit("Unstaked", { deliverer: delivererAddress });
-    
-    // Retourner les résultats
+
     return {
       txHash: tx.hash,
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
-    console.error("Error unstaking deliverer:", error);
     throw error;
   }
 }
@@ -558,14 +465,11 @@ async function unstake(delivererAddress, delivererPrivateKey) {
 async function isStaked(delivererAddress) {
   try {
     const staking = getContractInstance("staking");
-    
-    // Appeler la fonction view isStaked(delivererAddress)
+
     const staked = await staking.isStaked(delivererAddress);
-    
-    // Retourner le résultat
+
     return staked;
   } catch (error) {
-    console.error("Error checking staking status:", error);
     throw error;
   }
 }
@@ -578,17 +482,13 @@ async function isStaked(delivererAddress) {
 async function getTokenBalance(userAddress) {
   try {
     const token = getContractInstance("token");
-    
-    // Appeler la fonction view balanceOf(userAddress)
+
     const balanceWei = await token.balanceOf(userAddress);
-    
-    // Convertir de wei en ether (format lisible) - ethers v6
+
     const balanceEther = ethers.formatEther(balanceWei);
-    
-    // Retourner la balance en ether
+
     return balanceEther;
   } catch (error) {
-    console.error("Error getting token balance:", error);
     throw error;
   }
 }
@@ -603,29 +503,22 @@ async function mintTokens(userAddress, amount) {
   try {
     const token = getContractInstance("token");
     const wallet = getWallet();
-    
-    // Utiliser le wallet backend (qui a MINTER_ROLE)
+
     const tokenWithSigner = token.connect(wallet);
-    
-    // Convertir amount en BigNumber si nécessaire
+
     const amountWei = typeof amount === 'string' ? ethers.parseEther(amount) : BigInt(amount);
-    
-    // Appeler mint(userAddress, amount)
+
     const tx = await tokenWithSigner.mint(userAddress, amountWei);
-    
-    // Attendre la confirmation
+
     const receipt = await tx.wait();
-    
-    // Émettre l'event via EventEmitter
+
     blockchainEvents.emit("TokensMinted", { user: userAddress, amount: amountWei.toString() });
-    
-    // Retourner les résultats
+
     return {
       txHash: tx.hash,
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
-    console.error("Error minting tokens:", error);
     throw error;
   }
 }
@@ -638,37 +531,28 @@ async function mintTokens(userAddress, amount) {
  */
 async function burnTokens(userAddress, amount) {
   try {
-    // Récupérer l'instance du contrat Token
     const token = getContractInstance("token");
 
-    // Utiliser le wallet backend (qui a BURNER_ROLE)
     const wallet = getWallet();
     const tokenWithSigner = token.connect(wallet);
 
-    // Convertir amount en BigNumber si nécessaire
     const amountWei = typeof amount === 'string' ? BigInt(amount) : amount;
 
-    // Appeler burn(userAddress, amount)
     const tx = await tokenWithSigner.burn(userAddress, amountWei);
 
-    // Attendre la confirmation
     const receipt = await tx.wait();
 
-    // Émettre l'event via EventEmitter
     blockchainEvents.emit("TokensBurned", {
       user: userAddress,
       amount: amountWei.toString(),
       txHash: tx.hash
     });
 
-    // Retourner les résultats
     return {
       txHash: tx.hash,
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
-    // Logger l'erreur
-    console.error("Error burning tokens:", error);
     throw error;
   }
 }
@@ -682,8 +566,7 @@ async function listenEvents() {
     const orderManager = getContractInstance("orderManager");
     const paymentSplitter = getContractInstance("paymentSplitter");
     const token = getContractInstance("token");
-    
-    // S'abonner à l'event OrderCreated
+
     orderManager.on("OrderCreated", (orderId, client, restaurant, totalAmount, event) => {
       blockchainEvents.emit("OrderCreated", {
         orderId: Number(orderId),
@@ -692,48 +575,42 @@ async function listenEvents() {
         totalAmount: totalAmount.toString()
       });
     });
-    
-    // S'abonner à l'event PreparationConfirmed
+
     orderManager.on("PreparationConfirmed", (orderId, restaurant, event) => {
       blockchainEvents.emit("PreparationConfirmed", {
         orderId: Number(orderId),
         restaurant
       });
     });
-    
-    // S'abonner à l'event DelivererAssigned
+
     orderManager.on("DelivererAssigned", (orderId, deliverer, event) => {
       blockchainEvents.emit("DelivererAssigned", {
         orderId: Number(orderId),
         deliverer
       });
     });
-    
-    // S'abonner à l'event PickupConfirmed
+
     orderManager.on("PickupConfirmed", (orderId, deliverer, event) => {
       blockchainEvents.emit("PickupConfirmed", {
         orderId: Number(orderId),
         deliverer
       });
     });
-    
-    // S'abonner à l'event DeliveryConfirmed
+
     orderManager.on("DeliveryConfirmed", (orderId, client, event) => {
       blockchainEvents.emit("DeliveryConfirmed", {
         orderId: Number(orderId),
         client
       });
     });
-    
-    // S'abonner à l'event DisputeOpened
+
     orderManager.on("DisputeOpened", (orderId, opener, event) => {
       blockchainEvents.emit("DisputeOpened", {
         orderId: Number(orderId),
         opener
       });
     });
-    
-    // S'abonner à l'event DisputeResolved
+
     orderManager.on("DisputeResolved", (orderId, winner, amount, event) => {
       blockchainEvents.emit("DisputeResolved", {
         orderId: Number(orderId),
@@ -741,8 +618,7 @@ async function listenEvents() {
         amount: amount.toString()
       });
     });
-    
-    // S'abonner à l'event PaymentSplit
+
     paymentSplitter.on("PaymentSplit", (orderId, restaurant, deliverer, platform, restaurantAmount, delivererAmount, platformAmount, event) => {
       blockchainEvents.emit("PaymentSplit", {
         orderId: Number(orderId),
@@ -754,16 +630,13 @@ async function listenEvents() {
         platformAmount: platformAmount.toString()
       });
     });
-    
-    // S'abonner à l'event Transfer (pour détecter les mints)
-    // Vérifier si l'événement Transfer existe dans l'ABI avant de s'abonner
+
     try {
       const tokenABI = token.interface;
       const transferFragment = tokenABI.getEvent("Transfer");
-      
+
       if (transferFragment) {
         token.on("Transfer", (from, to, amount, event) => {
-          // Si from = address(0), c'est un mint
           if (from === ethers.ZeroAddress) {
             blockchainEvents.emit("TokensMinted", {
               to,
@@ -771,62 +644,36 @@ async function listenEvents() {
             });
           }
         });
-        console.log("✅ Transfer event listener started");
-      } else {
-        console.warn("⚠️  Transfer event not found in token ABI, skipping Transfer listener");
       }
     } catch (transferError) {
-      console.warn("⚠️  Could not set up Transfer event listener:", transferError.message);
-      // Ne pas faire échouer l'initialisation si Transfer n'est pas disponible
     }
-    
-    // Gérer silencieusement les erreurs "filter not found" des listeners d'événements
-    // Ces erreurs sont non-critiques et surviennent avec certains providers RPC
+
     const provider = getProvider();
     if (provider && provider.on) {
       provider.on('error', (error) => {
-        // Filtrer silencieusement les erreurs "filter not found"
-        if (error && error.code === 'UNKNOWN_ERROR' && 
+        if (error && error.code === 'UNKNOWN_ERROR' &&
             error.error && error.error.message === 'filter not found') {
-          // Erreur non-critique, ne pas logger
           return;
         }
-        // Logger les autres erreurs
-        console.error("⚠️  Provider error:", error.message || error);
       });
     }
-    
-    // Intercepter les erreurs au niveau des contrats eux-mêmes
-    // Wrapper les listeners pour capturer les erreurs de filtres
+
     const wrapEventListener = (contract, eventName, handler) => {
       try {
         contract.on(eventName, handler);
       } catch (error) {
-        // Si l'erreur est "filter not found", l'ignorer silencieusement
-        if (error && error.code === 'UNKNOWN_ERROR' && 
+        if (error && error.code === 'UNKNOWN_ERROR' &&
             error.error && error.error.message === 'filter not found') {
           return;
         }
         throw error;
       }
     };
-    
-    // Logger que l'écoute des events est démarrée
-    console.log("✅ Blockchain events listener started");
-    console.log("ℹ️  Note: Some RPC providers may not support persistent event filters.");
-    console.log("   Filter errors are handled silently and won't affect server operation.");
   } catch (error) {
-    // Vérifier si c'est une erreur "filter not found"
-    if (error && error.code === 'UNKNOWN_ERROR' && 
+    if (error && error.code === 'UNKNOWN_ERROR' &&
         error.error && error.error.message === 'filter not found') {
-      // Erreur non-critique, continuer sans arrêter
-      console.warn("⚠️  Event filters not supported by RPC provider. Continuing without real-time events.");
       return;
     }
-    
-    console.error("Error starting event listener:", error);
-    // Ne pas faire crasher le serveur si l'écoute des événements échoue
-    console.warn("⚠️  Continuing without event listeners. Some real-time features may not work.");
   }
 }
 
@@ -838,14 +685,11 @@ async function listenEvents() {
 async function getPendingBalance(payeeAddress) {
   try {
     const paymentSplitter = getContractInstance("paymentSplitter");
-    
-    // Appeler la fonction view getPendingBalance(payeeAddress)
+
     const balanceWei = await paymentSplitter.getPendingBalance(payeeAddress);
-    
-    // Retourner la balance en wei
+
     return balanceWei.toString();
   } catch (error) {
-    console.error("Error getting pending balance:", error);
     throw error;
   }
 }
@@ -860,40 +704,32 @@ async function withdraw(payeeAddress, payeePrivateKey) {
   try {
     const paymentSplitter = getContractInstance("paymentSplitter");
     const provider = getProvider();
-    
-    // Récupérer le solde avant withdrawal
+
     const balanceBefore = await paymentSplitter.getPendingBalance(payeeAddress);
-    
+
     if (balanceBefore === BigInt(0)) {
       throw new Error("No balance to withdraw");
     }
-    
-    // Créer un wallet signer depuis la clé privée du payee
+
     const payeeWallet = new ethers.Wallet(payeePrivateKey, provider);
-    
-    // Connecter le contrat au wallet du payee
+
     const paymentSplitterWithSigner = paymentSplitter.connect(payeeWallet);
-    
-    // Appeler withdraw()
+
     const tx = await paymentSplitterWithSigner.withdraw();
-    
-    // Attendre la confirmation
+
     const receipt = await tx.wait();
-    
-    // Émettre l'event via EventEmitter
-    blockchainEvents.emit("Withdrawn", { 
-      payee: payeeAddress, 
-      amount: balanceBefore.toString() 
+
+    blockchainEvents.emit("Withdrawn", {
+      payee: payeeAddress,
+      amount: balanceBefore.toString()
     });
-    
-    // Retourner les résultats
+
     return {
       txHash: tx.hash,
       blockNumber: receipt.blockNumber,
       amount: balanceBefore.toString()
     };
   } catch (error) {
-    console.error("Error withdrawing funds:", error);
     throw error;
   }
 }
@@ -906,7 +742,6 @@ function getBlockchainEvents() {
   return blockchainEvents;
 }
 
-// Exporter toutes les fonctions
 module.exports = {
   createOrder,
   confirmPreparation,

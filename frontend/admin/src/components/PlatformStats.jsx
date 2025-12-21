@@ -34,7 +34,6 @@ function PlatformStats() {
       const data = await apiService.getPlatformStats();
       setStats(data);
     } catch (err) {
-      console.error('Error fetching platform stats:', err);
       setError(err.message);
     }
 

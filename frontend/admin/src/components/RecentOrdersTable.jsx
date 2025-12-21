@@ -22,12 +22,10 @@ export default function RecentOrdersTable() {
         sortField: "date",
         sortOrder: "desc",
       });
-      console.log("📋 Orders API response:", res);
 
       // Le backend retourne: { success, data: [...], pagination }
       setOrders(res?.data || res?.orders || []);
     } catch (err) {
-      console.error("❌ Erreur chargement commandes récentes:", err);
     } finally {
       setLoading(false);
     }
@@ -42,7 +40,6 @@ export default function RecentOrdersTable() {
       const res = await getOrderDetails(order.orderId);
       setOrderDetails(res?.data || res);
     } catch (err) {
-      console.error("❌ Erreur chargement détails commande:", err);
       // En cas d'erreur, utiliser les données de base de la commande
       setOrderDetails(order);
     } finally {

@@ -35,15 +35,15 @@ let testsFailed = 0;
 
 async function test(name, testFn) {
   try {
-    log(`\n📋 Test: ${name}`, 'cyan');
+    log(`\n Test: ${name}`, 'cyan');
     await testFn();
-    log(`   ✅ PASSÉ`, 'green');
+    log(`    PASSÉ`, 'green');
     testsPassed++;
     return true;
   } catch (error) {
-    log(`   ❌ ÉCHOUÉ: ${error.message}`, 'red');
+    log(`    ÉCHOUÉ: ${error.message}`, 'red');
     if (error.stack) {
-      console.log(`   📚 ${error.stack.split('\n')[1]?.trim()}`);
+      console.log(`    ${error.stack.split('\n')[1]?.trim()}`);
     }
     testsFailed++;
     return false;
@@ -52,23 +52,23 @@ async function test(name, testFn) {
 
 async function runTests() {
   log('='.repeat(70), 'blue');
-  log('🧪 TEST DU MODÈLE User.js', 'blue');
+  log(' TEST DU MODÈLE User.js', 'blue');
   log('='.repeat(70), 'blue');
 
   try {
     // Connexion MongoDB
-    log('\n🔌 Connexion à MongoDB...', 'yellow');
+    log('\n Connexion à MongoDB...', 'yellow');
     if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI non défini dans .env');
     }
     
     await mongoose.connect(process.env.MONGODB_URI);
-    log('✅ MongoDB connecté', 'green');
+    log(' MongoDB connecté', 'green');
 
     // Nettoyer la base de données de test
-    log('\n🧹 Nettoyage des données de test...', 'yellow');
+    log('\n Nettoyage des données de test...', 'yellow');
     await User.deleteMany({ address: /^0x[a-f0-9]{40}$/i });
-    log('✅ Données de test nettoyées', 'green');
+    log(' Données de test nettoyées', 'green');
 
     // Adresse de test
     const testAddress = '0x1234567890123456789012345678901234567890';
@@ -93,7 +93,7 @@ async function runTests() {
       if (user.address !== testAddressLower) throw new Error('Adresse non normalisée');
       if (!user.createdAt) throw new Error('createdAt non généré');
       
-      log(`   📝 Utilisateur créé: ${user.name} (${user.address})`, 'reset');
+      log(`    Utilisateur créé: ${user.name} (${user.address})`, 'reset');
     });
 
     // ============================================
@@ -106,7 +106,7 @@ async function runTests() {
       if (user.address !== testAddressLower) throw new Error('Adresse incorrecte');
       if (user.name !== 'John Doe') throw new Error('Nom incorrect');
       
-      log(`   📍 Utilisateur trouvé: ${user.name}`, 'reset');
+      log(`    Utilisateur trouvé: ${user.name}`, 'reset');
     });
 
     // ============================================
@@ -126,7 +126,7 @@ async function runTests() {
       if (updatedUser.email !== 'john.updated@example.com') throw new Error('Email non mis à jour');
       if (!updatedUser.updatedAt) throw new Error('updatedAt non mis à jour');
       
-      log(`   ✏️  Profil mis à jour: ${updatedUser.name}`, 'reset');
+      log(`     Profil mis à jour: ${updatedUser.name}`, 'reset');
     });
 
     // ============================================
@@ -150,7 +150,7 @@ async function runTests() {
         throw new Error('Label incorrect');
       }
       
-      log(`   📍 Adresse ajoutée: ${user.deliveryAddresses[0].label}`, 'reset');
+      log(`    Adresse ajoutée: ${user.deliveryAddresses[0].label}`, 'reset');
     });
 
     // ============================================
@@ -167,7 +167,7 @@ async function runTests() {
       const hasNotAddress = user.hasDeliveryAddress('Travail');
       if (hasNotAddress) throw new Error('Adresse "Travail" trouvée alors qu\'elle n\'existe pas');
       
-      log(`   ✅ Méthode hasDeliveryAddress fonctionne`, 'reset');
+      log(`    Méthode hasDeliveryAddress fonctionne`, 'reset');
     });
 
     // ============================================
@@ -183,7 +183,7 @@ async function runTests() {
         throw new Error('Validation échouée - adresse invalide acceptée');
       } catch (error) {
         if (error.name === 'ValidationError') {
-          log(`   ✅ Validation fonctionne: ${error.message}`, 'reset');
+          log(`    Validation fonctionne: ${error.message}`, 'reset');
         } else {
           throw error;
         }
@@ -204,7 +204,7 @@ async function runTests() {
         throw new Error('Validation échouée - email invalide accepté');
       } catch (error) {
         if (error.name === 'ValidationError') {
-          log(`   ✅ Validation email fonctionne`, 'reset');
+          log(`    Validation email fonctionne`, 'reset');
         } else {
           throw error;
         }
@@ -224,7 +224,7 @@ async function runTests() {
         throw new Error('Unicité échouée - doublon accepté');
       } catch (error) {
         if (error.code === 11000 || error.name === 'MongoServerError') {
-          log(`   ✅ Unicité fonctionne: doublon rejeté`, 'reset');
+          log(`    Unicité fonctionne: doublon rejeté`, 'reset');
         } else {
           throw error;
         }
@@ -235,32 +235,32 @@ async function runTests() {
     // RÉSUMÉ
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('📊 RÉSUMÉ DES TESTS', 'blue');
+    log(' RÉSUMÉ DES TESTS', 'blue');
     log('='.repeat(70), 'blue');
-    log(`✅ Tests réussis: ${testsPassed}`, 'green');
-    log(`❌ Tests échoués: ${testsFailed}`, testsFailed > 0 ? 'red' : 'green');
-    log(`📈 Taux de réussite: ${((testsPassed / (testsPassed + testsFailed)) * 100).toFixed(1)}%`, 'cyan');
+    log(` Tests réussis: ${testsPassed}`, 'green');
+    log(` Tests échoués: ${testsFailed}`, testsFailed > 0 ? 'red' : 'green');
+    log(` Taux de réussite: ${((testsPassed / (testsPassed + testsFailed)) * 100).toFixed(1)}%`, 'cyan');
     log('='.repeat(70), 'blue');
 
     if (testsFailed === 0) {
-      log('\n🎉 Tous les tests sont passés! Le modèle User.js fonctionne correctement.', 'green');
+      log('\n Tous les tests sont passés! Le modèle User.js fonctionne correctement.', 'green');
     } else {
-      log('\n⚠️  Certains tests ont échoué. Vérifiez les erreurs ci-dessus.', 'yellow');
+      log('\n  Certains tests ont échoué. Vérifiez les erreurs ci-dessus.', 'yellow');
     }
 
     // Nettoyage
-    log('\n🧹 Nettoyage des données de test...', 'yellow');
+    log('\n Nettoyage des données de test...', 'yellow');
     await User.deleteMany({ address: testAddressLower });
-    log('✅ Données de test supprimées', 'green');
+    log(' Données de test supprimées', 'green');
 
     // Fermeture
     await mongoose.connection.close();
-    log('\n✅ Connexion MongoDB fermée', 'green');
+    log('\n Connexion MongoDB fermée', 'green');
 
     process.exit(testsFailed > 0 ? 1 : 0);
 
   } catch (error) {
-    log(`\n❌ Erreur fatale: ${error.message}`, 'red');
+    log(`\n Erreur fatale: ${error.message}`, 'red');
     if (error.stack) {
       console.error(error.stack);
     }

@@ -14,11 +14,11 @@ const containerStyle = {
 };
 
 const ORDER_STATUSES = [
-  { key: 'CREATED', label: 'Commande creee', icon: '📝', color: 'blue' },
-  { key: 'PREPARING', label: 'En preparation', icon: '👨‍🍳', color: 'yellow' },
-  { key: 'IN_DELIVERY', label: 'En livraison', icon: '🚗', color: 'purple' },
-  { key: 'DELIVERED', label: 'Livree', icon: '✅', color: 'green' },
-  { key: 'DISPUTED', label: 'Litige', icon: '⚠️', color: 'red' },
+  { key: 'CREATED', label: 'Commande creee', icon: '', color: 'blue' },
+  { key: 'PREPARING', label: 'En preparation', icon: '', color: 'yellow' },
+  { key: 'IN_DELIVERY', label: 'En livraison', icon: '', color: 'purple' },
+  { key: 'DELIVERED', label: 'Livree', icon: '', color: 'green' },
+  { key: 'DISPUTED', label: 'Litige', icon: '', color: 'red' },
 ];
 
 const OrderTracking = ({ order }) => {
@@ -80,7 +80,6 @@ const OrderTracking = ({ order }) => {
   const handleConfirmDelivery = async () => {
     try {
       setIsConfirming(true);
-      console.log(`[Client] Confirmation livraison commande #${orderId}...`);
 
       if (!window.ethereum) {
         alert('MetaMask n\'est pas installe. Veuillez installer MetaMask pour confirmer la livraison.');
@@ -97,7 +96,6 @@ const OrderTracking = ({ order }) => {
       }
 
       const response = await confirmDelivery(orderId);
-      console.log(`[Client] Livraison confirmee pour commande #${orderId}:`, response.data);
 
       // Récupérer les tokens gagnés depuis la réponse
       const tokensEarnedValue = response.data?.tokensEarned || "0";
@@ -117,7 +115,6 @@ const OrderTracking = ({ order }) => {
         detail: { tokensEarned: tokensEarnedValue } 
       }));
     } catch (error) {
-      console.error(`[Client] Erreur confirmation livraison commande #${orderId}:`, error);
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Erreur inconnue';
       alert(`Echec de la confirmation de livraison: ${errorMessage}`);
     } finally {
@@ -257,7 +254,9 @@ const OrderTracking = ({ order }) => {
         {order.restaurant && (
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
             <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-              <span className="text-xl">🍽️</span>
+              <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
             </div>
             <div>
               <p className="text-sm text-gray-500">Restaurant</p>
@@ -270,7 +269,10 @@ const OrderTracking = ({ order }) => {
         {order.deliveryAddress && (
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <span className="text-xl">📍</span>
+              <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
             </div>
             <div className="flex-1">
               <p className="text-sm text-gray-500">Adresse de livraison</p>
@@ -469,7 +471,9 @@ const OrderTracking = ({ order }) => {
         <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl shadow-lg p-6 text-white">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-              <span className="text-4xl">🎉</span>
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
             </div>
             <div>
               <h3 className="text-xl font-bold">Commande livree avec succes !</h3>
@@ -483,7 +487,9 @@ const OrderTracking = ({ order }) => {
           <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl shadow-lg p-6 text-white animate-fadeIn">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                <span className="text-4xl">🎁</span>
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-bold">Tokens DONE reçus !</h3>

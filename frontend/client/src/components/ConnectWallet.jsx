@@ -6,9 +6,7 @@ import { formatAddress } from '../utils/web3';
 const ConnectWallet = () => {
   const { address, balance, isConnected, isConnecting, connect, disconnect } = useWallet();
 
-  // frontend/client/src/components/ConnectWallet.jsx
-
-const handleConnect = async () => {
+  const handleConnect = async () => {
   try {
     await connect();
     
@@ -27,7 +25,6 @@ const handleConnect = async () => {
       }
     }
   } catch (err) {
-    console.error('Failed to connect wallet:', err);
   }
 
   };

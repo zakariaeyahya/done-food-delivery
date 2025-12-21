@@ -38,10 +38,7 @@ async function voteDispute(req, res) {
         error: "Bad Request",
         message: "userAddress is required (from auth or body)"
       });
-    }
-    
-    // Utiliser arbitrationService pour enregistrer le vote
-    const result = await arbitrationService.voteDispute(
+    }    const result = await arbitrationService.voteDispute(
       parseInt(disputeId),
       winner,
       userAddress
@@ -62,7 +59,7 @@ async function voteDispute(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error voting on dispute:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to vote on dispute",
@@ -87,10 +84,7 @@ async function getDisputeVotes(req, res) {
         error: "Bad Request",
         message: "Valid disputeId is required"
       });
-    }
-    
-    // Utiliser arbitrationService pour obtenir la distribution des votes
-    const votes = await arbitrationService.getDisputeVotes(parseInt(disputeId));
+    }    const votes = await arbitrationService.getDisputeVotes(parseInt(disputeId));
     
     return res.status(200).json({
       success: true,
@@ -118,7 +112,7 @@ async function getDisputeVotes(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error getting dispute votes:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get dispute votes",
@@ -143,10 +137,7 @@ async function resolveDispute(req, res) {
         error: "Bad Request",
         message: "Valid disputeId is required"
       });
-    }
-    
-    // Utiliser arbitrationService pour résoudre le litige
-    const result = await arbitrationService.resolveDispute(parseInt(disputeId));
+    }    const result = await arbitrationService.resolveDispute(parseInt(disputeId));
     
     return res.status(200).json({
       success: true,
@@ -161,7 +152,7 @@ async function resolveDispute(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error resolving dispute:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to resolve dispute",
@@ -208,7 +199,7 @@ async function createDispute(req, res) {
       data: result
     });
   } catch (error) {
-    console.error("Error creating dispute:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to create dispute",
@@ -242,7 +233,7 @@ async function getDispute(req, res) {
       data: dispute
     });
   } catch (error) {
-    console.error("Error getting dispute:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get dispute",
@@ -267,7 +258,7 @@ async function getArbitrationMetrics(req, res) {
       data: metrics
     });
   } catch (error) {
-    console.error("Error getting arbitration metrics:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get arbitration metrics",

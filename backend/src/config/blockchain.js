@@ -31,10 +31,8 @@ function loadABI(contractName) {
       return artifact.abi;
     }
     
-    console.warn(`⚠️  ABI not found for ${contractName}, using minimal ABI. Please compile contracts first.`);
     return getMinimalABI(contractName);
   } catch (error) {
-    console.warn(`⚠️  Error loading ABI for ${contractName}:`, error.message);
     return getMinimalABI(contractName);
   }
 }
@@ -229,21 +227,15 @@ async function initBlockchain() {
       wallet
     );
 
-    const network = await provider.getNetwork();
-    console.log("✅ Connected to network:", network.name, "Chain ID:", network.chainId.toString());
-
-    console.log("✅ Backend wallet address:", wallet.address);
+    await provider.getNetwork();
 
     try {
       await contracts.orderManager.getTotalOrders?.() || await provider.getCode(orderManagerAddress);
-      console.log("✅ All contracts initialized successfully");
     } catch (error) {
-      console.warn("⚠️  Warning: Could not verify contracts, but initialization completed");
     }
 
     return contracts;
   } catch (error) {
-    console.error("❌ Error initializing blockchain:", error.message);
     throw error;
   }
 }
@@ -273,7 +265,6 @@ async function isConnected() {
     await provider.getNetwork();
     return true;
   } catch (error) {
-    console.error("Blockchain connection check failed:", error.message);
     return false;
   }
 }

@@ -38,7 +38,7 @@ async function main() {
     });
     console.log("✓ Connecté à MongoDB");
   } catch (error) {
-    console.error("❌ Erreur de connexion MongoDB:", error.message);
+    console.error(" Erreur de connexion MongoDB:", error.message);
     process.exit(1);
   }
 
@@ -52,7 +52,7 @@ async function main() {
     await Order.deleteMany({});
     console.log("✓ Données effacées");
   } catch (error) {
-    console.error("❌ Erreur lors du nettoyage:", error.message);
+    console.error(" Erreur lors du nettoyage:", error.message);
   }
 
   // === ÉTAPE 3: CRÉER DES UTILISATEURS (CLIENTS) ===
@@ -96,7 +96,7 @@ async function main() {
       createdUsers.push(user);
       console.log(`✓ Utilisateur créé: ${user.name} - ${user.address}`);
     } catch (error) {
-      console.error(`❌ Erreur création utilisateur ${userData.name}:`, error.message);
+      console.error(` Erreur création utilisateur ${userData.name}:`, error.message);
     }
   }
 
@@ -171,7 +171,7 @@ async function main() {
       createdRestaurants.push(restaurant);
       console.log(`✓ Restaurant créé: ${restaurant.name} - ${restaurant.address}`);
     } catch (error) {
-      console.error(`❌ Erreur création restaurant ${restaurantData.name}:`, error.message);
+      console.error(` Erreur création restaurant ${restaurantData.name}:`, error.message);
     }
   }
 
@@ -220,7 +220,7 @@ async function main() {
       createdDeliverers.push(deliverer);
       console.log(`✓ Livreur créé: ${deliverer.name} - ${deliverer.address}`);
     } catch (error) {
-      console.error(`❌ Erreur création livreur ${delivererData.name}:`, error.message);
+      console.error(` Erreur création livreur ${delivererData.name}:`, error.message);
     }
   }
 
@@ -262,7 +262,7 @@ async function main() {
 
       console.log(`✓ Commande créée dans MongoDB, ID: ${order._id}, Order ID: ${order.orderId}`);
     } catch (error) {
-      console.error("❌ Erreur création commande:", error.message);
+      console.error(" Erreur création commande:", error.message);
     }
   }
 
@@ -272,7 +272,7 @@ async function main() {
   console.log(`Restaurants: ${await Restaurant.countDocuments()}`);
   console.log(`Livreurs: ${await Deliverer.countDocuments()}`);
   console.log(`Commandes: ${await Order.countDocuments()}`);
-  console.log("\n✅ Données de test créées avec succès.");
+  console.log("\n Données de test créées avec succès.");
 
   // === ÉTAPE 8: FERMER LA CONNEXION ===
   await mongoose.connection.close();
@@ -283,6 +283,6 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("❌ Erreur fatale:", error);
+    console.error(" Erreur fatale:", error);
     process.exit(1);
   });

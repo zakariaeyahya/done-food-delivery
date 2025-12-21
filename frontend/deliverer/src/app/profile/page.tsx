@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useApp } from "@/providers/AppProvider";
 
-// Désactiver le pré-rendu car cette page utilise des APIs côté client (window, localStorage, etc.)
 export const dynamic = 'force-dynamic';
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Card } from "@/components/ui/Card";
@@ -37,7 +36,6 @@ export default function ProfilePage() {
         phone: data.deliverer.phone || "",
       });
     } catch (err) {
-      console.error(err);
     }
   }
 
@@ -61,7 +59,6 @@ export default function ProfilePage() {
     }
   }
 
-  // Protection contre le pré-rendu
   if (!isMounted) {
     return null;
   }

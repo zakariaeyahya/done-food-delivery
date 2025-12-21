@@ -4,7 +4,7 @@ Documentation technique complète des smart contracts de la plateforme DoneFood 
 
 ---
 
-## 📋 Table des matières
+##  Table des matières
 
 1. [Vue d'ensemble](#vue-densemble)
 2. [Architecture](#architecture)
@@ -1194,7 +1194,7 @@ event DisputeResolved(uint256 indexed disputeId, Winner winner, uint256 amount);
 
 ---
 
-## 🔌 Interfaces et bibliothèques
+##  Interfaces et bibliothèques
 
 ### IOrderManager.sol
 
@@ -1521,14 +1521,14 @@ paymentSplitter.withdraw();
 
 | Contrat | Adresse | Statut |
 |---------|---------|--------|
-| **DoneToken** | `0x24D89CC7f6F76980F2c088DB203DEa6223B1DEd9` | ✅ Déployé |
-| **DonePaymentSplitter** | `0xE99F26DA1B38a79d08ed8d853E45397C99818C2f` | ✅ Déployé |
-| **DoneStaking** | `0xFf9CD2596e73BB0bCB28d9E24d945B0ed34f874b` | ✅ Déployé |
-| **DoneOrderManager** | `0x257D63E05bcf8840896b1ECb5c6d98eb5Ba06182` | ✅ Déployé |
-| **DoneArbitration** | `0xf339Af8A5e429E015Ee038198665026844a87EF6` | ✅ Déployé |
-| **DonePriceOracle** | `0x1D4fF5879B7b2653b6aB8d23423A9799FdABc582` | ✅ Déployé |
-| **DoneGPSOracle** | `0x1a52184023BF93eb0cD150C4595FbCeD3dE88d97` | ✅ Déployé |
-| **DoneWeatherOracle** | `0xa8E5C18c397120699969D22f703e273044c5a125` | ✅ Déployé |
+| **DoneToken** | `0x24D89CC7f6F76980F2c088DB203DEa6223B1DEd9` |  Déployé |
+| **DonePaymentSplitter** | `0xE99F26DA1B38a79d08ed8d853E45397C99818C2f` |  Déployé |
+| **DoneStaking** | `0xFf9CD2596e73BB0bCB28d9E24d945B0ed34f874b` |  Déployé |
+| **DoneOrderManager** | `0x257D63E05bcf8840896b1ECb5c6d98eb5Ba06182` |  Déployé |
+| **DoneArbitration** | `0xf339Af8A5e429E015Ee038198665026844a87EF6` |  Déployé |
+| **DonePriceOracle** | `0x1D4fF5879B7b2653b6aB8d23423A9799FdABc582` |  Déployé |
+| **DoneGPSOracle** | `0x1a52184023BF93eb0cD150C4595FbCeD3dE88d97` |  Déployé |
+| **DoneWeatherOracle** | `0xa8E5C18c397120699969D22f703e273044c5a125` |  Déployé |
 | **Chainlink MATIC/USD** | `0xd0D5e3DB44DE05E9F294BB0a3bEEaF030DE24Ada` | Externe |
 
 ### Ordre de déploiement
@@ -1595,7 +1595,7 @@ CHAINLINK_PRICE_FEED_ADDRESS=0x...   # Adresse Chainlink Price Feed (Mumbai/Main
 
 ---
 
-## 📊 Statistiques et limites
+##  Statistiques et limites
 
 ### Limites de gas
 
@@ -1637,7 +1637,7 @@ CHAINLINK_PRICE_FEED_ADDRESS=0x...   # Adresse Chainlink Price Feed (Mumbai/Main
 
 ---
 
-## 🔍 Vérification sur Polygonscan
+##  Vérification sur Polygonscan
 
 Pour vérifier les contrats sur Polygonscan :
 
@@ -1648,16 +1648,16 @@ Pour vérifier les contrats sur Polygonscan :
 
 ---
 
-## 📝 Notes importantes
+##  Notes importantes
 
-- ⚠️ **Tous les montants sont en wei** (1 ETH = 10^18 wei)
-- ⚠️ **Les adresses doivent être valides** (non-nulles)
-- ⚠️ **Les transitions d'état sont strictes** (workflow défini)
-- ⚠️ **Les rôles doivent être configurés** avant utilisation
-- ⚠️ **Les oracles (Sprint 6) sont implémentés** et recommandés pour la production
-- ⚠️ **Chainlink Price Feed** doit être configuré (Mumbai ou Mainnet)
-- ⚠️ **Arbitrage décentralisé** utilise le pouvoir de vote basé sur les tokens DONE
-- ⚠️ **GPS Oracle** utilise un stockage hybride (off-chain fréquent, on-chain critique)
+-  **Tous les montants sont en wei** (1 ETH = 10^18 wei)
+-  **Les adresses doivent être valides** (non-nulles)
+-  **Les transitions d'état sont strictes** (workflow défini)
+-  **Les rôles doivent être configurés** avant utilisation
+-  **Les oracles (Sprint 6) sont implémentés** et recommandés pour la production
+-  **Chainlink Price Feed** doit être configuré (Mumbai ou Mainnet)
+-  **Arbitrage décentralisé** utilise le pouvoir de vote basé sur les tokens DONE
+-  **GPS Oracle** utilise un stockage hybride (off-chain fréquent, on-chain critique)
 
 ---
 
@@ -1691,14 +1691,14 @@ Pour toute question technique sur les smart contracts :
 
 | Route | Service | Contract |
 |-------|---------|----------|
-| `GET /api/oracles/price` | chainlinkService | ✅ Chainlink on-chain |
-| `GET /api/oracles/price/latest` | chainlinkService | ✅ Chainlink on-chain |
-| `POST /api/oracles/convert` | chainlinkService | ✅ Chainlink on-chain |
-| `POST /api/oracles/gps/update` | gpsOracleService | ✅ DoneGPSOracle on-chain |
-| `POST /api/oracles/gps/verify` | gpsOracleService | ✅ DoneGPSOracle on-chain |
+| `GET /api/oracles/price` | chainlinkService |  Chainlink on-chain |
+| `GET /api/oracles/price/latest` | chainlinkService |  Chainlink on-chain |
+| `POST /api/oracles/convert` | chainlinkService |  Chainlink on-chain |
+| `POST /api/oracles/gps/update` | gpsOracleService |  DoneGPSOracle on-chain |
+| `POST /api/oracles/gps/verify` | gpsOracleService |  DoneGPSOracle on-chain |
 | `GET /api/oracles/gps/track/:id` | gpsOracleService | MongoDB + on-chain |
-| `GET /api/oracles/weather` | weatherOracleService | ✅ DoneWeatherOracle on-chain |
-| `POST /api/oracles/arbitration/*` | arbitrationService | ✅ DoneArbitration on-chain |
+| `GET /api/oracles/weather` | weatherOracleService |  DoneWeatherOracle on-chain |
+| `POST /api/oracles/arbitration/*` | arbitrationService |  DoneArbitration on-chain |
 
 ### Stratégie de stockage hybride
 

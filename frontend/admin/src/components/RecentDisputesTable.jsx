@@ -16,12 +16,10 @@ export default function RecentDisputesTable() {
         sortField: "date",
         sortOrder: "desc",
       });
-      console.log("⚠️ Disputes API response:", res);
 
       // Le backend retourne: { success, data: [...] }
       setDisputes(res?.data || res?.disputes || []);
     } catch (err) {
-      console.error("❌ Erreur litiges:", err);
     } finally {
       setLoading(false);
     }

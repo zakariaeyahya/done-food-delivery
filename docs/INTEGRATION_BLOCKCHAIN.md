@@ -558,15 +558,15 @@ CLIENT                    BACKEND                 BLOCKCHAIN
 
 | Donnee | On-chain | Off-chain (MongoDB) |
 |--------|----------|---------------------|
-| ID Commande | ✅ | ✅ |
-| Montants (foodPrice, fees) | ✅ | ✅ |
-| Status commande | ✅ | ✅ (cache) |
-| Adresses wallet | ✅ | ✅ |
-| Details items | ❌ (IPFS hash) | ✅ |
-| Tracking GPS | ❌ (every 5th) | ✅ (all) |
-| Images | ❌ (IPFS hash) | ❌ |
-| Notes/Reviews | ❌ | ✅ |
-| Analytics | ❌ | ✅ |
+| ID Commande |  |  |
+| Montants (foodPrice, fees) |  |  |
+| Status commande |  |  (cache) |
+| Adresses wallet |  |  |
+| Details items |  (IPFS hash) |  |
+| Tracking GPS |  (every 5th) |  (all) |
+| Images |  (IPFS hash) |  |
+| Notes/Reviews |  |  |
+| Analytics |  |  |
 
 ---
 

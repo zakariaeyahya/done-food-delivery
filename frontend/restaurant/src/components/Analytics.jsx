@@ -1,8 +1,3 @@
-/**
- * Composant Analytics - Restaurant
- * @notice Statistiques et analytics du restaurant
- * @dev Graphiques Chart.js, statistiques commandes, revenus, plats populaires
- */
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -37,14 +32,6 @@ ChartJS.register(
   Filler
 );
 
-/**
- * Composant Analytics
- * @param {string} restaurantId - ID du restaurant
- * @param {string} restaurantAddress - Adresse wallet du restaurant
- * @param {string} period - Période ('day', 'week', 'month')
- * @param {(p: string) => void} onPeriodChange - callback optionnel si parent veut contrôler la période
- * @returns {JSX.Element} Composant analytics
- */
 function Analytics({
   restaurantId,
   restaurantAddress,
@@ -103,7 +90,6 @@ function Analytics({
         ordersSeries: data?.ordersSeries ?? prev.ordersSeries,
       }));
     } catch (e) {
-      console.error("Error fetching analytics:", e);
       setError("Impossible de charger les statistiques.");
     } finally {
       setLoading(false);
@@ -398,34 +384,3 @@ function Analytics({
   );
 }
 
-/* ------------------ UI Subcomponents ------------------ */
-
-function StatCard({ title, value, className = "" }) {
-  return (
-    <div
-      className={`rounded-2xl bg-white p-4 shadow-soft dark:bg-neutral-800 ${className}`}
-    >
-      <p className="text-sm text-neutral-500 dark:text-neutral-400">
-        {title}
-      </p>
-      <p className="mt-2 text-2xl font-semibold text-neutral-900 dark:text-neutral-50">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function Badge({ children, tone = "primary" }) {
-  const styles =
-    tone === "secondary"
-      ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200"
-      : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200";
-
-  return (
-    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${styles}`}>
-      {children}
-    </span>
-  );
-}
-
-export default Analytics;

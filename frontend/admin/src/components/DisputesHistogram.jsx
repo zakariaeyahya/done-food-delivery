@@ -31,7 +31,6 @@ export default function DisputesHistogram() {
       setLoading(true);
 
       const res = await getAnalyticsDisputes();
-      console.log("📊 Disputes Analytics response:", res);
 
       // Backend retourne: { success, data: [{ date, count }], summary, timeframe }
       if (!res || !res.data) {
@@ -58,7 +57,6 @@ export default function DisputesHistogram() {
 
       setChartData(formatted);
     } catch (err) {
-      console.error("Erreur histogramme litiges:", err);
       setChartData(null);
     } finally {
       setLoading(false);

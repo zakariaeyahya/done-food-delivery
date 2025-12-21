@@ -1,6 +1,6 @@
 # DONE Food Delivery - Frontend Client
 
-## 📋 Table des matières
+##  Table des matières
 
 - [Introduction](#introduction)
 - [Architecture](#architecture)
@@ -25,15 +25,15 @@ L'application frontend client de DONE Food Delivery est une interface React mode
 
 ### Fonctionnalités principales
 
-- ✅ **Connexion Web3** : Intégration MetaMask pour paiements sécurisés
-- ✅ **Catalogue de restaurants** : Parcourir et filtrer les restaurants disponibles
-- ✅ **Panier d'achat** : Gestion complète du panier avec calcul automatique des frais
-- ✅ **Checkout sécurisé** : Paiement via blockchain avec confirmation MetaMask
-- ✅ **Suivi en temps réel** : Tracking GPS avec Google Maps et Socket.io
-- ✅ **Tokens de fidélité** : Système de récompenses DONE tokens
-- ✅ **Historique des commandes** : Consultation et réorganisation des commandes passées
-- ✅ **Système de litiges** : Ouverture de litiges avec preuves IPFS
-- ✅ **Design responsive** : Interface optimisée mobile et desktop
+-  **Connexion Web3** : Intégration MetaMask pour paiements sécurisés
+-  **Catalogue de restaurants** : Parcourir et filtrer les restaurants disponibles
+-  **Panier d'achat** : Gestion complète du panier avec calcul automatique des frais
+-  **Checkout sécurisé** : Paiement via blockchain avec confirmation MetaMask
+-  **Suivi en temps réel** : Tracking GPS avec Google Maps et Socket.io
+-  **Tokens de fidélité** : Système de récompenses DONE tokens
+-  **Historique des commandes** : Consultation et réorganisation des commandes passées
+-  **Système de litiges** : Ouverture de litiges avec preuves IPFS
+-  **Design responsive** : Interface optimisée mobile et desktop
 
 ---
 
@@ -363,7 +363,7 @@ const [deliveryFee, setDeliveryFee] = useState(3) // MATIC
   2. Upload IPFS
   3. Confirmation MetaMask
   4. Transaction blockchain
-5. Commande créée ✅
+5. Commande créée 
 
 ---
 
@@ -506,7 +506,7 @@ const [deliveryFee, setDeliveryFee] = useState(3) // MATIC
 
 ---
 
-## 🔌 Services
+##  Services
 
 ### api.js
 
@@ -765,7 +765,7 @@ Les styles globaux sont dans `src/index.css`. Ajoutez vos styles personnalisés 
 
 ---
 
-## 📚 Ressources
+##  Ressources
 
 - **React Documentation** : https://react.dev/
 - **Vite Documentation** : https://vitejs.dev/
@@ -776,7 +776,7 @@ Les styles globaux sont dans `src/index.css`. Ajoutez vos styles personnalisés 
 
 ---
 
-## 📝 Scripts NPM
+##  Scripts NPM
 
 ```bash
 # Développement

@@ -5,27 +5,14 @@ const { ethers } = require("ethers");
  * @notice Valide les données des requêtes HTTP avant traitement
  * @dev Utilise express-validator ou validation manuelle
  */
+
 /**
  * Valide les données de création de commande
- * @dev Implémenté
- * 
- * Vérifie:
- * - restaurantId existe dans body
- * - items[] existe et n'est pas vide
- * - Chaque item a name, quantity, price
- * - prices > 0 pour chaque item
- * - deliveryAddress existe
- * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
- * @param {Function} next - Next middleware
  */
 function validateOrderCreation(req, res, next) {
   try {
-    // Récupérer les données du body
     const { restaurantId, restaurantAddress, items, deliveryAddress, clientAddress } = req.body;
-    
-    // Vérifier que restaurantId OU restaurantAddress existe
+
     if (!restaurantId && !restaurantAddress) {
       return res.status(400).json({
         error: "Bad Request",
@@ -33,8 +20,7 @@ function validateOrderCreation(req, res, next) {
         field: "restaurantId"
       });
     }
-    
-    // Si restaurantAddress est fourni, valider que c'est une adresse Ethereum valide
+
     if (restaurantAddress && !ethers.isAddress(restaurantAddress)) {
       return res.status(400).json({
         error: "Bad Request",
@@ -42,8 +28,7 @@ function validateOrderCreation(req, res, next) {
         field: "restaurantAddress"
       });
     }
-    
-    // Vérifier que items existe et est un tableau
+
     if (!items || !Array.isArray(items)) {
       return res.status(400).json({
         error: "Bad Request",
@@ -51,8 +36,7 @@ function validateOrderCreation(req, res, next) {
         field: "items"
       });
     }
-    
-    // Vérifier que items n'est pas vide
+
     if (items.length === 0) {
       return res.status(400).json({
         error: "Bad Request",
@@ -60,12 +44,10 @@ function validateOrderCreation(req, res, next) {
         field: "items"
       });
     }
-    
-    // Valider chaque item du tableau
+
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      
-      // Vérifier que name existe
+
       if (!item.name || typeof item.name !== 'string' || item.name.trim() === '') {
         return res.status(400).json({
           error: "Bad Request",
@@ -73,8 +55,7 @@ function validateOrderCreation(req, res, next) {
           field: `items[${i}].name`
         });
       }
-      
-      // Vérifier que quantity existe et est un nombre positif
+
       if (!item.quantity || typeof item.quantity !== 'number' || item.quantity <= 0) {
         return res.status(400).json({
           error: "Bad Request",
@@ -82,8 +63,7 @@ function validateOrderCreation(req, res, next) {
           field: `items[${i}].quantity`
         });
       }
-      
-      // Vérifier que price existe et est > 0
+
       if (!item.price || typeof item.price !== 'number' || item.price <= 0) {
         return res.status(400).json({
           error: "Bad Request",
@@ -92,8 +72,7 @@ function validateOrderCreation(req, res, next) {
         });
       }
     }
-    
-    // Vérifier que deliveryAddress existe
+
     if (!deliveryAddress || typeof deliveryAddress !== 'string' || deliveryAddress.trim() === '') {
       return res.status(400).json({
         error: "Bad Request",
@@ -101,8 +80,7 @@ function validateOrderCreation(req, res, next) {
         field: "deliveryAddress"
       });
     }
-    
-    // Optionnel: Vérifier que clientAddress est une adresse Ethereum valide
+
     if (clientAddress && !ethers.isAddress(clientAddress)) {
       return res.status(400).json({
         error: "Bad Request",
@@ -110,14 +88,9 @@ function validateOrderCreation(req, res, next) {
         field: "clientAddress"
       });
     }
-    
-    // Si toutes les validations passent, appeler next()
+
     next();
   } catch (error) {
-    // Logger l'erreur
-    console.error("Error validating order creation:", error);
-    
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Validation failed",
@@ -128,23 +101,11 @@ function validateOrderCreation(req, res, next) {
 
 /**
  * Valide que orderId existe et est valide
- * @dev Implémenté
- * 
- * Vérifie:
- * - orderId existe dans params
- * - orderId est un nombre valide
- * - order existe dans MongoDB
- * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
- * @param {Function} next - Next middleware
  */
 async function validateOrderId(req, res, next) {
   try {
-    // Récupérer orderId depuis params
     const orderId = req.params.orderId || req.params.id;
-    
-    // Vérifier que orderId existe
+
     if (!orderId) {
       return res.status(400).json({
         error: "Bad Request",
@@ -152,8 +113,7 @@ async function validateOrderId(req, res, next) {
         field: "orderId"
       });
     }
-    
-    // Vérifier que orderId est un nombre valide
+
     const orderIdNumber = parseInt(orderId, 10);
     if (isNaN(orderIdNumber) || orderIdNumber <= 0) {
       return res.status(400).json({
@@ -162,36 +122,26 @@ async function validateOrderId(req, res, next) {
         field: "orderId"
       });
     }
-    
-    // Vérifier que l'order existe dans MongoDB (si le modèle existe)
+
     try {
       const Order = require("../models/Order");
       const order = await Order.findOne({ orderId: orderIdNumber });
-      
+
       if (!order) {
         return res.status(404).json({
           error: "Not Found",
           message: `Order with id ${orderIdNumber} not found`
         });
       }
-      
-      // Ajouter l'order à req pour utilisation dans les controllers
+
       req.order = order;
       req.orderId = orderIdNumber;
     } catch (modelError) {
-      // Si le modèle Order n'existe pas encore, on valide juste le format
-      // et on ajoute l'ID à req
       req.orderId = orderIdNumber;
-      console.warn("Order model not found, skipping database check:", modelError.message);
     }
-    
-    // Appeler next()
+
     next();
   } catch (error) {
-    // Logger l'erreur
-    console.error("Error validating order ID:", error);
-    
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Order validation failed",
@@ -202,22 +152,11 @@ async function validateOrderId(req, res, next) {
 
 /**
  * Valide qu'une adresse Ethereum est valide
- * @dev Implémenté
- * 
- * Vérifie:
- * - address existe dans params, query ou body
- * - address est une adresse Ethereum valide via ethers.isAddress()
- * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
- * @param {Function} next - Next middleware
  */
 function validateAddress(req, res, next) {
   try {
-    // Récupérer l'adresse depuis params, query ou body
     const address = req.params.address || req.query.address || req.body.address;
-    
-    // Vérifier que l'adresse existe
+
     if (!address) {
       return res.status(400).json({
         error: "Bad Request",
@@ -225,8 +164,7 @@ function validateAddress(req, res, next) {
         field: "address"
       });
     }
-    
-    // Vérifier que l'adresse est valide avec ethers.isAddress()
+
     if (!ethers.isAddress(address)) {
       return res.status(400).json({
         error: "Bad Request",
@@ -235,17 +173,11 @@ function validateAddress(req, res, next) {
         provided: address
       });
     }
-    
-    // Normaliser l'adresse en minuscules et l'ajouter à req
+
     req.validatedAddress = address.toLowerCase();
-    
-    // Appeler next()
+
     next();
   } catch (error) {
-    // Logger l'erreur
-    console.error("Error validating address:", error);
-    
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Address validation failed",
@@ -256,21 +188,13 @@ function validateAddress(req, res, next) {
 
 /**
  * Valide les données de mise à jour de statut de commande
- * @dev Implémenté
- * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
- * @param {Function} next - Next middleware
  */
 function validateOrderStatusUpdate(req, res, next) {
   try {
-    // Récupérer le nouveau statut depuis body
     const { status } = req.body;
-    
-    // Définir les statuts valides
+
     const validStatuses = ['CREATED', 'PREPARING', 'IN_DELIVERY', 'DELIVERED', 'DISPUTED'];
-    
-    // Vérifier que status existe
+
     if (!status) {
       return res.status(400).json({
         error: "Bad Request",
@@ -278,8 +202,7 @@ function validateOrderStatusUpdate(req, res, next) {
         field: "status"
       });
     }
-    
-    // Vérifier que status est valide
+
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         error: "Bad Request",
@@ -288,17 +211,11 @@ function validateOrderStatusUpdate(req, res, next) {
         provided: status
       });
     }
-    
-    // Ajouter le statut validé à req
+
     req.validatedStatus = status;
-    
-    // Appeler next()
+
     next();
   } catch (error) {
-    // Logger l'erreur
-    console.error("Error validating order status update:", error);
-    
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Status validation failed",
@@ -309,19 +226,12 @@ function validateOrderStatusUpdate(req, res, next) {
 
 /**
  * Valide les coordonnées GPS (latitude et longitude)
- * @dev Implémenté
- * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
- * @param {Function} next - Next middleware
  */
 function validateGPS(req, res, next) {
   try {
-    // Récupérer lat et lng depuis body ou query
     const lat = parseFloat(req.body.lat || req.query.lat);
     const lng = parseFloat(req.body.lng || req.query.lng);
-    
-    // Vérifier que lat existe et est un nombre
+
     if (isNaN(lat)) {
       return res.status(400).json({
         error: "Bad Request",
@@ -329,8 +239,7 @@ function validateGPS(req, res, next) {
         field: "lat"
       });
     }
-    
-    // Vérifier que lat est dans la plage valide [-90, 90]
+
     if (lat < -90 || lat > 90) {
       return res.status(400).json({
         error: "Bad Request",
@@ -339,8 +248,7 @@ function validateGPS(req, res, next) {
         provided: lat
       });
     }
-    
-    // Vérifier que lng existe et est un nombre
+
     if (isNaN(lng)) {
       return res.status(400).json({
         error: "Bad Request",
@@ -348,8 +256,7 @@ function validateGPS(req, res, next) {
         field: "lng"
       });
     }
-    
-    // Vérifier que lng est dans la plage valide [-180, 180]
+
     if (lng < -180 || lng > 180) {
       return res.status(400).json({
         error: "Bad Request",
@@ -358,17 +265,11 @@ function validateGPS(req, res, next) {
         provided: lng
       });
     }
-    
-    // Ajouter les coordonnées validées à req
+
     req.validatedGPS = { lat, lng };
-    
-    // Appeler next()
+
     next();
   } catch (error) {
-    // Logger l'erreur
-    console.error("Error validating GPS coordinates:", error);
-    
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "GPS validation failed",
@@ -379,18 +280,11 @@ function validateGPS(req, res, next) {
 
 /**
  * Valide les données d'un avis (review)
- * @dev Valide rating (1-5) et comment optionnel
- * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
- * @param {Function} next - Next middleware
  */
 function validateReview(req, res, next) {
   try {
-    // Récupérer rating et comment depuis body
     const { rating, comment, clientAddress } = req.body;
-    
-    // Vérifier que rating existe
+
     if (rating === undefined || rating === null) {
       return res.status(400).json({
         error: "Bad Request",
@@ -398,8 +292,7 @@ function validateReview(req, res, next) {
         field: "rating"
       });
     }
-    
-    // Vérifier que rating est un nombre
+
     const ratingNumber = parseInt(rating, 10);
     if (isNaN(ratingNumber)) {
       return res.status(400).json({
@@ -408,8 +301,7 @@ function validateReview(req, res, next) {
         field: "rating"
       });
     }
-    
-    // Vérifier que rating est entre 1 et 5
+
     if (ratingNumber < 1 || ratingNumber > 5) {
       return res.status(400).json({
         error: "Bad Request",
@@ -418,8 +310,7 @@ function validateReview(req, res, next) {
         provided: ratingNumber
       });
     }
-    
-    // Vérifier que clientAddress est une adresse Ethereum valide (si fournie)
+
     if (clientAddress && !ethers.isAddress(clientAddress)) {
       return res.status(400).json({
         error: "Bad Request",
@@ -427,21 +318,15 @@ function validateReview(req, res, next) {
         field: "clientAddress"
       });
     }
-    
-    // Ajouter les données validées à req
+
     req.validatedReview = {
       rating: ratingNumber,
       comment: comment || "",
       clientAddress: clientAddress || null
     };
-    
-    // Appeler next()
+
     next();
   } catch (error) {
-    // Logger l'erreur
-    console.error("Error validating review:", error);
-    
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Review validation failed",
@@ -452,17 +337,11 @@ function validateReview(req, res, next) {
 
 /**
  * Valide les coordonnées GPS pour la vérification de livraison
- * @dev Valide delivererLat, delivererLng, clientLat, clientLng
- * 
- * @param {Object} req - Request Express
- * @param {Object} res - Response Express
- * @param {Function} next - Next middleware
  */
 function validateGPSDelivery(req, res, next) {
   try {
     const { delivererLat, delivererLng, clientLat, clientLng } = req.body;
-    
-    // Fonction helper pour valider une coordonnée
+
     const validateCoordinate = (value, name, min, max) => {
       const coord = parseFloat(value);
       if (isNaN(coord)) {
@@ -473,8 +352,7 @@ function validateGPSDelivery(req, res, next) {
       }
       return { valid: true, value: coord };
     };
-    
-    // Valider delivererLat
+
     const delivererLatResult = validateCoordinate(delivererLat, 'delivererLat', -90, 90);
     if (delivererLatResult.error) {
       return res.status(400).json({
@@ -483,8 +361,7 @@ function validateGPSDelivery(req, res, next) {
         field: "delivererLat"
       });
     }
-    
-    // Valider delivererLng
+
     const delivererLngResult = validateCoordinate(delivererLng, 'delivererLng', -180, 180);
     if (delivererLngResult.error) {
       return res.status(400).json({
@@ -493,8 +370,7 @@ function validateGPSDelivery(req, res, next) {
         field: "delivererLng"
       });
     }
-    
-    // Valider clientLat
+
     const clientLatResult = validateCoordinate(clientLat, 'clientLat', -90, 90);
     if (clientLatResult.error) {
       return res.status(400).json({
@@ -503,8 +379,7 @@ function validateGPSDelivery(req, res, next) {
         field: "clientLat"
       });
     }
-    
-    // Valider clientLng
+
     const clientLngResult = validateCoordinate(clientLng, 'clientLng', -180, 180);
     if (clientLngResult.error) {
       return res.status(400).json({
@@ -513,22 +388,16 @@ function validateGPSDelivery(req, res, next) {
         field: "clientLng"
       });
     }
-    
-    // Ajouter les coordonnées validées à req
+
     req.validatedGPSDelivery = {
       delivererLat: delivererLatResult.value,
       delivererLng: delivererLngResult.value,
       clientLat: clientLatResult.value,
       clientLng: clientLngResult.value
     };
-    
-    // Appeler next()
+
     next();
   } catch (error) {
-    // Logger l'erreur
-    console.error("Error validating GPS delivery coordinates:", error);
-    
-    // Retourner erreur 500
     return res.status(500).json({
       error: "Internal Server Error",
       message: "GPS delivery validation failed",
@@ -537,7 +406,6 @@ function validateGPSDelivery(req, res, next) {
   }
 }
 
-// Exporter toutes les fonctions
 module.exports = {
   validateOrderCreation,
   validateOrderId,
@@ -547,4 +415,3 @@ module.exports = {
   validateReview,
   validateOrderStatusUpdate
 };
-

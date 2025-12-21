@@ -48,15 +48,15 @@ let testDelivererAddress = `0x${'3'.repeat(40)}`;
 
 async function test(name, testFn) {
   try {
-    log(`\n📋 Test: ${name}`, 'cyan');
+    log(`\n Test: ${name}`, 'cyan');
     await testFn();
-    log(`   ✅ PASSÉ`, 'green');
+    log(`    PASSÉ`, 'green');
     testsPassed++;
     return true;
   } catch (error) {
-    log(`   ❌ ÉCHOUÉ: ${error.message}`, 'red');
+    log(`    ÉCHOUÉ: ${error.message}`, 'red');
     if (error.stack) {
-      console.log(`   📚 ${error.stack.split('\n')[1]?.trim()}`);
+      console.log(`    ${error.stack.split('\n')[1]?.trim()}`);
     }
     testsFailed++;
     return false;
@@ -65,14 +65,14 @@ async function test(name, testFn) {
 
 async function runTests() {
   log('='.repeat(70), 'blue');
-  log('🧪 TEST DES CONTROLLERS PHASE 6', 'blue');
+  log(' TEST DES CONTROLLERS PHASE 6', 'blue');
   log('='.repeat(70), 'blue');
 
   try {
     // Connexion à MongoDB
-    log('\n🔌 Connexion à MongoDB...', 'yellow');
+    log('\n Connexion à MongoDB...', 'yellow');
     await connectDB();
-    log('✅ Connecté à MongoDB', 'green');
+    log(' Connecté à MongoDB', 'green');
 
     // Importer les controllers directement
     const userController = require('../controllers/userController');
@@ -83,7 +83,7 @@ async function runTests() {
     // TEST 1: userController.js
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('1️⃣  TEST DE userController.js', 'blue');
+    log('  TEST DE userController.js', 'blue');
     log('='.repeat(70), 'blue');
 
     const User = require('../models/User');
@@ -151,7 +151,7 @@ async function runTests() {
       await userController.registerUser(req, res);
 
       if (res.statusCode !== 409) throw new Error(`Status code devrait être 409, reçu ${res.statusCode}`);
-      log(`   ✅ Conflit détecté correctement`, 'reset');
+      log(`    Conflit détecté correctement`, 'reset');
     });
 
     await test('getUserProfile - Récupération profil', async () => {
@@ -180,7 +180,7 @@ async function runTests() {
         throw new Error('Adresse incorrecte');
       }
 
-      log(`   🔍 Profil récupéré: ${res.jsonData.user.name}`, 'reset');
+      log(`    Profil récupéré: ${res.jsonData.user.name}`, 'reset');
     });
 
     await test('updateUserProfile - Mise à jour profil', async () => {
@@ -210,7 +210,7 @@ async function runTests() {
       if (res.statusCode !== 200) throw new Error(`Status code devrait être 200, reçu ${res.statusCode}`);
       if (res.jsonData.user.name !== 'Updated Test User') throw new Error('Nom non mis à jour');
 
-      log(`   ✏️  Profil mis à jour: ${res.jsonData.user.name}`, 'reset');
+      log(`     Profil mis à jour: ${res.jsonData.user.name}`, 'reset');
     });
 
     await test('getUserOrders - Récupération commandes', async () => {
@@ -238,7 +238,7 @@ async function runTests() {
       if (res.statusCode !== 200) throw new Error(`Status code devrait être 200, reçu ${res.statusCode}`);
       if (!Array.isArray(res.jsonData.orders)) throw new Error('Orders devrait être un tableau');
 
-      log(`   📋 ${res.jsonData.orders.length} commande(s) trouvée(s)`, 'reset');
+      log(`    ${res.jsonData.orders.length} commande(s) trouvée(s)`, 'reset');
     });
 
     await test('getUserTokens - Mock tokens', async () => {
@@ -272,7 +272,7 @@ async function runTests() {
     // TEST 2: restaurantController.js
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('2️⃣  TEST DE restaurantController.js', 'blue');
+    log('  TEST DE restaurantController.js', 'blue');
     log('='.repeat(70), 'blue');
 
     const Restaurant = require('../models/Restaurant');
@@ -354,7 +354,7 @@ async function runTests() {
       if (res.statusCode !== 200) throw new Error(`Status code devrait être 200, reçu ${res.statusCode}`);
       if (!res.jsonData.restaurant) throw new Error('Restaurant devrait être défini');
 
-      log(`   🔍 Restaurant récupéré: ${res.jsonData.restaurant.name}`, 'reset');
+      log(`    Restaurant récupéré: ${res.jsonData.restaurant.name}`, 'reset');
     });
 
     await test('getAllRestaurants - Liste restaurants', async () => {
@@ -379,7 +379,7 @@ async function runTests() {
       if (res.statusCode !== 200) throw new Error(`Status code devrait être 200, reçu ${res.statusCode}`);
       if (!Array.isArray(res.jsonData.restaurants)) throw new Error('Restaurants devrait être un tableau');
 
-      log(`   📋 ${res.jsonData.restaurants.length} restaurant(s) trouvé(s)`, 'reset');
+      log(`    ${res.jsonData.restaurants.length} restaurant(s) trouvé(s)`, 'reset');
     });
 
     await test('getRestaurantOrders - Commandes restaurant', async () => {
@@ -406,7 +406,7 @@ async function runTests() {
       if (res.statusCode !== 200) throw new Error(`Status code devrait être 200, reçu ${res.statusCode}`);
       if (!Array.isArray(res.jsonData.orders)) throw new Error('Orders devrait être un tableau');
 
-      log(`   📋 ${res.jsonData.orders.length} commande(s) trouvée(s)`, 'reset');
+      log(`    ${res.jsonData.orders.length} commande(s) trouvée(s)`, 'reset');
     });
 
     await test('getRestaurantAnalytics - Analytics restaurant', async () => {
@@ -433,7 +433,7 @@ async function runTests() {
       if (res.statusCode !== 200) throw new Error(`Status code devrait être 200, reçu ${res.statusCode}`);
       if (!res.jsonData.analytics) throw new Error('Analytics devrait être défini');
 
-      log(`   📊 Analytics: ${res.jsonData.analytics.totalOrders} commandes`, 'reset');
+      log(`    Analytics: ${res.jsonData.analytics.totalOrders} commandes`, 'reset');
     });
 
     await test('updateMenu - Mise à jour menu', async () => {
@@ -479,7 +479,7 @@ async function runTests() {
       if (!res.jsonData.menu) throw new Error('Menu devrait être défini');
       if (res.jsonData.menu.length !== 2) throw new Error('Menu devrait avoir 2 items');
 
-      log(`   📝 Menu mis à jour: ${res.jsonData.menu.length} items`, 'reset');
+      log(`    Menu mis à jour: ${res.jsonData.menu.length} items`, 'reset');
     });
 
     // ============================================
@@ -555,7 +555,7 @@ async function runTests() {
       if (res.statusCode !== 200) throw new Error(`Status code devrait être 200, reçu ${res.statusCode}`);
       if (!res.jsonData.deliverer) throw new Error('Deliverer devrait être défini');
 
-      log(`   🔍 Livreur récupéré: ${res.jsonData.deliverer.name}`, 'reset');
+      log(`    Livreur récupéré: ${res.jsonData.deliverer.name}`, 'reset');
     });
 
     await test('getAvailableDeliverers - Livreurs disponibles', async () => {
@@ -587,7 +587,7 @@ async function runTests() {
       if (res.statusCode !== 200) throw new Error(`Status code devrait être 200, reçu ${res.statusCode}`);
       if (!Array.isArray(res.jsonData.deliverers)) throw new Error('Deliverers devrait être un tableau');
 
-      log(`   📋 ${res.jsonData.deliverers.length} livreur(s) disponible(s)`, 'reset');
+      log(`    ${res.jsonData.deliverers.length} livreur(s) disponible(s)`, 'reset');
     });
 
     await test('updateDelivererStatus - Mise à jour statut', async () => {
@@ -672,7 +672,7 @@ async function runTests() {
       if (res.statusCode !== 200) throw new Error(`Status code devrait être 200, reçu ${res.statusCode}`);
       if (!Array.isArray(res.jsonData.orders)) throw new Error('Orders devrait être un tableau');
 
-      log(`   📋 ${res.jsonData.orders.length} commande(s) trouvée(s)`, 'reset');
+      log(`    ${res.jsonData.orders.length} commande(s) trouvée(s)`, 'reset');
     });
 
     await test('getDelivererEarnings - Earnings livreur', async () => {
@@ -706,7 +706,7 @@ async function runTests() {
     // NETTOYAGE
     // ============================================
     log('\n' + '='.repeat(70), 'yellow');
-    log('🧹 NETTOYAGE DES DONNÉES DE TEST', 'yellow');
+    log(' NETTOYAGE DES DONNÉES DE TEST', 'yellow');
     log('='.repeat(70), 'yellow');
 
     try {
@@ -730,35 +730,35 @@ async function runTests() {
         log(`   🗑️  ${createdUserIds.length} utilisateur(s) supprimé(s)`, 'reset');
       }
     } catch (cleanupError) {
-      log(`   ⚠️  Erreur lors du nettoyage: ${cleanupError.message}`, 'yellow');
+      log(`     Erreur lors du nettoyage: ${cleanupError.message}`, 'yellow');
     }
 
     // ============================================
     // RÉSUMÉ
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('📊 RÉSUMÉ DES TESTS', 'blue');
+    log(' RÉSUMÉ DES TESTS', 'blue');
     log('='.repeat(70), 'blue');
-    log(`✅ Tests réussis: ${testsPassed}`, 'green');
-    log(`❌ Tests échoués: ${testsFailed}`, testsFailed > 0 ? 'red' : 'green');
-    log(`📈 Taux de réussite: ${((testsPassed / (testsPassed + testsFailed)) * 100).toFixed(1)}%`, 'cyan');
+    log(` Tests réussis: ${testsPassed}`, 'green');
+    log(` Tests échoués: ${testsFailed}`, testsFailed > 0 ? 'red' : 'green');
+    log(` Taux de réussite: ${((testsPassed / (testsPassed + testsFailed)) * 100).toFixed(1)}%`, 'cyan');
     log('='.repeat(70), 'blue');
 
     if (testsFailed === 0) {
-      log('\n🎉 Tous les tests sont passés! Les controllers Phase 6 fonctionnent correctement.', 'green');
+      log('\n Tous les tests sont passés! Les controllers Phase 6 fonctionnent correctement.', 'green');
       log('\n💡 Les controllers sont prêts à être utilisés dans les routes.', 'cyan');
     } else {
-      log('\n⚠️  Certains tests ont échoué. Vérifiez les erreurs ci-dessus.', 'yellow');
+      log('\n  Certains tests ont échoué. Vérifiez les erreurs ci-dessus.', 'yellow');
     }
 
     // Déconnexion de MongoDB
     await disconnectDB();
-    log('\n🔌 Déconnecté de MongoDB', 'yellow');
+    log('\n Déconnecté de MongoDB', 'yellow');
 
     process.exit(testsFailed > 0 ? 1 : 0);
 
   } catch (error) {
-    log(`\n❌ Erreur fatale: ${error.message}`, 'red');
+    log(`\n Erreur fatale: ${error.message}`, 'red');
     if (error.stack) {
       console.error(error.stack);
     }

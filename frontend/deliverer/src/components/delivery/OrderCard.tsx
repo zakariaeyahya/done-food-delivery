@@ -19,12 +19,10 @@ interface OrderCardProps {
 export function OrderCard({ order, currentLocation, onAccept, accepting }: OrderCardProps) {
   const [showDetails, setShowDetails] = useState(false);
 
-  // Convertir totalAmount de wei à POL si nécessaire et calculer les gains
   const totalAmountFormatted = formatPrice(order.totalAmount, 'POL', 5);
   const totalAmountNumber = parseFloat(totalAmountFormatted.replace(' POL', ''));
   const earnings = totalAmountNumber * 0.2;
   
-  // Calculer la distance si GPS disponible
   let distanceMeters: number | null = null;
   let distanceFormatted: string = "N/A";
   let distanceKm: number = 0;
@@ -47,7 +45,6 @@ export function OrderCard({ order, currentLocation, onAccept, accepting }: Order
     badge = getDistanceBadge();
   }
 
-  // Extraire les items de la commande
   const orderItems = order.items || [];
 
   return (
@@ -63,7 +60,7 @@ export function OrderCard({ order, currentLocation, onAccept, accepting }: Order
           <div className="flex flex-col gap-1 items-end">
             {order.status === 'READY' && (
               <Badge variant="success" pulse>
-                ✅ Prête à récupérer
+                 Prête à récupérer
               </Badge>
             )}
             {order.status === 'PREPARING' && (
@@ -176,7 +173,7 @@ export function OrderCard({ order, currentLocation, onAccept, accepting }: Order
                   </div>
                   <div className="bg-slate-800/50 rounded-xl p-4">
                     <p className="text-white font-medium">{order.client?.name || 'Client'}</p>
-                    <p className="text-sm text-slate-400 mt-1">📍 {order.deliveryAddress || 'Adresse non spécifiée'}</p>
+                    <p className="text-sm text-slate-400 mt-1"> {order.deliveryAddress || 'Adresse non spécifiée'}</p>
                     {order.client?.phone && (
                       <p className="text-sm text-slate-400 mt-1">📞 {order.client.phone}</p>
                     )}

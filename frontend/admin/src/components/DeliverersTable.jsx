@@ -71,7 +71,6 @@ export default function DeliverersTable() {
       setDeliverers(res?.data || []);
       setTotal(res?.total || 0);
     } catch (err) {
-      console.error("Erreur livreurs:", err);
     } finally {
       setLoading(false);
     }
@@ -200,7 +199,7 @@ export default function DeliverersTable() {
                   <td className="p-3">
                     {d.slashingCount > 0 ? (
                       <span className="text-red-600 font-bold">
-                        {d.slashingCount} ⚠️
+                        {d.slashingCount} 
                       </span>
                     ) : (
                       <span className="text-gray-500">0</span>

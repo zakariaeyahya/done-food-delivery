@@ -24,7 +24,6 @@ async function connectDB() {
     }
 
     if (mongoose.connection.readyState === 1) {
-      console.log("MongoDB already connected");
       return;
     }
 
@@ -40,18 +39,14 @@ async function connectDB() {
 
     mongoose.connection.on('connected', () => {
       connectionStatus = 1;
-      console.log(`MongoDB connected successfully to: ${mongoose.connection.host}`);
-      console.log(`Database: ${mongoose.connection.name}`);
     });
 
     mongoose.connection.on('error', (err) => {
       connectionStatus = 0;
-      console.error("MongoDB connection error:", err);
     });
 
     mongoose.connection.on('disconnected', () => {
       connectionStatus = 0;
-      console.log("MongoDB disconnected");
     });
 
     process.on('SIGINT', async () => {
@@ -61,7 +56,6 @@ async function connectDB() {
 
   } catch (error) {
     connectionStatus = 0;
-    console.error("Error connecting to MongoDB:", error);
     throw error;
   }
 }
@@ -75,7 +69,6 @@ async function connectDB() {
 async function disconnectDB() {
   try {
     if (mongoose.connection.readyState === 0) {
-      console.log("MongoDB already disconnected");
       return;
     }
 
@@ -84,10 +77,7 @@ async function disconnectDB() {
     await mongoose.connection.close();
 
     connectionStatus = 0;
-
-    console.log("MongoDB disconnected successfully");
   } catch (error) {
-    console.error("Error disconnecting from MongoDB:", error);
     throw error;
   }
 }

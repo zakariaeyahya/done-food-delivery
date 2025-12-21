@@ -35,7 +35,6 @@ export function Skeleton({
   );
 }
 
-// Composants Skeleton pré-configurés
 export function CardSkeleton() {
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-[#1a1a24]/80 p-6 space-y-4">

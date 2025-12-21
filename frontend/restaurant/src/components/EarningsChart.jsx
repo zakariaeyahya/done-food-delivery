@@ -1,8 +1,3 @@
-/**
- * Composant EarningsChart - Restaurant
- * @notice Graphique des revenus et gains on-chain
- * @dev Data depuis blockchain events PaymentSplit, retrait fonds
- */
 
 import { useEffect, useMemo, useState } from "react";
 import { Line } from "react-chartjs-2";
@@ -11,9 +6,6 @@ import { ethers } from "ethers";
 import * as api from "../services/api";
 import * as blockchain from "../services/blockchain";
 
-/**
- * Convertit wei en POL (ether)
- */
 function weiToPol(weiValue) {
   try {
     if (!weiValue && weiValue !== 0) return 0;
@@ -44,15 +36,6 @@ function formatDate(d) {
   });
 }
 
-/**
- * Composant EarningsChart
- * @param {string} restaurantId - ID du restaurant
- * @param {string} restaurantAddress - Adresse wallet du restaurant
- * @param {'day'|'week'|'month'} period
- * @param {string} explorerBaseUrl - ex: https://mumbai.polygonscan.com ou https://polygonscan.com
- * @param {(msg:string)=>void} showSuccess - toast success optionnel
- * @param {(msg:string)=>void} showError - toast error optionnel
- */
 function EarningsChart({
   restaurantId,
   restaurantAddress,
@@ -109,7 +92,6 @@ function EarningsChart({
         pending: apiData?.pending ?? pending,
       });
     } catch (e) {
-      console.error("Error fetching earnings:", e);
       setError("Impossible de charger les revenus on-chain.");
       showError?.(e.message);
     } finally {
@@ -135,7 +117,6 @@ function EarningsChart({
         result?.amount != null ? formatPrice(result.amount, 'POL', 5) : "OK";
       showSuccess?.(`Retrait réussi: ${amountMsg}`);
     } catch (e) {
-      console.error("Error withdrawing:", e);
       setError(`Erreur de retrait: ${e.message}`);
       showError?.(`Erreur: ${e.message}`);
     } finally {
@@ -223,7 +204,7 @@ function EarningsChart({
             disabled={loading}
             className="rounded-xl bg-neutral-100 px-3 py-2 text-sm font-semibold text-neutral-700 shadow-soft transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
           >
-            {loading ? "🔄 Actualisation..." : "🔄 Actualiser"}
+            {loading ? "Actualisation..." : "Actualiser"}
           </button>
 
           <div className="flex items-center gap-3 rounded-xl bg-neutral-50 px-3 py-2 dark:bg-neutral-900/40">

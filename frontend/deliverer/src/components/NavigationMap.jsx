@@ -1,6 +1,3 @@
-/**
- * Composant NavigationMap - Carte Google Maps avec navigation
- */
 
 import { useState, useEffect, useRef } from "react";
 import {
@@ -13,13 +10,6 @@ import {
 
 import geolocation from "../services/geolocation";
 
-/**
- * Composant NavigationMap
- * @param {Object} origin - Position de départ { lat, lng }
- * @param {Object} destination - Position d'arrivée { lat, lng }
- * @param {string} step - 'pickup' ou 'delivery'
- * @param {Function} onArrival - Callback quand le livreur arrive
- */
 function NavigationMap({ origin, destination, step, onArrival }) {
   const [directions, setDirections] = useState(null);
   const [currentPosition, setCurrentPosition] = useState(origin);
@@ -29,21 +19,18 @@ function NavigationMap({ origin, destination, step, onArrival }) {
   const watchIdRef = useRef(null);
   const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  /** Calcul de la route au montage ou si origin/destination change */
   useEffect(() => {
     if (origin && destination) {
       calculateRoute();
     }
   }, [origin, destination]);
 
-  /** Tracking GPS en temps réel */
   useEffect(() => {
     if (!origin) return;
 
     watchIdRef.current = geolocation.watchPosition((pos) => {
       setCurrentPosition(pos);
 
-      // Recalculer itinéraire si une route existe déjà
       if (directions) {
         calculateRoute();
       }
@@ -56,7 +43,6 @@ function NavigationMap({ origin, destination, step, onArrival }) {
     };
   }, []);
 
-  /** Calcul automatique de l’itinéraire */
   async function calculateRoute() {
     try {
       const routeData = await geolocation.calculateRoute(origin, destination);
@@ -64,11 +50,9 @@ function NavigationMap({ origin, destination, step, onArrival }) {
       setDirections(routeData.route);
       setEta(routeData.duration);
     } catch (err) {
-      console.error("Erreur calcul route :", err);
     }
   }
 
-  /** Détection d’arrivée à destination */
   useEffect(() => {
     if (!currentPosition || !destination) return;
 
@@ -93,7 +77,7 @@ function NavigationMap({ origin, destination, step, onArrival }) {
       >
         {/* Marker position du livreur */}
         {currentPosition && (
-          <Marker position={currentPosition} label="📍 Vous" />
+          <Marker position={currentPosition} label=" Vous" />
         )}
 
         {/* Restaurant */}

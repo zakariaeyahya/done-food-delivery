@@ -1,6 +1,6 @@
 # DONE Food Delivery - Backend API
 
-## 📋 Table des matières
+##  Table des matières
 
 - [Introduction](#introduction)
 - [Architecture](#architecture)
@@ -25,15 +25,15 @@ Le backend DONE Food Delivery est une API REST construite avec Node.js et Expres
 
 ### Fonctionnalités principales
 
-- ✅ **Gestion des commandes** : Cycle de vie complet des commandes (création, préparation, livraison, litiges)
-- ✅ **Gestion des utilisateurs** : Clients, restaurants et livreurs avec profils complets
-- ✅ **Intégration blockchain** : Interactions avec les smart contracts (OrderManager, PaymentSplitter, Token, Staking)
-- ✅ **Stockage IPFS** : Upload et gestion des images via Pinata
-- ✅ **Notifications temps réel** : Socket.io pour les mises à jour en direct
-- ✅ **Système d'arbitrage** : Gestion des litiges avec vote décentralisé
-- ✅ **Oracles Chainlink** : Prix MATIC/USD et données GPS
-- ✅ **Analytics** : Tableaux de bord et statistiques avancées
-- ✅ **Administration** : Panel d'administration complet
+-  **Gestion des commandes** : Cycle de vie complet des commandes (création, préparation, livraison, litiges)
+-  **Gestion des utilisateurs** : Clients, restaurants et livreurs avec profils complets
+-  **Intégration blockchain** : Interactions avec les smart contracts (OrderManager, PaymentSplitter, Token, Staking)
+-  **Stockage IPFS** : Upload et gestion des images via Pinata
+-  **Notifications temps réel** : Socket.io pour les mises à jour en direct
+-  **Système d'arbitrage** : Gestion des litiges avec vote décentralisé
+-  **Oracles Chainlink** : Prix MATIC/USD et données GPS
+-  **Analytics** : Tableaux de bord et statistiques avancées
+-  **Administration** : Panel d'administration complet
 
 ---
 
@@ -324,7 +324,7 @@ backend/
 
 ---
 
-## 📚 Documentation API
+##  Documentation API
 
 ### Endpoints principaux
 
@@ -428,7 +428,7 @@ Pour une documentation détaillée de tous les endpoints avec exemples de requê
 
 ---
 
-## 🧪 Tests
+##  Tests
 
 ### Tests API complets
 
@@ -438,7 +438,7 @@ Exécutez tous les tests API :
 npm run test:api
 ```
 
-**Résultats attendus** : ✅ 75/75 tests réussis (100%)
+**Résultats attendus** :  75/75 tests réussis (100%)
 
 ### Tests unitaires
 
@@ -464,7 +464,7 @@ npm run test:watch
 
 ---
 
-## 🔌 Services et intégrations
+##  Services et intégrations
 
 ### MongoDB
 
@@ -589,20 +589,20 @@ Le backend utilise un système de logging centralisé (`src/utils/logger.js`). L
 
 ---
 
-## 📊 Statut de développement
+##  Statut de développement
 
-### ✅ Fonctionnalités complètes
+###  Fonctionnalités complètes
 
-- ✅ Gestion des utilisateurs (clients, restaurants, livreurs)
-- ✅ Cycle de vie complet des commandes
-- ✅ Intégration blockchain (Polygon Amoy)
-- ✅ Stockage IPFS (Pinata)
-- ✅ Notifications temps réel (Socket.io)
-- ✅ Système d'arbitrage
-- ✅ Oracles Chainlink (prix, GPS)
-- ✅ Analytics et statistiques
-- ✅ Panel d'administration
-- ✅ Tests API complets (75/75 tests réussis)
+-  Gestion des utilisateurs (clients, restaurants, livreurs)
+-  Cycle de vie complet des commandes
+-  Intégration blockchain (Polygon Amoy)
+-  Stockage IPFS (Pinata)
+-  Notifications temps réel (Socket.io)
+-  Système d'arbitrage
+-  Oracles Chainlink (prix, GPS)
+-  Analytics et statistiques
+-  Panel d'administration
+-  Tests API complets (75/75 tests réussis)
 
 ### 🔄 En cours
 
@@ -631,7 +631,7 @@ Le backend utilise un système de logging centralisé (`src/utils/logger.js`). L
 
 ---
 
-## 📝 Scripts NPM
+##  Scripts NPM
 
 ```bash
 # Démarrage

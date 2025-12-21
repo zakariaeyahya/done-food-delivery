@@ -113,7 +113,7 @@ async function getDashboard(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error in getDashboard:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch dashboard analytics"
@@ -169,7 +169,7 @@ async function getOrdersAnalytics(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error in getOrdersAnalytics:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch orders analytics"
@@ -232,7 +232,7 @@ async function getRevenueAnalytics(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error in getRevenueAnalytics:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch revenue analytics"
@@ -323,7 +323,7 @@ async function getUsersAnalytics(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error in getUsersAnalytics:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch users analytics"

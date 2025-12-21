@@ -38,7 +38,6 @@ function HomePage() {
   async function loadData() {
     setCheckingRegistration(true);
     try {
-      // Check if user is registered as deliverer
       const delivererData = await api.getDeliverer(address).catch((err) => {
         if (err.response?.status === 404) {
           setIsRegistered(false);
@@ -57,36 +56,24 @@ function HomePage() {
       setIsRegistered(true);
       setCheckingRegistration(false);
 
-      // Set online status from deliverer data
       setIsOnline(delivererData.deliverer?.isAvailable || false);
 
-      // Load active delivery (may not exist - that's ok)
       const active = await api.getActiveDelivery(address).catch(() => null);
       setActiveDelivery(active);
 
-      // Load earnings (with auth - may fail)
-      console.log("[HomePage] 📊 Chargement earnings pour:", address);
       const earningsResponse = await api.getEarnings(address, "today").catch((err) => {
-        console.error("[HomePage] ❌ Erreur earnings:", err);
         return { earnings: { completedDeliveries: 0, totalEarnings: 0 } };
       });
-      console.log("[HomePage] 📊 Réponse earnings:", earningsResponse);
-      // Extraire les données depuis la réponse structurée du backend
       const earnings = earningsResponse.earnings || {
         completedDeliveries: 0,
         totalEarnings: 0
       };
-      console.log("[HomePage] 📊 Earnings extraits:", earnings);
 
-      // Load rating from API
       const ratingData = await api.getRating(address).catch((err) => {
-        console.warn("Rating data not available:", err.message);
         return { rating: 0, totalDeliveries: 0, reviews: [] };
       });
 
-      // Load stake info from blockchain (may fail if contract not deployed)
       const stakeInfo = await blockchain.getStakeInfo(address).catch((err) => {
-        console.warn("Blockchain stake info not available:", err.message);
         return { amount: 0, isStaked: false };
       });
 
@@ -97,7 +84,6 @@ function HomePage() {
         stakedAmount: stakeInfo.amount || 0,
       });
     } catch (err) {
-      console.error("Erreur chargement:", err);
     }
   }
 
@@ -120,7 +106,6 @@ function HomePage() {
       alert("Inscription réussie !");
       await loadData();
     } catch (err) {
-      // Si déjà inscrit, recharger les données pour afficher le dashboard
       if (err.alreadyRegistered) {
         alert("Ce wallet est déjà inscrit. Redirection vers le tableau de bord...");
         await loadData();
@@ -151,7 +136,6 @@ function HomePage() {
     try {
       await loadData();
     } catch (err) {
-      console.error("Erreur lors de l'actualisation:", err);
       alert("Erreur lors de l'actualisation des données");
     } finally {
       setRefreshing(false);
@@ -172,7 +156,6 @@ function HomePage() {
     );
   }
 
-  // Show loading while checking registration status
   if (checkingRegistration) {
     return (
       <div className="page">

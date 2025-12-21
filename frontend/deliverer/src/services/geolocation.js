@@ -1,11 +1,4 @@
-/**
- * Service de géolocalisation et calculs GPS
- * @fileoverview Gère la géolocalisation native du navigateur + calcul distances + Google Directions
- */
 
-/* -------------------------------------------------------------------------- */
-/* 1. Obtenir la position actuelle                                            */
-/* -------------------------------------------------------------------------- */
 export async function getCurrentPosition() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
@@ -13,7 +6,6 @@ export async function getCurrentPosition() {
       return;
     }
 
-    // Essayer d'abord avec haute précision
     navigator.geolocation.getCurrentPosition(
       (position) => {
         resolve({
@@ -23,9 +15,7 @@ export async function getCurrentPosition() {
         });
       },
       (error) => {
-        // Si la haute précision échoue, essayer avec une précision moindre
         if (error.code === 2) {
-          // Position indisponible - réessayer avec moins de précision
           navigator.geolocation.getCurrentPosition(
             (position) => {
               resolve({
@@ -35,7 +25,6 @@ export async function getCurrentPosition() {
               });
             },
             (retryError) => {
-              // Si ça échoue encore, retourner l'erreur originale
               if (retryError.code === 1) {
                 reject(
                   new Error(
@@ -77,9 +66,6 @@ export async function getCurrentPosition() {
   });
 }
 
-/* -------------------------------------------------------------------------- */
-/* 2. Suivre la position en continu                                           */
-/* -------------------------------------------------------------------------- */
 export function watchPosition(callback) {
   if (!navigator.geolocation) {
     throw new Error("Geolocation is not supported by this browser");
@@ -95,7 +81,6 @@ export function watchPosition(callback) {
       });
     },
     (error) => {
-      console.error("Geolocation watch error:", error);
     },
     {
       enableHighAccuracy: true,
@@ -107,9 +92,6 @@ export function watchPosition(callback) {
   return watchId;
 }
 
-/* -------------------------------------------------------------------------- */
-/* 3. Calculer un itinéraire Google Maps DirectionsService                    */
-/* -------------------------------------------------------------------------- */
 export async function calculateRoute(origin, destination) {
   try {
     if (!origin || !destination) {
@@ -147,14 +129,10 @@ export async function calculateRoute(origin, destination) {
       );
     });
   } catch (error) {
-    console.error("Error calculating route:", error);
     throw new Error(`Failed to calculate route: ${error.message}`);
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/* 4. Calcul distance (Haversine)                                             */
-/* -------------------------------------------------------------------------- */
 export function getDistance(lat1, lng1, lat2, lng2) {
   const R = 6371; // Rayon de la Terre en km
 
@@ -174,9 +152,6 @@ export function getDistance(lat1, lng1, lat2, lng2) {
   return distance; // km
 }
 
-/* -------------------------------------------------------------------------- */
-/* 5. Vérifier si proche d’une location                                      */
-/* -------------------------------------------------------------------------- */
 export function isNearLocation(
   currentLat,
   currentLng,
@@ -188,9 +163,6 @@ export function isNearLocation(
   return distance <= radius;
 }
 
-/* -------------------------------------------------------------------------- */
-/* 6. Formatage distance                                                      */
-/* -------------------------------------------------------------------------- */
 export function formatDistance(distance) {
   if (!distance) return "—";
 
@@ -200,9 +172,6 @@ export function formatDistance(distance) {
   return `${distance.toFixed(1)} km`;
 }
 
-/* -------------------------------------------------------------------------- */
-/* 7. Formatage durée                                                         */
-/* -------------------------------------------------------------------------- */
 export function formatDuration(minutes) {
   if (!minutes) return "—";
 
@@ -216,9 +185,7 @@ export function formatDuration(minutes) {
   return `${hours}h ${mins}min`;
 }
 
-/* -------------------------------------------------------------------------- */
 /* EXPORTS                                                                    */
-/* -------------------------------------------------------------------------- */
 export default {
   getCurrentPosition,
   watchPosition,

@@ -1,6 +1,3 @@
-/**
- * Composant ActiveDelivery - Gestion de la livraison en cours
- */
 
 import { useState, useEffect, useRef } from "react";
 import api from "../services/api";
@@ -9,10 +6,6 @@ import geolocation from "../services/geolocation";
 import NavigationMap from "./NavigationMap";
 import { formatPrice } from "../utils/formatters";
 
-/**
- * Composant ActiveDelivery
- * @param {Object} order - Données complètes de la commande active
- */
 function ActiveDelivery({ order }) {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [step, setStep] = useState("pickup"); // "pickup" ou "delivery"
@@ -23,11 +16,9 @@ function ActiveDelivery({ order }) {
 
   const watchIdRef = useRef(null);
 
-  /** Charger position au montage */
   useEffect(() => {
     loadCurrentLocation();
 
-    // Si commande en livraison, démarrer tracking automatiquement
     if (order && order.status === "IN_DELIVERY") {
       startGPSTracking();
       setStep("delivery");
@@ -36,7 +27,6 @@ function ActiveDelivery({ order }) {
     return () => stopGPSTracking();
   }, [order]);
 
-  /** Vérifier proximité toutes les 5 sec */
   useEffect(() => {
     if (!currentLocation || !order) return;
 
@@ -47,17 +37,14 @@ function ActiveDelivery({ order }) {
     return () => clearInterval(interval);
   }, [currentLocation, order, step]);
 
-  /** Charger position actuelle */
   async function loadCurrentLocation() {
     try {
       const position = await geolocation.getCurrentPosition();
       setCurrentLocation(position);
     } catch (error) {
-      console.error("Erreur GPS :", error);
     }
   }
 
-  /** Vérifier si le livreur est proche du restaurant ou du client */
   function checkProximity() {
     if (!currentLocation || !order) return;
 
@@ -80,7 +67,6 @@ function ActiveDelivery({ order }) {
     }
   }
 
-  /** Démarrer GPS tracking */
   function startGPSTracking() {
     if (tracking) return;
 
@@ -98,7 +84,6 @@ function ActiveDelivery({ order }) {
     });
   }
 
-  /** Arrêter tracking */
   function stopGPSTracking() {
     setTracking(false);
 
@@ -108,7 +93,6 @@ function ActiveDelivery({ order }) {
     }
   }
 
-  /** Confirmation pickup */
   async function handleConfirmPickup() {
     if (!isNearRestaurant) {
       alert("Vous devez être à moins de 100m du restaurant.");
@@ -134,7 +118,6 @@ function ActiveDelivery({ order }) {
     }
   }
 
-  /** Confirmation livraison */
   async function handleConfirmDelivery() {
     if (!isNearClient) {
       alert("Vous devez être à moins de 100m du client.");
@@ -160,7 +143,6 @@ function ActiveDelivery({ order }) {
     }
   }
 
-  /** Distance vers un point */
   function getDistance(targetLocation) {
     if (!currentLocation || !targetLocation) return null;
 
@@ -278,7 +260,7 @@ function ActiveDelivery({ order }) {
       {/* Indicateur GPS */}
       {tracking && (
         <div className="gps-indicator gps-active">
-          📍 GPS tracking actif
+           GPS tracking actif
         </div>
       )}
     </div>

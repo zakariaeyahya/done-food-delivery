@@ -91,8 +91,6 @@ const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal })
       }
       setTxStatus('confirmed');
     } catch (err) {
-      console.error('Erreur lors de la création de la commande:', err);
-
       let errorMessage = 'Une erreur est survenue lors de la création de la commande.';
 
       if (err.response?.data) {

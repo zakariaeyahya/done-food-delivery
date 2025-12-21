@@ -44,7 +44,7 @@ async function main() {
   // === ÉTAPE 4: VÉRIFIER SI L'ADRESSE A DÉJÀ LE RÔLE ===
   const hasRoleBefore = await orderManager.hasRole(RESTAURANT_ROLE, RESTAURANT_ADDRESS);
   if (hasRoleBefore) {
-    console.log("\n✅ Cette adresse a DÉJÀ le rôle RESTAURANT_ROLE!");
+    console.log("\n Cette adresse a DÉJÀ le rôle RESTAURANT_ROLE!");
     console.log("   Aucune action nécessaire.");
     return;
   }
@@ -61,17 +61,17 @@ async function main() {
   // === ÉTAPE 6: VÉRIFICATION ===
   const hasRoleAfter = await orderManager.hasRole(RESTAURANT_ROLE, RESTAURANT_ADDRESS);
   if (hasRoleAfter) {
-    console.log("\n✅ Rôle RESTAURANT_ROLE attribué avec succès!");
+    console.log("\n Rôle RESTAURANT_ROLE attribué avec succès!");
     console.log("   Adresse:", RESTAURANT_ADDRESS);
     console.log("\n   Vous pouvez maintenant vous connecter à l'interface restaurant.");
   } else {
-    console.log("\n❌ Échec de l'attribution du rôle");
+    console.log("\n Échec de l'attribution du rôle");
   }
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("❌ Erreur:", error);
+    console.error(" Erreur:", error);
     process.exit(1);
   });

@@ -1,11 +1,3 @@
-/**
- * TopDeliverersTable.jsx
- * Affiche les meilleurs livreurs :
- * - total livraisons
- * - revenus totaux
- * - rating
- */
-
 import React, { useEffect, useState } from "react";
 import { getTopDeliverers } from "../services/api";
 import { formatCrypto, formatNumber, weiToPol } from "../services/formatters";
@@ -20,7 +12,6 @@ export default function TopDeliverersTable() {
       const res = await getTopDeliverers();
       setDeliverers(res?.data || []);
     } catch (err) {
-      console.error("Erreur chargement top livreurs:", err);
     } finally {
       setLoading(false);
     }
@@ -32,7 +23,7 @@ export default function TopDeliverersTable() {
 
   return (
     <div className="bg-white p-6 rounded-xl shadow border">
-      <h2 className="text-xl font-semibold mb-4">🏅 Top Livreurs</h2>
+      <h2 className="text-xl font-semibold mb-4">Top Livreurs</h2>
 
       {loading ? (
         <p className="text-gray-500 text-center py-6">Chargement...</p>

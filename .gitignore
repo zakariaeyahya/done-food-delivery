@@ -92,5 +92,13 @@ docker-compose.grafana.yml
 grafana/
 grafana-storage/
 start-grafana.ps1
+import-grafana-dashboard.ps1
+test-grafana-connection.ps1
+fix-grafana-datasource.ps1
+GRAFANA_SETUP.md
+GUIDE_SCRIPTS.md
+SOLUTION_404.md
+FIX_JSON_API_NOT_FOUND.md
+FIX_PROVISIONED_DATASOURCE.md
 Sprint/sprint7_grafana_integration.md
 Sprint/sprint7_blockchain_analytics.md

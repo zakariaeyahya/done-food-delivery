@@ -1,8 +1,3 @@
-/**
- * Composant OrderCard - Restaurant
- * @notice Carte individuelle d'une commande
- * @dev Affiche détails commande, items, client, statut, actions
- */
 
 import { useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
@@ -11,11 +6,6 @@ import { ethers } from "ethers";
 import { formatAddress } from "../utils/web3";
 import { formatPrice, formatDate } from "../utils/formatters";
 
-/**
- * Convertit wei en POL (ether)
- * @param {string|number|bigint} weiValue - Valeur en wei
- * @returns {number} Valeur en POL
- */
 function weiToPol(weiValue) {
   try {
     if (!weiValue && weiValue !== 0) return 0;
@@ -35,13 +25,6 @@ function weiToPol(weiValue) {
 const IPFS_GATEWAY =
   import.meta.env.VITE_IPFS_GATEWAY || "https://ipfs.io/ipfs/";
 
-/**
- * Composant OrderCard
- * @param {Object} order - Données de la commande
- * @param {(orderId: string|number) => void} onConfirmPreparation
- * @param {(orderId: string|number) => void} onMarkReady - Marquer comme prête
- * @returns {JSX.Element}
- */
 function OrderCard({ order, onConfirmPreparation, onMarkReady }) {
   const [elapsedTime, setElapsedTime] = useState("");
 
@@ -230,7 +213,7 @@ function OrderCard({ order, onConfirmPreparation, onMarkReady }) {
             onClick={() => onMarkReady(order.orderId)}
             className="rounded-xl bg-green-500 px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-green-600"
           >
-            ✅ Commande prête
+             Commande prête
           </button>
         )}
       </div>
@@ -238,31 +221,3 @@ function OrderCard({ order, onConfirmPreparation, onMarkReady }) {
   );
 }
 
-/* ---------------- UI Bits ---------------- */
-
-function StatusBadge({ tone = "neutral", children }) {
-  const styles = {
-    warning:
-      "bg-warning-100 text-warning-800 dark:bg-warning-900/30 dark:text-warning-200",
-    secondary:
-      "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200",
-    info:
-      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200",
-    success:
-      "bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-200",
-    error:
-      "bg-error-100 text-error-800 dark:bg-error-900/30 dark:text-error-200",
-    neutral:
-      "bg-neutral-100 text-neutral-800 dark:bg-neutral-700 dark:text-neutral-100",
-  };
-
-  return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs font-medium ${styles[tone]}`}
-    >
-      {children}
-    </span>
-  );
-}
-
-export default OrderCard;

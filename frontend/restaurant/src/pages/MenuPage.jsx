@@ -1,8 +1,3 @@
-/**
- * Page MenuPage - Restaurant
- * @notice Gestion du menu restaurant
- * @dev Intègre MenuManager en mode full-page
- */
 
 import MenuManager from "../components/MenuManager";
 import { useWallet } from "../contexts/WalletContext"; // adapte si besoin

@@ -6,9 +6,9 @@
  * Ce fichier contient tous les tests pour TOUS les endpoints de l'API
  * Basé sur les routes définies dans backend/src/routes/
  * 
- * ✅ ENDPOINTS TESTÉS (Tous les endpoints existants):
+ *  ENDPOINTS TESTÉS (Tous les endpoints existants):
  * 
- * 📋 Health Check (1):
+ *  Health Check (1):
  *    - GET /health
  * 
  * 👤 Users (5):
@@ -67,7 +67,7 @@
  *    - GET /api/admin/deliverers
  *    - POST /api/admin/deliverers/:address/slash
  * 
- * 📊 Analytics (5):
+ *  Analytics (5):
  *    - GET /api/analytics/dashboard
  *    - GET /api/analytics/orders
  *    - GET /api/analytics/orders?period=week
@@ -159,7 +159,7 @@ async function runTest(name, testFn, skipReason = null) {
     await testFn();
     testsPassed++;
     results.push({ name, status: 'PASS' });
-    console.log(`✅ PASS: ${name}`);
+    console.log(` PASS: ${name}`);
   } catch (error) {
     testsFailed++;
     // Améliorer le message d'erreur
@@ -172,7 +172,7 @@ async function runTest(name, testFn, skipReason = null) {
       errorMsg = `Timeout de connexion vers ${BASE_URL}`;
     }
     results.push({ name, status: 'FAIL', error: errorMsg });
-    console.log(`❌ FAIL: ${name}`);
+    console.log(` FAIL: ${name}`);
     console.log(`   Error: ${errorMsg}`);
   }
 }
@@ -199,7 +199,7 @@ const api = {
 // ============================================================================
 
 async function testHealthCheck() {
-  console.log('\n📋 === TESTS HEALTH CHECK ===\n');
+  console.log('\n === TESTS HEALTH CHECK ===\n');
   
   await runTest('GET /health - Vérification état du système', async () => {
     const res = await request(BASE_URL).get('/health');
@@ -747,7 +747,7 @@ async function testAdmin() {
 // ============================================================================
 
 async function testAnalytics() {
-  console.log('\n📊 === TESTS ANALYTICS ===\n');
+  console.log('\n === TESTS ANALYTICS ===\n');
   
   // GET /api/analytics/dashboard
   await runTest('GET /api/analytics/dashboard - Dashboard complet (avec auth admin)', async () => {
@@ -1024,7 +1024,7 @@ async function testValidationAndSecurity() {
     // Note: Si 200, c'est un avertissement de sécurité mais pas un échec de test
     // car l'authentification peut être désactivée en développement
     if (res.status === 200) {
-      console.log('   ⚠️  AVERTISSEMENT: Endpoint admin accessible sans auth (dev mode?)');
+      console.log('     AVERTISSEMENT: Endpoint admin accessible sans auth (dev mode?)');
     }
     // Le test passe tant que le serveur répond
     if (![200, 401, 403].includes(res.status)) {
@@ -1051,7 +1051,7 @@ async function testValidationAndSecurity() {
     if (rateLimited > 0) {
       console.log('   ✓ Rate limiting actif');
     } else {
-      console.log('   ⚠️  Rate limiting non implémenté (optionnel)');
+      console.log('     Rate limiting non implémenté (optionnel)');
     }
     
     // Le test passe si au moins une requête réussit
@@ -1154,12 +1154,12 @@ async function runAllTests() {
   console.log(`📅 Date: ${new Date().toISOString()}\n`);
 
   // Vérifier si le serveur est disponible
-  console.log('🔍 Vérification de la disponibilité du serveur...\n');
+  console.log(' Vérification de la disponibilité du serveur...\n');
   const serverCheck = await checkServerAvailable();
   
   if (!serverCheck.available) {
     console.log('╔══════════════════════════════════════════════════════════════╗');
-    console.log('║  ⚠️  SERVEUR NON DISPONIBLE                                  ║');
+    console.log('║    SERVEUR NON DISPONIBLE                                  ║');
     console.log('╠══════════════════════════════════════════════════════════════╣');
     console.log(`║  Le serveur n'est pas accessible sur ${BASE_URL}      ║`);
     console.log('║                                                              ║');
@@ -1175,7 +1175,7 @@ async function runAllTests() {
     return 1;
   }
   
-  console.log(`✅ Serveur disponible (status: ${serverCheck.status})\n`);
+  console.log(` Serveur disponible (status: ${serverCheck.status})\n`);
 
   const startTime = Date.now();
 
@@ -1195,7 +1195,7 @@ async function runAllTests() {
     await testValidationAndSecurity();
     await testPerformance();
   } catch (error) {
-    console.error('\n❌ Erreur fatale lors des tests:', error.message);
+    console.error('\n Erreur fatale lors des tests:', error.message);
   }
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2);
@@ -1204,15 +1204,15 @@ async function runAllTests() {
   console.log('\n╔══════════════════════════════════════════════════════════════╗');
   console.log('║                    RÉSUMÉ DES TESTS                          ║');
   console.log('╠══════════════════════════════════════════════════════════════╣');
-  console.log(`║  ✅ Tests réussis:  ${testsPassed.toString().padEnd(4)} / ${(testsPassed + testsFailed + testsSkipped).toString().padEnd(4)}                          ║`);
-  console.log(`║  ❌ Tests échoués:  ${testsFailed.toString().padEnd(4)}                                       ║`);
+  console.log(`║   Tests réussis:  ${testsPassed.toString().padEnd(4)} / ${(testsPassed + testsFailed + testsSkipped).toString().padEnd(4)}                          ║`);
+  console.log(`║   Tests échoués:  ${testsFailed.toString().padEnd(4)}                                       ║`);
   console.log(`║  ⏭️  Tests ignorés: ${testsSkipped.toString().padEnd(4)}                                       ║`);
   console.log(`║  ⏱️  Durée totale:  ${duration}s                                    ║`);
   console.log('╚══════════════════════════════════════════════════════════════╝');
 
   // Afficher les tests échoués
   if (testsFailed > 0) {
-    console.log('\n❌ TESTS ÉCHOUÉS:');
+    console.log('\n TESTS ÉCHOUÉS:');
     results.filter(r => r.status === 'FAIL').forEach(r => {
       console.log(`   - ${r.name}`);
       console.log(`     Error: ${r.error}`);

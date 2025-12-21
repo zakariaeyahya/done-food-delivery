@@ -1,21 +1,9 @@
-/**
- * Context SocketContext - Restaurant
- * @notice Fournit socket connection à toute l'application
- * @dev Gère la connexion Socket.io pour les mises à jour en temps réel
- */
 
 import { useState, useEffect, createContext, useContext } from 'react';
 import io from 'socket.io-client';
 
-/**
- * Context pour Socket.io
- */
 export const SocketContext = createContext(null);
 
-/**
- * Provider pour SocketContext
- * @notice Gère la connexion Socket.io
- */
 export function SocketProvider({ children }) {
   const [socket, setSocket] = useState(null);
 
@@ -37,11 +25,6 @@ export function SocketProvider({ children }) {
   );
 }
 
-/**
- * Hook useSocket
- * @notice Hook personnalisé pour accéder au contexte Socket
- * @returns {Object|null} Socket instance ou null
- */
 export function useSocket() {
   const context = useContext(SocketContext);
   if (context === undefined) {

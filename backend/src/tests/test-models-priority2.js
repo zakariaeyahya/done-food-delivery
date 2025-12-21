@@ -44,15 +44,15 @@ let createdDelivererIds = [];
 
 async function test(name, testFn) {
   try {
-    log(`\n📋 Test: ${name}`, 'cyan');
+    log(`\n Test: ${name}`, 'cyan');
     await testFn();
-    log(`   ✅ PASSÉ`, 'green');
+    log(`    PASSÉ`, 'green');
     testsPassed++;
     return true;
   } catch (error) {
-    log(`   ❌ ÉCHOUÉ: ${error.message}`, 'red');
+    log(`    ÉCHOUÉ: ${error.message}`, 'red');
     if (error.stack) {
-      console.log(`   📚 ${error.stack.split('\n')[1]?.trim()}`);
+      console.log(`    ${error.stack.split('\n')[1]?.trim()}`);
     }
     testsFailed++;
     return false;
@@ -61,20 +61,20 @@ async function test(name, testFn) {
 
 async function runTests() {
   log('='.repeat(70), 'blue');
-  log('🧪 TEST DES MODÈLES MONGODB PRIORITÉ 2', 'blue');
+  log(' TEST DES MODÈLES MONGODB PRIORITÉ 2', 'blue');
   log('='.repeat(70), 'blue');
 
   try {
     // Connexion à MongoDB
-    log('\n🔌 Connexion à MongoDB...', 'yellow');
+    log('\n Connexion à MongoDB...', 'yellow');
     await connectDB();
-    log('✅ Connecté à MongoDB', 'green');
+    log(' Connecté à MongoDB', 'green');
 
     // ============================================
     // TEST 1: User.js
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('1️⃣  TEST DE User.js', 'blue');
+    log('  TEST DE User.js', 'blue');
     log('='.repeat(70), 'blue');
 
     const User = require('../models/User');
@@ -110,7 +110,7 @@ async function runTests() {
       if (!user) throw new Error('Utilisateur non trouvé');
       if (user.address !== global.testUserAddress) throw new Error('Mauvais utilisateur trouvé');
       
-      log(`   🔍 Utilisateur trouvé: ${user.name}`, 'reset');
+      log(`    Utilisateur trouvé: ${user.name}`, 'reset');
     });
 
     await test('Mise à jour profil utilisateur (updateProfile)', async () => {
@@ -125,7 +125,7 @@ async function runTests() {
       if (updatedUser.name !== updates.name) throw new Error('Nom non mis à jour');
       if (updatedUser.email !== updates.email) throw new Error('Email non mis à jour');
       
-      log(`   ✏️  Profil mis à jour: ${updatedUser.name}`, 'reset');
+      log(`     Profil mis à jour: ${updatedUser.name}`, 'reset');
     });
 
     await test('Ajout adresse de livraison (addDeliveryAddress)', async () => {
@@ -143,7 +143,7 @@ async function runTests() {
         throw new Error('Adresse de livraison non trouvée');
       }
       
-      log(`   📍 Adresse de livraison ajoutée`, 'reset');
+      log(`    Adresse de livraison ajoutée`, 'reset');
     });
 
     await test('Validation adresse Ethereum invalide', async () => {
@@ -158,7 +158,7 @@ async function runTests() {
       } catch (error) {
         if (error.name === 'ValidationError') {
           // C'est attendu
-          log(`   ✅ Validation fonctionne (erreur attendue)`, 'reset');
+          log(`    Validation fonctionne (erreur attendue)`, 'reset');
         } else {
           throw error;
         }
@@ -169,7 +169,7 @@ async function runTests() {
     // TEST 2: Restaurant.js
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('2️⃣  TEST DE Restaurant.js', 'blue');
+    log('  TEST DE Restaurant.js', 'blue');
     log('='.repeat(70), 'blue');
 
     const Restaurant = require('../models/Restaurant');
@@ -220,7 +220,7 @@ async function runTests() {
       if (!restaurant) throw new Error('Restaurant non trouvé');
       if (restaurant.address !== global.testRestaurantAddress) throw new Error('Mauvais restaurant trouvé');
       
-      log(`   🔍 Restaurant trouvé: ${restaurant.name}`, 'reset');
+      log(`    Restaurant trouvé: ${restaurant.name}`, 'reset');
     });
 
     await test('Mise à jour menu (updateMenu)', async () => {
@@ -246,7 +246,7 @@ async function runTests() {
       if (!updatedRestaurant) throw new Error('Menu non mis à jour');
       if (updatedRestaurant.menu.length !== 2) throw new Error('Menu incorrect');
       
-      log(`   📝 Menu mis à jour: ${updatedRestaurant.menu.length} items`, 'reset');
+      log(`    Menu mis à jour: ${updatedRestaurant.menu.length} items`, 'reset');
     });
 
     await test('Incrémenter compteur commandes (incrementOrderCount)', async () => {
@@ -260,7 +260,7 @@ async function runTests() {
         throw new Error('Compteur non incrémenté');
       }
       
-      log(`   📊 Compteur commandes: ${updatedRestaurant.totalOrders}`, 'reset');
+      log(`    Compteur commandes: ${updatedRestaurant.totalOrders}`, 'reset');
     });
 
     await test('Vérifier disponibilité item menu (isMenuItemAvailable)', async () => {
@@ -272,7 +272,7 @@ async function runTests() {
       const isNotAvailable = restaurant.isMenuItemAvailable('Item Inexistant');
       if (isNotAvailable) throw new Error('Item inexistant ne devrait pas être disponible');
       
-      log(`   ✅ Vérification disponibilité menu fonctionne`, 'reset');
+      log(`    Vérification disponibilité menu fonctionne`, 'reset');
     });
 
     // ============================================
@@ -321,7 +321,7 @@ async function runTests() {
       if (!deliverer) throw new Error('Livreur non trouvé');
       if (deliverer.address !== global.testDelivererAddress) throw new Error('Mauvais livreur trouvé');
       
-      log(`   🔍 Livreur trouvé: ${deliverer.name}`, 'reset');
+      log(`    Livreur trouvé: ${deliverer.name}`, 'reset');
     });
 
     await test('Mise à jour position GPS (updateLocation)', async () => {
@@ -334,7 +334,7 @@ async function runTests() {
       if (updatedDeliverer.currentLocation.lat !== newLat) throw new Error('Latitude incorrecte');
       if (updatedDeliverer.currentLocation.lng !== newLng) throw new Error('Longitude incorrecte');
       
-      log(`   📍 Position mise à jour: ${newLat}, ${newLng}`, 'reset');
+      log(`    Position mise à jour: ${newLat}, ${newLng}`, 'reset');
     });
 
     await test('Mise à jour disponibilité (setAvailability)', async () => {
@@ -357,7 +357,7 @@ async function runTests() {
         throw new Error('Compteur non incrémenté');
       }
       
-      log(`   📊 Compteur livraisons: ${updatedDeliverer.totalDeliveries}`, 'reset');
+      log(`    Compteur livraisons: ${updatedDeliverer.totalDeliveries}`, 'reset');
     });
 
     await test('Récupérer livreurs disponibles (getAvailableDeliverers)', async () => {
@@ -369,7 +369,7 @@ async function runTests() {
       if (!Array.isArray(availableDeliverers)) throw new Error('Résultat doit être un tableau');
       if (availableDeliverers.length === 0) throw new Error('Aucun livreur disponible trouvé');
       
-      log(`   📋 ${availableDeliverers.length} livreur(s) disponible(s)`, 'reset');
+      log(`    ${availableDeliverers.length} livreur(s) disponible(s)`, 'reset');
     });
 
     await test('Vérifier peut accepter livraison (canAcceptDelivery)', async () => {
@@ -378,7 +378,7 @@ async function runTests() {
       const canAccept = deliverer.canAcceptDelivery();
       if (!canAccept) throw new Error('Livreur devrait pouvoir accepter (disponible et staké)');
       
-      log(`   ✅ canAcceptDelivery fonctionne`, 'reset');
+      log(`    canAcceptDelivery fonctionne`, 'reset');
     });
 
     // ============================================
@@ -433,7 +433,7 @@ async function runTests() {
       if (!order) throw new Error('Commande non trouvée');
       if (order.orderId !== global.testOrderId) throw new Error('Mauvaise commande trouvée');
       
-      log(`   🔍 Commande trouvée: #${order.orderId}`, 'reset');
+      log(`    Commande trouvée: #${order.orderId}`, 'reset');
     });
 
     await test('Mise à jour statut commande (updateStatus)', async () => {
@@ -461,7 +461,7 @@ async function runTests() {
         throw new Error('Position GPS incorrecte');
       }
       
-      log(`   📍 Position GPS ajoutée`, 'reset');
+      log(`    Position GPS ajoutée`, 'reset');
     });
 
     await test('Mise à jour statut DELIVERED (avec completedAt)', async () => {
@@ -471,7 +471,7 @@ async function runTests() {
       if (updatedOrder.status !== 'DELIVERED') throw new Error('Statut incorrect');
       if (!updatedOrder.completedAt) throw new Error('completedAt non défini');
       
-      log(`   ✅ Commande livrée: ${updatedOrder.completedAt}`, 'reset');
+      log(`    Commande livrée: ${updatedOrder.completedAt}`, 'reset');
     });
 
     await test('Récupérer commandes par client (getOrdersByClient)', async () => {
@@ -480,7 +480,7 @@ async function runTests() {
       if (!Array.isArray(orders)) throw new Error('Résultat doit être un tableau');
       if (orders.length === 0) throw new Error('Aucune commande trouvée');
       
-      log(`   📋 ${orders.length} commande(s) trouvée(s) pour le client`, 'reset');
+      log(`    ${orders.length} commande(s) trouvée(s) pour le client`, 'reset');
     });
 
     await test('Récupérer commandes par restaurant (getOrdersByRestaurant)', async () => {
@@ -489,7 +489,7 @@ async function runTests() {
       if (!Array.isArray(orders)) throw new Error('Résultat doit être un tableau');
       if (orders.length === 0) throw new Error('Aucune commande trouvée');
       
-      log(`   📋 ${orders.length} commande(s) trouvée(s) pour le restaurant`, 'reset');
+      log(`    ${orders.length} commande(s) trouvée(s) pour le restaurant`, 'reset');
     });
 
     await test('Vérifier peut être mise à jour (canBeUpdated)', async () => {
@@ -508,13 +508,13 @@ async function runTests() {
       
       if (cannotBeUpdated) throw new Error('Commande DELIVERED ne devrait pas pouvoir être mise à jour');
       
-      log(`   ✅ canBeUpdated fonctionne`, 'reset');
+      log(`    canBeUpdated fonctionne`, 'reset');
     });
 // ============================================
 // NETTOYAGE
 // ============================================
 // log('\n' + '='.repeat(70), 'yellow');
-// log('🧹 NETTOYAGE DES DONNÉES DE TEST', 'yellow');
+// log(' NETTOYAGE DES DONNÉES DE TEST', 'yellow');
 // log('='.repeat(70), 'yellow');
 
 // try {
@@ -542,28 +542,28 @@ async function runTests() {
     // RÉSUMÉ
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('📊 RÉSUMÉ DES TESTS', 'blue');
+    log(' RÉSUMÉ DES TESTS', 'blue');
     log('='.repeat(70), 'blue');
-    log(`✅ Tests réussis: ${testsPassed}`, 'green');
-    log(`❌ Tests échoués: ${testsFailed}`, testsFailed > 0 ? 'red' : 'green');
-    log(`📈 Taux de réussite: ${((testsPassed / (testsPassed + testsFailed)) * 100).toFixed(1)}%`, 'cyan');
+    log(` Tests réussis: ${testsPassed}`, 'green');
+    log(` Tests échoués: ${testsFailed}`, testsFailed > 0 ? 'red' : 'green');
+    log(` Taux de réussite: ${((testsPassed / (testsPassed + testsFailed)) * 100).toFixed(1)}%`, 'cyan');
     log('='.repeat(70), 'blue');
 
     if (testsFailed === 0) {
-      log('\n🎉 Tous les tests sont passés! Les modèles MongoDB Priorité 2 fonctionnent correctement.', 'green');
+      log('\n Tous les tests sont passés! Les modèles MongoDB Priorité 2 fonctionnent correctement.', 'green');
       log('\n💡 Les modèles sont prêts à être utilisés dans les controllers.', 'cyan');
     } else {
-      log('\n⚠️  Certains tests ont échoué. Vérifiez les erreurs ci-dessus.', 'yellow');
+      log('\n  Certains tests ont échoué. Vérifiez les erreurs ci-dessus.', 'yellow');
     }
 
     // Déconnexion de MongoDB
     await disconnectDB();
-    log('\n🔌 Déconnecté de MongoDB', 'yellow');
+    log('\n Déconnecté de MongoDB', 'yellow');
 
     process.exit(testsFailed > 0 ? 1 : 0);
 
   } catch (error) {
-    log(`\n❌ Erreur fatale: ${error.message}`, 'red');
+    log(`\n Erreur fatale: ${error.message}`, 'red');
     if (error.stack) {
       console.error(error.stack);
     }

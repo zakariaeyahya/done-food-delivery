@@ -14,7 +14,7 @@ const analyticsController = require("../controllers/analyticsController");
  * @notice Gère toutes les routes liées à l'administration
  * @dev Applique le middleware verifyAdminRole pour protéger les routes
  * 
- * ⚠️ NOTE: Le middleware verifyAdminRole doit être créé dans Sprint 8
+ *  NOTE: Le middleware verifyAdminRole doit être créé dans Sprint 8
  * Pour l'instant, les routes sont accessibles sans protection (à activer après implémentation)
  */
 

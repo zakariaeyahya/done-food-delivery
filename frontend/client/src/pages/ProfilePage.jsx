@@ -45,10 +45,8 @@ const ProfilePage = () => {
             const retry = await getUserProfile(address);
             setUser(retry.data.user);
           } catch (regError) {
-            console.error('Registration failed:', regError);
           }
         } else {
-          console.error('Failed to fetch user:', error);
         }
       } finally {
         setLoading(false);
@@ -71,7 +69,6 @@ const ProfilePage = () => {
         phone: profileResponse.data.user?.phone || '',
       });
     } catch (error) {
-      console.error('Failed to refresh profile:', error);
     } finally {
       setRefreshing(false);
     }
@@ -84,7 +81,6 @@ const ProfilePage = () => {
       setUser({ ...user, ...editForm });
       setIsEditing(false);
     } catch (error) {
-      console.error('Failed to update profile:', error);
     } finally {
       setSaving(false);
     }
@@ -146,7 +142,7 @@ const ProfilePage = () => {
             <div className="relative">
               <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-2xl shadow-xl flex items-center justify-center">
                 <span className="text-4xl md:text-5xl">
-                  {user?.name?.charAt(0)?.toUpperCase() || '👤'}
+                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                 </span>
               </div>
               <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white flex items-center justify-center">

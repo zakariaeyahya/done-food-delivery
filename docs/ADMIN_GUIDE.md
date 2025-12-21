@@ -4,7 +4,7 @@ Guide complet pour les administrateurs de la plateforme DoneFood. Ce guide vous 
 
 ---
 
-## 📋 Table des matières
+##  Table des matières
 
 1. [Introduction](#introduction)
 2. [Premiers pas](#premiers-pas)
@@ -25,11 +25,11 @@ Guide complet pour les administrateurs de la plateforme DoneFood. Ce guide vous 
 
 En tant qu'administrateur, vous pouvez :
 
-- 📊 **Monitorer l'activité** de la plateforme en temps réel
+-  **Monitorer l'activité** de la plateforme en temps réel
 - 👥 **Gérer les utilisateurs** (clients, restaurants, livreurs)
 - 📦 **Superviser les commandes** et leur statut
 - ⚖️ **Résoudre les litiges** entre parties
-- 📈 **Analyser les performances** avec des graphiques détaillés
+-  **Analyser les performances** avec des graphiques détaillés
 - 💰 **Suivre les revenus** de la plateforme
 
 ### Rôles et permissions
@@ -79,11 +79,11 @@ Votre wallet doit avoir le rôle **PLATFORM_ROLE** ou **DEFAULT_ADMIN_ROLE** sur
 4. Approuvez la connexion
 5. Vérifiez que votre rôle est reconnu
 
-✅ **Vous êtes maintenant connecté en tant qu'administrateur !**
+ **Vous êtes maintenant connecté en tant qu'administrateur !**
 
 ---
 
-## 📊 Tableau de bord
+##  Tableau de bord
 
 ### Vue d'ensemble
 
@@ -230,8 +230,8 @@ Pour chaque utilisateur :
 ### Actions sur les utilisateurs
 
 - 👁️ **Voir les détails** : Consulter le profil complet
-- 📊 **Voir les statistiques** : Commandes, dépenses, etc.
-- ⚠️ **Suspendre** : (Fonctionnalité future) Suspendre un compte en cas de problème
+-  **Voir les statistiques** : Commandes, dépenses, etc.
+-  **Suspendre** : (Fonctionnalité future) Suspendre un compte en cas de problème
 
 ---
 
@@ -274,8 +274,8 @@ Pour chaque restaurant :
 ### Actions sur les restaurants
 
 - 👁️ **Voir les détails** : Consulter le profil complet
-- 📊 **Voir les statistiques** : Revenus, commandes, etc.
-- ⚠️ **Suspendre** : (Fonctionnalité future) Suspendre un restaurant en cas de problème
+-  **Voir les statistiques** : Revenus, commandes, etc.
+-  **Suspendre** : (Fonctionnalité future) Suspendre un restaurant en cas de problème
 
 ---
 
@@ -321,9 +321,9 @@ Pour chaque livreur :
 ### Actions sur les livreurs
 
 - 👁️ **Voir les détails** : Consulter le profil complet
-- 📊 **Voir les statistiques** : Gains, livraisons, etc.
-- ⚠️ **Slashing** : Confisquer une partie du stake en cas de faute grave
-- ⚠️ **Suspendre** : (Fonctionnalité future) Suspendre un livreur en cas de problème
+-  **Voir les statistiques** : Gains, livraisons, etc.
+-  **Slashing** : Confisquer une partie du stake en cas de faute grave
+-  **Suspendre** : (Fonctionnalité future) Suspendre un livreur en cas de problème
 
 ---
 
@@ -395,7 +395,7 @@ Pour chaque litige :
    - Cliquez sur **"Résoudre"**
    - Confirmez la transaction dans MetaMask
 
-✅ **Le litige est résolu !**
+ **Le litige est résolu !**
 
 **Actions automatiques :**
 - Le remboursement est calculé selon le pourcentage défini
@@ -413,7 +413,7 @@ Sur la page Litiges, vous pouvez voir :
 
 ---
 
-## 📈 Analytics et statistiques
+##  Analytics et statistiques
 
 ### Accéder aux analytics
 
@@ -563,12 +563,12 @@ Si vous rencontrez un problème ou avez une question :
 
 ---
 
-## 📝 Notes importantes
+##  Notes importantes
 
-- ⚠️ **Sauvegardez votre phrase de récupération MetaMask** : C'est la seule façon de récupérer votre wallet admin
+-  **Sauvegardez votre phrase de récupération MetaMask** : C'est la seule façon de récupérer votre wallet admin
 - 🔒 **Sécurité** : Ne partagez jamais votre clé privée ou votre phrase de récupération
 - ⚖️ **Litiges** : Examinez toujours les preuves avant de résoudre un litige
-- 📊 **Données** : Les données sont mises à jour en temps réel, mais rafraîchissez si nécessaire
+-  **Données** : Les données sont mises à jour en temps réel, mais rafraîchissez si nécessaire
 - 💰 **Revenus** : Les revenus de la plateforme sont automatiquement calculés (10% de chaque commande)
 
 ---

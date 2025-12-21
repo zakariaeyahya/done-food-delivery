@@ -2,25 +2,14 @@ import React from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { formatCrypto, formatDate, weiToPol, formatAddress } from "../services/formatters";
 
-/**
- * Modal OrderDetailsModal
- * Affiche :
- * - Infos commande
- * - Client, restaurant, livreur
- * - Montants
- * - Statut & logs
- * - Avis client
- */
-
-// Configuration des statuts (même format que client)
 const statusConfig = {
-  CREATED: { label: 'Créée', color: 'bg-blue-100 text-blue-700', icon: '📝' },
-  PREPARING: { label: 'En préparation', color: 'bg-yellow-100 text-yellow-700', icon: '👨‍🍳' },
-  READY: { label: 'Prête', color: 'bg-purple-100 text-purple-700', icon: '✅' },
-  IN_DELIVERY: { label: 'En livraison', color: 'bg-orange-100 text-orange-700', icon: '🚴' },
-  DELIVERED: { label: 'Livrée', color: 'bg-green-100 text-green-700', icon: '✓' },
-  CANCELLED: { label: 'Annulée', color: 'bg-red-100 text-red-700', icon: '✕' },
-  DISPUTED: { label: 'En litige', color: 'bg-red-100 text-red-700', icon: '⚠️' },
+  CREATED: { label: 'Créée', color: 'bg-blue-100 text-blue-700', icon: '' },
+  PREPARING: { label: 'En préparation', color: 'bg-yellow-100 text-yellow-700', icon: '' },
+  READY: { label: 'Prête', color: 'bg-purple-100 text-purple-700', icon: '' },
+  IN_DELIVERY: { label: 'En livraison', color: 'bg-orange-100 text-orange-700', icon: '' },
+  DELIVERED: { label: 'Livrée', color: 'bg-green-100 text-green-700', icon: '' },
+  CANCELLED: { label: 'Annulée', color: 'bg-red-100 text-red-700', icon: '' },
+  DISPUTED: { label: 'En litige', color: 'bg-red-100 text-red-700', icon: '' },
 };
 
 export default function OrderDetailsModal({ order, details, loading, onClose }) {
@@ -174,7 +163,7 @@ export default function OrderDetailsModal({ order, details, loading, onClose }) 
               {data.deliveryAddress && (
                 <div className="border rounded-xl p-4 bg-blue-50 border-blue-200">
                   <h4 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                    <span className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">📍</span>
+                    <span className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center"></span>
                     Adresse de livraison
                   </h4>
                   <p className="text-gray-800 ml-10">{data.deliveryAddress}</p>

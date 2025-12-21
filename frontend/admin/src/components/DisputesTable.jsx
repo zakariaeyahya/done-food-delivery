@@ -37,7 +37,6 @@ export default function DisputesTable({ onSelect }) {
       // API retourne { success, data: [...] }
       setDisputes(res?.data || []);
     } catch (err) {
-      console.error("Erreur chargement litiges:", err);
       setDisputes([]);
     }
     setLoading(false);

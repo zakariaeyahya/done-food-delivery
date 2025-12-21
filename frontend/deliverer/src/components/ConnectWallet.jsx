@@ -1,7 +1,3 @@
-/**
- * Composant ConnectWallet pour livreur
- * @fileoverview Gère la connexion MetaMask, rôle DELIVERER, staking et profil
- */
 
 import { useState, useEffect } from "react";
 import blockchain, { DELIVERER_ROLE } from "../services/blockchain";
@@ -17,7 +13,6 @@ function ConnectWallet() {
   const [deliverer, setDeliverer] = useState(null);
   const [error, setError] = useState(null);
 
-  /** Vérifier si un wallet est déjà connecté */
   useEffect(() => {
     checkWalletConnection();
   }, []);
@@ -34,11 +29,9 @@ function ConnectWallet() {
         await handleConnect(accounts[0]);
       }
     } catch (err) {
-      console.error("Erreur détection wallet :", err);
     }
   }
 
-  /** Connexion MetaMask */
   async function handleConnect(existingAccount = null) {
     setIsConnecting(true);
     setError(null);
@@ -81,7 +74,6 @@ function ConnectWallet() {
         const profile = await api.getDeliverer(account);
         setDeliverer(profile.deliverer);
       } catch (err) {
-        console.log("Livreur non enregistré dans la base backend.");
       }
     } catch (err) {
       setError(`Erreur de connexion : ${err.message}`);
@@ -90,7 +82,6 @@ function ConnectWallet() {
     }
   }
 
-  /** Déconnexion locale */
   function handleDisconnect() {
     setAddress(null);
     setHasRole(false);
@@ -119,14 +110,14 @@ function ConnectWallet() {
           {/* Vérification rôle */}
           {!hasRole && (
             <div className="error">
-              ⚠️ Vous n'avez pas le rôle DELIVERER
+               Vous n'avez pas le rôle DELIVERER
             </div>
           )}
 
           {/* Vérification staking */}
           {hasRole && !isStaked && (
             <div className="warning">
-              ⚠️ Vous devez staker minimum 0.1 POL pour accepter des commandes.<br />
+               Vous devez staker minimum 0.1 POL pour accepter des commandes.<br />
               <Link to="/profile">→ Aller au StakingPanel</Link>
             </div>
           )}
@@ -134,7 +125,7 @@ function ConnectWallet() {
           {/* Staking OK */}
           {hasRole && isStaked && (
             <div className="success">
-              ✅ Staké : {stakedAmount} POL
+               Staké : {stakedAmount} POL
             </div>
           )}
 

@@ -1,24 +1,8 @@
-/**
- * Service API Backend - Restaurant
- * @notice Gère tous les appels HTTP vers l'API backend Node.js/Express pour les restaurants
- * @dev Utilise axios pour les requêtes HTTP avec gestion d'erreurs
- */
-
 import axios from "axios";
 
-/**
- * Configuration de base
- * @dev Récupère l'URL de l'API depuis les variables d'environnement
- */
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
-/**
- * Fonction helper pour créer les headers d'authentification
- * @param {string} address - Adresse wallet du restaurant
- * @returns {Object} Headers avec Authorization Bearer token
- * @dev En mode développement, utilise mock_signature_for_testing
- */
 function authHeaders(address) {
   return {
     "Content-Type": "application/json",
@@ -28,11 +12,6 @@ function authHeaders(address) {
   };
 }
 
-/**
- * Fonction helper pour gérer les erreurs API
- * @param {Error} error - Erreur de la requête
- * @throws {Error} Erreur avec message formaté
- */
 function handleApiError(error) {
   if (error?.response) {
     const message =
@@ -48,11 +27,6 @@ function handleApiError(error) {
   }
 }
 
-/**
- * 0. (Bonus) Récupérer un restaurant par adresse wallet
- * Route: GET /api/restaurants/by-address/:address
- * @returns {Object|null} Restaurant data or null if not found
- */
 async function getRestaurantByAddress(address) {
   try {
     if (!address) return null;
@@ -63,7 +37,6 @@ async function getRestaurantByAddress(address) {
     );
     return response.data;
   } catch (error) {
-    // 404 = restaurant non enregistré, retourner null silencieusement
     if (error?.response?.status === 404) {
       return null;
     }
@@ -72,11 +45,6 @@ async function getRestaurantByAddress(address) {
   }
 }
 
-/**
- * 1. Récupérer les détails complets d'un restaurant avec son menu
- * Route: GET /api/restaurants/:id
- * @returns {Object} Restaurant avec menu
- */
 async function getRestaurant(restaurantId) {
   try {
     if (!restaurantId) throw new Error("Restaurant ID is required");
@@ -84,7 +52,6 @@ async function getRestaurant(restaurantId) {
     const response = await axios.get(
       `${API_BASE_URL}/restaurants/${restaurantId}`
     );
-    // L'API retourne { success, restaurant } - extraire restaurant
     return response.data?.restaurant || response.data;
   } catch (error) {
     handleApiError(error);
@@ -92,11 +59,6 @@ async function getRestaurant(restaurantId) {
   }
 }
 
-/**
- * 2. Récupérer les commandes d'un restaurant avec filtres optionnels
- * Route: GET /api/restaurants/:id/orders?status=...&startDate=...&endDate=...
- * @returns {Array} Liste des commandes
- */
 async function getOrders(restaurantId, filters = {}, restaurantAddress) {
   try {
     if (!restaurantId) throw new Error("Restaurant ID is required");
@@ -117,7 +79,6 @@ async function getOrders(restaurantId, filters = {}, restaurantAddress) {
       headers: authHeaders(restaurantAddress),
     });
 
-    // L'API retourne { success, orders, pagination } - extraire les orders
     return response.data?.orders || [];
   } catch (error) {
     handleApiError(error);
@@ -125,10 +86,6 @@ async function getOrders(restaurantId, filters = {}, restaurantAddress) {
   }
 }
 
-/**
- * 3. Confirmer la préparation d'une commande
- * Route: POST /api/orders/:id/confirm-preparation
- */
 async function confirmPreparation(orderId, restaurantAddress, payload = {}) {
   try {
     if (!orderId) throw new Error("Order ID is required");
@@ -147,12 +104,6 @@ async function confirmPreparation(orderId, restaurantAddress, payload = {}) {
   }
 }
 
-/**
- * 3b. Marquer une commande comme prête (fin de préparation)
- * Route: POST /api/orders/:id/mark-ready
- * @notice Appelé quand le restaurant a terminé la préparation
- * @dev Déclenche notification aux livreurs pour récupérer la commande
- */
 async function markOrderReady(orderId, restaurantAddress) {
   try {
     if (!orderId) throw new Error("Order ID is required");
@@ -171,10 +122,6 @@ async function markOrderReady(orderId, restaurantAddress) {
   }
 }
 
-/**
- * 4. Mettre à jour le menu complet du restaurant
- * Route: PUT /api/restaurants/:id/menu
- */
 async function updateMenu(restaurantId, menu, restaurantAddress) {
   try {
     if (!restaurantId) throw new Error("Restaurant ID is required");
@@ -193,10 +140,6 @@ async function updateMenu(restaurantId, menu, restaurantAddress) {
   }
 }
 
-/**
- * 5. Ajouter un nouvel item au menu
- * Route: POST /api/restaurants/:id/menu/item
- */
 async function addMenuItem(restaurantId, item, restaurantAddress) {
   try {
     if (!restaurantId) throw new Error("Restaurant ID is required");
@@ -216,10 +159,6 @@ async function addMenuItem(restaurantId, item, restaurantAddress) {
   }
 }
 
-/**
- * 6. Modifier un item existant du menu
- * Route: PUT /api/restaurants/:id/menu/item/:itemId
- */
 async function updateMenuItem(
   restaurantId,
   itemId,
@@ -243,10 +182,6 @@ async function updateMenuItem(
   }
 }
 
-/**
- * 7. Supprimer un item du menu
- * Route: DELETE /api/restaurants/:id/menu/item/:itemId
- */
 async function deleteMenuItem(restaurantId, itemId, restaurantAddress) {
   try {
     if (!restaurantId || !itemId)
@@ -264,11 +199,6 @@ async function deleteMenuItem(restaurantId, itemId, restaurantAddress) {
   }
 }
 
-/**
- * 8. Récupérer les statistiques/analytics du restaurant
- * Route: GET /api/restaurants/:id/analytics?startDate=...&endDate=...
- * @returns {Object} Données analytics { totalOrders, deliveredOrders, totalRevenue, etc. }
- */
 async function getAnalytics(restaurantId, params = {}, restaurantAddress) {
   try {
     if (!restaurantId) throw new Error("Restaurant ID is required");
@@ -287,7 +217,6 @@ async function getAnalytics(restaurantId, params = {}, restaurantAddress) {
       headers: authHeaders(restaurantAddress),
     });
 
-    // L'API retourne { success, analytics } - extraire analytics
     return response.data?.analytics || { totalOrders: 0, deliveredOrders: 0, totalRevenue: 0 };
   } catch (error) {
     handleApiError(error);
@@ -295,10 +224,6 @@ async function getAnalytics(restaurantId, params = {}, restaurantAddress) {
   }
 }
 
-/**
- * 9. Upload une image vers IPFS via le backend
- * Route: POST /api/upload/image
- */
 async function uploadImage(file) {
   try {
     if (!file) throw new Error("File is required");
@@ -323,11 +248,6 @@ async function uploadImage(file) {
   }
 }
 
-/**
- * 10. Récupérer les revenus on-chain du restaurant
- * Route: GET /api/restaurants/:id/earnings?period=...&startDate=...&endDate=...
- * @returns {Object} Données des revenus { pendingBalance, daily, weekly, etc. }
- */
 async function getEarnings(restaurantId, params = {}, restaurantAddress) {
   try {
     if (!restaurantId) throw new Error("Restaurant ID is required");
@@ -347,7 +267,6 @@ async function getEarnings(restaurantId, params = {}, restaurantAddress) {
       headers: authHeaders(restaurantAddress),
     });
 
-    // L'API retourne { success, earnings } - extraire earnings
     const earningsData = response.data?.earnings || {};
     return {
       pending: earningsData.pending ?? earningsData.pendingBalance ?? 0,
@@ -363,10 +282,6 @@ async function getEarnings(restaurantId, params = {}, restaurantAddress) {
   }
 }
 
-/**
- * 11. Retirer les fonds du PaymentSplitter vers le wallet restaurant
- * Route: POST /api/restaurants/:id/withdraw
- */
 async function withdrawEarnings(restaurantId, restaurantAddress) {
   try {
     if (!restaurantId || !restaurantAddress)
@@ -385,9 +300,6 @@ async function withdrawEarnings(restaurantId, restaurantAddress) {
   }
 }
 
-/**
- * Export des fonctions
- */
 export {
   getRestaurantByAddress,
   getRestaurant,

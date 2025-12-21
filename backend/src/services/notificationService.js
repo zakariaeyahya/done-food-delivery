@@ -3,11 +3,9 @@ require("dotenv").config();
 
 /**
  * Notification Service (Socket.io + Email)
- * @notice Manages real-time notifications and emails for all actors
- * @dev Uses Socket.io for real-time and nodemailer for emails
  */
-let io = null; // Socket.io instance (initialized from server.js)
-let emailTransporter = null; // Nodemailer transporter
+let io = null;
+let emailTransporter = null;
 
 /**
  * Initialize notification service
@@ -16,15 +14,10 @@ let emailTransporter = null; // Nodemailer transporter
 function initNotificationService(socketIOServer) {
   io = socketIOServer;
   initEmailTransporter();
-  console.log("✅ Notification service initialized");
 }
 
 /**
  * Initialize email transporter (nodemailer)
- * 
- * Configuration:
- * - If SENDGRID_API_KEY exists: use SendGrid
- * - Otherwise: use standard SMTP
  */
 function initEmailTransporter() {
   try {
@@ -36,7 +29,6 @@ function initEmailTransporter() {
           pass: process.env.SENDGRID_API_KEY
         }
       });
-      console.log("Email transporter initialized with SendGrid");
     } else if (process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
       emailTransporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -50,13 +42,8 @@ function initEmailTransporter() {
           rejectUnauthorized: process.env.NODE_ENV === 'production'
         }
       });
-      console.log("Email transporter initialized with SMTP");
-    } else {
-      console.warn("⚠️  Email transporter not configured. Email notifications will be disabled.");
-      console.warn("💡 Configure SENDGRID_API_KEY or SMTP_USER/SMTP_PASSWORD in .env");
     }
   } catch (error) {
-    console.error("Error initializing email transporter:", error);
     emailTransporter = null;
   }
 }
@@ -76,11 +63,11 @@ async function notifyOrderCreated(orderId, restaurantId, orderData = {}) {
         ...orderData
       });
     }
-    
+
     try {
       const Restaurant = require("../models/Restaurant");
       const restaurant = await Restaurant.findById(restaurantId);
-      
+
       if (restaurant && restaurant.email && emailTransporter) {
         await sendEmail(
           restaurant.email,
@@ -89,12 +76,10 @@ async function notifyOrderCreated(orderId, restaurantId, orderData = {}) {
         );
       }
     } catch (modelError) {
-      console.warn("Could not send email notification (Restaurant model may not exist):", modelError.message);
     }
-    
+
     return { success: true };
   } catch (error) {
-    console.error("Error notifying order created:", error);
     throw error;
   }
 }
@@ -109,17 +94,14 @@ async function notifyOrderCreated(orderId, restaurantId, orderData = {}) {
 async function notifyDeliverersAvailable(orderId, delivererAddresses, orderData = {}) {
   try {
     if (!io) {
-      console.warn("Socket.io not initialized. Cannot send real-time notifications.");
       return { success: false, message: "Socket.io not initialized" };
     }
-    
-    // Émettre un événement global pour tous les clients connectés (frontend écoute "orderReady")
+
     io.emit('orderReady', {
       orderId,
       ...orderData
     });
-    
-    // Émettre aussi aux rooms spécifiques pour les notifications ciblées
+
     for (const delivererAddress of delivererAddresses) {
       const roomName = `deliverer_${delivererAddress.toLowerCase()}`;
       io.to(roomName).emit('orderAvailable', {
@@ -127,11 +109,9 @@ async function notifyDeliverersAvailable(orderId, delivererAddresses, orderData 
         ...orderData
       });
     }
-    
+
     return { success: true };
   } catch (error) {
-    console.error("Error notifying deliverers:", error);
-    console.error("Stack trace:", error.stack);
     throw error;
   }
 }
@@ -153,11 +133,11 @@ async function notifyClientOrderUpdate(orderId, clientAddress, status, additiona
         ...additionalData
       });
     }
-    
+
     try {
       const User = require("../models/User");
       const client = await User.findByAddress(clientAddress);
-      
+
       if (status === 'DELIVERED' && client && client.email && emailTransporter) {
         await sendEmail(
           client.email,
@@ -165,7 +145,7 @@ async function notifyClientOrderUpdate(orderId, clientAddress, status, additiona
           `Your order #${orderId} has been delivered successfully. Thank you for your trust!`
         );
       }
-      
+
       if (status === 'IN_DELIVERY' && client && client.email && emailTransporter) {
         const trackingUrl = `${process.env.FRONTEND_URL || 'http://localhost:3001'}/orders/${orderId}/tracking`;
         await sendEmail(
@@ -175,12 +155,10 @@ async function notifyClientOrderUpdate(orderId, clientAddress, status, additiona
         );
       }
     } catch (modelError) {
-      console.warn("Could not send email notification (User model may not exist):", modelError.message);
     }
-    
+
     return { success: true };
   } catch (error) {
-    console.error("Error notifying client:", error);
     throw error;
   }
 }
@@ -201,10 +179,10 @@ async function notifyArbitrators(disputeId, orderId, disputeData = {}) {
         ...disputeData
       });
     }
-    
+
     if (process.env.ARBITRATOR_EMAILS && emailTransporter) {
       const arbitratorEmails = process.env.ARBITRATOR_EMAILS.split(',').map(email => email.trim());
-      
+
       for (const email of arbitratorEmails) {
         await sendEmail(
           email,
@@ -213,10 +191,9 @@ async function notifyArbitrators(disputeId, orderId, disputeData = {}) {
         );
       }
     }
-    
+
     return { success: true };
   } catch (error) {
-    console.error("Error notifying arbitrators:", error);
     throw error;
   }
 }
@@ -232,10 +209,9 @@ async function notifyArbitrators(disputeId, orderId, disputeData = {}) {
 async function sendEmail(to, subject, body, options = {}) {
   try {
     if (!emailTransporter) {
-      console.warn("Email transporter not initialized. Cannot send email.");
       return { success: false, message: "Email transporter not initialized" };
     }
-    
+
     const mailOptions = {
       from: process.env.EMAIL_FROM || 'noreply@donefood.com',
       to: to,
@@ -243,20 +219,18 @@ async function sendEmail(to, subject, body, options = {}) {
       text: options.html ? undefined : body,
       html: options.html || body
     };
-    
+
     if (options.attachments) {
       mailOptions.attachments = options.attachments;
     }
-    
+
     const info = await emailTransporter.sendMail(mailOptions);
-    console.log("Email sent:", info.messageId);
-    
+
     return {
       success: true,
       messageId: info.messageId
     };
   } catch (error) {
-    console.error("Error sending email:", error);
     throw error;
   }
 }
@@ -269,7 +243,6 @@ function getSocketIO() {
   return io;
 }
 
-// Exporter toutes les fonctions
 module.exports = {
   initNotificationService,
   notifyOrderCreated,
@@ -279,4 +252,3 @@ module.exports = {
   sendEmail,
   getSocketIO
 };
-

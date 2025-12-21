@@ -29,8 +29,7 @@ const TrackingPage = () => {
         const orderData = response.data.order || response.data;
         setOrder(orderData);
       } catch (err) {
-        console.error(`Failed to fetch order ${actualOrderId} details:`, err);
-        setError('Impossible de charger les details de la commande.');
+          setError('Impossible de charger les details de la commande.');
       } finally {
         setLoading(false);
       }
@@ -49,7 +48,6 @@ const TrackingPage = () => {
       const orderData = response.data.order || response.data;
       setOrder(orderData);
     } catch (err) {
-      console.error(`Failed to refresh order ${actualOrderId} details:`, err);
       setError('Impossible de charger les details de la commande.');
     } finally {
       setRefreshing(false);

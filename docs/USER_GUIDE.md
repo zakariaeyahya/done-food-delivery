@@ -4,7 +4,7 @@ Bienvenue sur **DoneFood**, la plateforme de livraison de repas décentralisée 
 
 ---
 
-## 📋 Table des matières
+##  Table des matières
 
 1. [Introduction](#introduction)
 2. [Premiers pas](#premiers-pas)
@@ -24,7 +24,7 @@ Bienvenue sur **DoneFood**, la plateforme de livraison de repas décentralisée 
 - 🍕 Commander auprès de restaurants locaux
 - 💰 Payer en crypto-monnaies (POL, ETH, tokens DONE)
 - 🎁 Gagner des tokens DONE à chaque commande
-- 📍 Suivre votre livraison en temps réel
+-  Suivre votre livraison en temps réel
 - ⚖️ Ouvrir un litige si nécessaire
 - ⭐ Laisser des avis sur vos commandes
 
@@ -75,7 +75,7 @@ Pour passer des commandes, vous avez besoin de POL (Polygon) pour payer les frai
 4. Approuvez la connexion dans MetaMask
 5. Confirmez la connexion
 
-✅ **Vous êtes maintenant connecté !**
+ **Vous êtes maintenant connecté !**
 
 ---
 
@@ -139,13 +139,13 @@ Pour passer des commandes, vous avez besoin de POL (Polygon) pour payer les frai
    - Cliquez sur **"Confirmer"**
    - Attendez la confirmation de la transaction
 
-✅ **Votre commande est passée !**
+ **Votre commande est passée !**
 
 Vous recevrez un numéro de commande unique et serez redirigé vers la page de suivi.
 
 ---
 
-## 📍 Suivre votre commande
+##  Suivre votre commande
 
 ### Accéder au suivi
 
@@ -160,11 +160,11 @@ La page de suivi affiche :
 
 - **Numéro de commande** : Identifiant unique de votre commande
 - **Statut actuel** :
-  - 📝 **Créée** : Votre commande a été reçue
+  -  **Créée** : Votre commande a été reçue
   - 👨‍🍳 **En préparation** : Le restaurant prépare votre commande
   - 🚗 **En livraison** : Un livreur a pris votre commande en charge
-  - ✅ **Livrée** : Votre commande est arrivée
-  - ⚠️ **Litige** : Un problème a été signalé
+  -  **Livrée** : Votre commande est arrivée
+  -  **Litige** : Un problème a été signalé
 
 - **Carte interactive** : Suivi en temps réel de la position du livreur (si disponible)
 - **Temps estimé d'arrivée (ETA)** : Calculé en fonction de la distance
@@ -177,7 +177,7 @@ Une fois que vous avez reçu votre commande :
 1. Vérifiez que tous les articles sont présents et corrects
 2. Cliquez sur **"Confirmer la livraison"**
 3. Confirmez la transaction dans MetaMask
-4. ✅ **Vous recevrez automatiquement des tokens DONE !**
+4.  **Vous recevrez automatiquement des tokens DONE !**
 
 > 💡 **Astuce** : Plus vous confirmez rapidement, plus vous recevrez de tokens en récompense.
 
@@ -191,7 +191,7 @@ Les **tokens DONE** sont la monnaie de fidélité de la plateforme. Vous les gag
 
 ### Comment gagner des tokens DONE ?
 
-- ✅ **Confirmer une livraison** : Vous recevez automatiquement des tokens
+-  **Confirmer une livraison** : Vous recevez automatiquement des tokens
 - 💰 **Montant gagné** : Environ 10% de la valeur de votre commande (en tokens DONE)
 - 🎁 **Bonus** : Plus vous commandez, plus vous gagnez !
 
@@ -216,9 +216,9 @@ Lors du checkout :
 
 Dans la section **Tokens DONE** de votre profil, vous pouvez voir :
 
-- 📈 **Gains** : Quand et combien vous avez gagné
+-  **Gains** : Quand et combien vous avez gagné
 - 💸 **Utilisations** : Quand vous avez utilisé vos tokens
-- 📊 **Statistiques** : Total gagné, total utilisé, solde actuel
+-  **Statistiques** : Total gagné, total utilisé, solde actuel
 
 ---
 
@@ -228,7 +228,7 @@ Dans la section **Tokens DONE** de votre profil, vous pouvez voir :
 
 Vous pouvez ouvrir un litige si :
 
-- ❌ Votre commande n'a jamais été livrée
+-  Votre commande n'a jamais été livrée
 - ⏰ Il y a un retard important (plus de 2 heures)
 - 🍕 La qualité de la nourriture est problématique
 - 📦 Votre commande est incorrecte (mauvais articles)
@@ -246,7 +246,7 @@ Vous pouvez ouvrir un litige si :
 5. Cliquez sur **"Soumettre le litige"**
 6. Confirmez la transaction dans MetaMask
 
-✅ **Votre litige est ouvert !**
+ **Votre litige est ouvert !**
 
 Un administrateur examinera votre litige et vous contactera pour résoudre le problème.
 
@@ -268,8 +268,8 @@ Cliquez sur **"Profil"** dans le menu de navigation en haut.
 
 #### 1. Historique des commandes
 
-- 📋 Liste de toutes vos commandes passées
-- 🔍 Filtres par statut (Créée, En préparation, Livrée, etc.)
+-  Liste de toutes vos commandes passées
+-  Filtres par statut (Créée, En préparation, Livrée, etc.)
 - 📄 Pagination pour naviguer entre les commandes
 - 📥 **Télécharger le reçu** : Disponible pour les commandes livrées
 
@@ -283,8 +283,8 @@ Pour chaque commande, vous pouvez :
 #### 2. Tokens DONE
 
 - 💰 Votre solde actuel
-- 📊 Historique des transactions
-- 📈 Statistiques (total gagné, utilisé)
+-  Historique des transactions
+-  Statistiques (total gagné, utilisé)
 
 #### 3. Statistiques rapides
 
@@ -392,11 +392,11 @@ Si vous rencontrez un problème ou avez une question :
 
 ---
 
-## 📝 Notes importantes
+##  Notes importantes
 
-- ⚠️ **Sauvegardez votre phrase de récupération MetaMask** : C'est la seule façon de récupérer votre wallet
+-  **Sauvegardez votre phrase de récupération MetaMask** : C'est la seule façon de récupérer votre wallet
 - 💰 **Vérifiez toujours les montants** avant de confirmer une transaction
-- 📍 **Vérifiez votre adresse de livraison** avant de passer la commande
+-  **Vérifiez votre adresse de livraison** avant de passer la commande
 - ⏰ **Confirmez rapidement la livraison** pour recevoir vos tokens DONE
 - ⭐ **Laissez des avis** : Cela aide les autres clients et améliore la plateforme
 

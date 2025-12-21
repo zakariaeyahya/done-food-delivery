@@ -30,7 +30,6 @@ export default function DisputesPage() {
       // Le backend retourne { success: true, data: {...} }
       setDetails(res?.data || res);
     } catch (err) {
-      console.error("Erreur chargement litige:", err);
       setDetails(null);
     } finally {
       setLoadingDetails(false);
@@ -46,7 +45,6 @@ export default function DisputesPage() {
     // Rafraîchir la liste des litiges après résolution
     // Le composant DisputesTable se rafraîchit automatiquement toutes les 10 secondes
     // On peut aussi forcer un rafraîchissement immédiat si nécessaire
-    console.log("Litige résolu, la liste sera rafraîchie automatiquement");
   }
 
   /* ============================================================

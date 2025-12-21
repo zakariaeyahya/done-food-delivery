@@ -1,8 +1,3 @@
-/**
- * Page DashboardPage - Restaurant
- * @notice Tableau de bord principal du restaurant
- * @dev Vue d'ensemble commandes, statistiques KPIs, revenus
- */
 
 import { useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
@@ -95,7 +90,6 @@ function DashboardPage({ showSuccess, showError, showNotification }) {
         todayRevenue,
       });
     } catch (e) {
-      console.error("Error fetching KPIs:", e);
       showError?.("Erreur lors du chargement des KPIs");
     } finally {
       setLoadingKpis(false);
@@ -198,42 +192,3 @@ function DashboardPage({ showSuccess, showError, showNotification }) {
   );
 }
 
-/* ---------------- UI bits ---------------- */
-
-function KpiCard({ title, value, tone = "primary", loading }) {
-  const tones = {
-    primary:
-      "bg-orange-50 text-orange-800 dark:bg-orange-900/25 dark:text-orange-200",
-    secondary:
-      "bg-red-50 text-red-800 dark:bg-red-900/25 dark:text-red-200",
-    success:
-      "bg-success-50 text-success-800 dark:bg-success-900/25 dark:text-success-200",
-    warning:
-      "bg-warning-50 text-warning-800 dark:bg-warning-900/25 dark:text-warning-200",
-    neutral:
-      "bg-neutral-50 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200",
-  };
-
-  return (
-    <div className="rounded-2xl bg-white p-4 shadow-soft dark:bg-neutral-800">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
-          {title}
-        </p>
-        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${tones[tone]}`}>
-          Aujourd’hui
-        </span>
-      </div>
-
-      {loading ? (
-        <div className="mt-3 h-8 w-20 animate-pulse rounded bg-neutral-100 dark:bg-neutral-700" />
-      ) : (
-        <p className="mt-3 text-3xl font-semibold text-neutral-900 dark:text-neutral-50">
-          {value}
-        </p>
-      )}
-    </div>
-  );
-}
-
-export default DashboardPage;

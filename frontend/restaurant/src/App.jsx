@@ -1,44 +1,31 @@
-/**
- * Composant App - Racine de l'application Restaurant
- * @notice Composant principal qui configure routing, contexts, layout
- * @dev Gère état global, navigation sidebar, Socket.io, authentification restaurant
- */
-
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 
-// Import des pages
 import DashboardPage from './pages/DashboardPage';
 import OrdersPage from './pages/OrdersPage';
 import MenuPage from './pages/MenuPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import RegisterPage from './pages/RegisterPage';
 
-// Import des composants
 import ConnectWallet from './components/ConnectWallet';
 
-// Import des contexts
 import { WalletProvider, useWallet } from './contexts/WalletContext';
 import { SocketContext, SocketProvider } from './contexts/SocketContext';
 
-/**
- * Composant Sidebar
- * @notice Navigation sidebar pour dashboard restaurant
- */
 function Sidebar() {
   const location = useLocation();
 
   const menuItems = [
-    { path: '/', label: 'Dashboard', icon: '📊' },
-    { path: '/orders', label: 'Commandes', icon: '📦' },
-    { path: '/menu', label: 'Menu', icon: '🍽️' },
-    { path: '/analytics', label: 'Statistiques', icon: '📈' },
+    { path: '/', label: 'Dashboard', icon: '' },
+    { path: '/orders', label: 'Commandes', icon: '' },
+    { path: '/menu', label: 'Menu', icon: '' },
+    { path: '/analytics', label: 'Statistiques', icon: '' },
   ];
 
   return (
     <div className="dashboard-sidebar">
       <div className="sidebar-header">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">🍕</span>
+          <span className="text-2xl"></span>
           <h2>DONE Restaurant</h2>
         </div>
       </div>
@@ -65,10 +52,6 @@ function Sidebar() {
   );
 }
 
-/**
- * Composant Header
- * @notice Header avec ConnectWallet et notifications
- */
 function Header() {
   const { restaurant, address } = useWallet();
 
@@ -82,10 +65,6 @@ function Header() {
   );
 }
 
-/**
- * Composant Layout
- * @notice Layout avec sidebar et header
- */
 function Layout({ children }) {
   return (
     <div className="dashboard-layout">
@@ -100,14 +79,9 @@ function Layout({ children }) {
   );
 }
 
-/**
- * Composant ProtectedRoute
- * @notice Redirige vers /register si le restaurant n'est pas enregistré
- */
 function ProtectedRoute({ children }) {
   const { address, restaurant, isConnected, loading } = useWallet();
 
-  // Attendre que le chargement soit terminé
   if (loading) {
     return (
       <div className="loading-screen">
@@ -116,7 +90,6 @@ function ProtectedRoute({ children }) {
     );
   }
 
-  // Si pas connecté ou pas de restaurant enregistré, rediriger vers /register
   if (!isConnected || !address || !restaurant) {
     return <Navigate to="/register" replace />;
   }
@@ -124,10 +97,6 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-/**
- * Composant AppRoutes
- * @notice Gère le routing avec protection
- */
 function AppRoutes() {
   return (
     <Routes>
@@ -148,10 +117,6 @@ function AppRoutes() {
   );
 }
 
-/**
- * Composant App principal
- * @notice Configure routing et providers
- */
 function App() {
   return (
     <WalletProvider>
@@ -164,8 +129,6 @@ function App() {
   );
 }
 
-// Exporter SocketContext pour utilisation dans autres composants
 export { SocketContext };
 
-// Exporter le composant App
 export default App;
