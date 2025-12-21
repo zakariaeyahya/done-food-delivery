@@ -27,7 +27,7 @@ async function getTokenRate(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error getting token rate:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get token rate",
@@ -68,21 +68,12 @@ async function burnTokens(req, res) {
         error: "Bad Request",
         message: "userPrivateKey is required to sign the burn transaction"
       });
-    }
-    
-    // Utiliser blockchainService pour brûler les tokens
-    const result = await blockchainService.burnTokens(
+    }    const result = await blockchainService.burnTokens(
       userAddress,
       amount.toString(),
       userPrivateKey
-    );
-    
-    // Calculer le discount appliqué (1 DONE = 0.10 EUR)
-    const calculatedDiscount = (parseFloat(amount) * 0.10).toFixed(2);
-    const appliedDiscount = discountAmount || calculatedDiscount;
-    
-    // Récupérer la nouvelle balance
-    const newBalance = await blockchainService.getTokenBalance(userAddress);
+    );    const calculatedDiscount = (parseFloat(amount) * 0.10).toFixed(2);
+    const appliedDiscount = discountAmount || calculatedDiscount;    const newBalance = await blockchainService.getTokenBalance(userAddress);
     
     return res.status(200).json({
       success: true,
@@ -95,7 +86,7 @@ async function burnTokens(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error burning tokens:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to burn tokens",
@@ -136,29 +127,17 @@ async function useDiscount(req, res) {
         error: "Bad Request",
         message: "userPrivateKey is required to sign the burn transaction"
       });
-    }
-    
-    // Vérifier que l'utilisateur a assez de tokens
-    const balance = await blockchainService.getTokenBalance(userAddress);
+    }    const balance = await blockchainService.getTokenBalance(userAddress);
     if (parseFloat(balance) < parseFloat(tokensToUse)) {
       return res.status(400).json({
         error: "Bad Request",
         message: `Insufficient balance: ${balance} DONE < ${tokensToUse} DONE`
       });
-    }
-    
-    // Calculer le montant de la réduction (1 DONE = 0.10 EUR)
-    const discountAmount = (parseFloat(tokensToUse) * 0.10).toFixed(2);
-    
-    // Brûler les tokens via blockchainService
-    const burnResult = await blockchainService.burnTokens(
+    }    const discountAmount = (parseFloat(tokensToUse) * 0.10).toFixed(2);    const burnResult = await blockchainService.burnTokens(
       userAddress,
       tokensToUse.toString(),
       userPrivateKey
-    );
-    
-    // Récupérer la nouvelle balance
-    const newBalance = await blockchainService.getTokenBalance(userAddress);
+    );    const newBalance = await blockchainService.getTokenBalance(userAddress);
     
     return res.status(200).json({
       success: true,
@@ -171,7 +150,7 @@ async function useDiscount(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error using discount:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to use discount",

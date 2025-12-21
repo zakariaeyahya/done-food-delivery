@@ -34,11 +34,9 @@ export default function UsersGrowthChart() {
       setLoading(true);
 
       const response = await getAnalytics("users", { timeframe });
-      console.log("📊 Users Analytics API response:", response);
 
       // Backend retourne: { success, data: { growth, activeToday, topSpenders } }
       if (!response || !response.data) {
-        console.log("❌ Pas de données users");
         setChartData(null);
         setSummary(null);
         return;
@@ -91,7 +89,6 @@ export default function UsersGrowthChart() {
         growth: 0, // Pas de calcul de croissance disponible
       });
     } catch (err) {
-      console.error("Users analytics error:", err);
       setChartData(null);
       setSummary(null);
     } finally {

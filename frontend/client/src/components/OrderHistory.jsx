@@ -8,13 +8,13 @@ import DisputeModal from './DisputeModal';
 const ORDERS_PER_PAGE = 5;
 
 const statusConfig = {
-  CREATED: { label: 'Créée', color: 'bg-blue-100 text-blue-700', icon: '📝' },
-  PREPARING: { label: 'En préparation', color: 'bg-yellow-100 text-yellow-700', icon: '👨‍🍳' },
-  READY: { label: 'Prête', color: 'bg-purple-100 text-purple-700', icon: '✅' },
-  IN_DELIVERY: { label: 'En livraison', color: 'bg-orange-100 text-orange-700', icon: '🚴' },
-  DELIVERED: { label: 'Livrée', color: 'bg-green-100 text-green-700', icon: '✓' },
-  CANCELLED: { label: 'Annulée', color: 'bg-red-100 text-red-700', icon: '✕' },
-  DISPUTED: { label: 'En litige', color: 'bg-red-100 text-red-700', icon: '⚠️' },
+  CREATED: { label: 'Créée', color: 'bg-blue-100 text-blue-700', icon: '' },
+  PREPARING: { label: 'En préparation', color: 'bg-yellow-100 text-yellow-700', icon: '' },
+  READY: { label: 'Prête', color: 'bg-purple-100 text-purple-700', icon: '' },
+  IN_DELIVERY: { label: 'En livraison', color: 'bg-orange-100 text-orange-700', icon: '' },
+  DELIVERED: { label: 'Livrée', color: 'bg-green-100 text-green-700', icon: '' },
+  CANCELLED: { label: 'Annulée', color: 'bg-red-100 text-red-700', icon: '' },
+  DISPUTED: { label: 'En litige', color: 'bg-red-100 text-red-700', icon: '' },
 };
 
 const StarRating = ({ rating, size = 'sm' }) => {
@@ -64,7 +64,6 @@ const OrderHistory = ({ clientAddress }) => {
         setOrders([]);
         setError('');
       } else {
-        console.error('Failed to fetch order history:', err);
         setError('Impossible de charger l\'historique des commandes.');
       }
     } finally {
@@ -136,7 +135,6 @@ const OrderHistory = ({ clientAddress }) => {
       setTimeout(() => setSuccessMessage(''), 3000);
       fetchOrders();
     } catch (error) {
-      console.error('Failed to submit review:', error);
     } finally {
       setSubmittingReview(false);
     }
@@ -321,7 +319,6 @@ const OrderHistory = ({ clientAddress }) => {
       setSuccessMessage('Reçu généré avec succès !');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
-      console.error('Error downloading receipt:', error);
       setSuccessMessage('');
       alert(error.response?.data?.message || 'Erreur lors de la génération du reçu');
     } finally {

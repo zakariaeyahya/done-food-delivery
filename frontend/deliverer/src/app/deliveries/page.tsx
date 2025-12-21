@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useApp } from "@/providers/AppProvider";
 
-// Désactiver le pré-rendu car cette page utilise des APIs côté client (window, localStorage, etc.)
 export const dynamic = 'force-dynamic';
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Card } from "@/components/ui/Card";
@@ -38,7 +37,6 @@ export default function DeliveriesPage() {
       const orders = Array.isArray(response) ? response : response?.orders || [];
       setDeliveries(orders);
     } catch (err) {
-      console.error(err);
       setDeliveries([]);
     } finally {
       setLoading(false);
@@ -80,7 +78,6 @@ export default function DeliveriesPage() {
     return <Badge variant="default">{status}</Badge>;
   }
 
-  // Protection contre le pré-rendu
   if (!isMounted) {
     return null;
   }

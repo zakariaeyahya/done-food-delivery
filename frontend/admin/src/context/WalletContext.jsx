@@ -1,10 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 
-// ====================================================================
-// ⚙️ CONFIG RÉSEAU — Polygon Amoy Testnet (Chain ID = 80002)
-// ====================================================================
-
-const REQUIRED_CHAIN_ID = "0x13882"; // 80002 en hexadécimal
+const REQUIRED_CHAIN_ID = "0x13882";
 
 const AMOY_PARAMS = {
   chainId: REQUIRED_CHAIN_ID,
@@ -18,10 +14,6 @@ const AMOY_PARAMS = {
   blockExplorerUrls: ["https://amoy.polygonscan.com"],
 };
 
-// ====================================================================
-// CONTEXTE WALLET
-// ====================================================================
-
 const WalletContext = createContext(null);
 
 export function WalletProvider({ children }) {
@@ -29,17 +21,12 @@ export function WalletProvider({ children }) {
   const [hasAdminRole] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
 
-  // --------------------------------------------------------------------
-  // 🔌 Connexion MetaMask + Vérification / Switch réseau Amoy
-  // --------------------------------------------------------------------
-
   async function ensureCorrectNetwork() {
     const chainId = await window.ethereum.request({ method: "eth_chainId" });
 
     if (chainId === REQUIRED_CHAIN_ID) return true;
 
     try {
-      // Tentative de switch
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: REQUIRED_CHAIN_ID }],
@@ -47,7 +34,6 @@ export function WalletProvider({ children }) {
       return true;
 
     } catch (err) {
-      // Si le réseau n'est pas ajouté à MetaMask
       if (err.code === 4902) {
         await window.ethereum.request({
           method: "wallet_addEthereumChain",
@@ -56,7 +42,6 @@ export function WalletProvider({ children }) {
         return true;
       }
 
-      console.error("Impossible de basculer sur Amoy:", err);
       return false;
     }
   }
@@ -68,14 +53,12 @@ export function WalletProvider({ children }) {
     }
 
     try {
-      // 1️⃣ Vérification / Switch réseau
       const ok = await ensureCorrectNetwork();
       if (!ok) {
         alert("Erreur : impossible de se connecter au réseau Polygon Amoy.");
         return;
       }
 
-      // 2️⃣ Demande de connexion
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
@@ -90,17 +73,10 @@ export function WalletProvider({ children }) {
       setAddress(selected);
       localStorage.setItem("adminWalletAddress", selected);
 
-      console.log("Wallet connecté ✔ :", selected);
-
     } catch (err) {
-      console.error("Erreur connexion wallet:", err);
       alert("Erreur lors de la connexion au wallet.");
     }
   }
-
-  // --------------------------------------------------------------------
-  // 🚀 Auto-connexion au démarrage
-  // --------------------------------------------------------------------
 
   useEffect(() => {
     async function autoConnect() {
@@ -110,20 +86,16 @@ export function WalletProvider({ children }) {
       }
 
       try {
-        // Vérifier si déjà connecté
         const accounts = await window.ethereum.request({ method: "eth_accounts" });
 
         if (accounts && accounts.length > 0) {
-          // Vérifier le réseau
           const ok = await ensureCorrectNetwork();
           if (ok) {
             setAddress(accounts[0]);
             localStorage.setItem("adminWalletAddress", accounts[0]);
-            console.log("Auto-connexion réussie :", accounts[0]);
           }
         }
       } catch (err) {
-        console.error("Erreur auto-connexion:", err);
       } finally {
         setIsLoading(false);
       }
@@ -132,16 +104,10 @@ export function WalletProvider({ children }) {
     autoConnect();
   }, []);
 
-  // --------------------------------------------------------------------
-  // 📡 Listeners : changement réseau + changement compte
-  // --------------------------------------------------------------------
-
   useEffect(() => {
     if (!window.ethereum) return;
 
     const handleChainChanged = (chainId) => {
-      console.warn("Changement de réseau détecté :", chainId);
-
       if (chainId !== REQUIRED_CHAIN_ID) {
         alert("Erreur : vous devez rester sur Polygon Amoy (80002).");
         setAddress(null);
@@ -151,11 +117,9 @@ export function WalletProvider({ children }) {
 
     const handleAccountsChanged = (accounts) => {
       if (accounts.length === 0) {
-        console.log("MetaMask déconnecté");
         setAddress(null);
         localStorage.removeItem("adminWalletAddress");
       } else {
-        console.log("Compte changé →", accounts[0]);
         setAddress(accounts[0]);
         localStorage.setItem("adminWalletAddress", accounts[0]);
       }
@@ -171,10 +135,6 @@ export function WalletProvider({ children }) {
       }
     };
   }, []);
-
-  // --------------------------------------------------------------------
-  // 🚀 Exposition du provider
-  // --------------------------------------------------------------------
 
   return (
     <WalletContext.Provider value={{ address, hasAdminRole, connect, isLoading }}>

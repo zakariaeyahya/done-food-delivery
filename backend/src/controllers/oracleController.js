@@ -17,10 +17,7 @@ const weatherOracleService = require("../services/weatherOracleService");
  */
 async function getPrice(req, res) {
   try {
-    const pair = req.query.pair || 'MATIC/USD';
-
-    // Utiliser priceOracleService pour obtenir le prix réel (retourne { price, source, timestamp })
-    const priceData = await priceOracleService.getMaticUsdPrice();
+    const pair = req.query.pair || 'MATIC/USD';    const priceData = await priceOracleService.getMaticUsdPrice();
 
     return res.status(200).json({
       success: true,
@@ -32,7 +29,7 @@ async function getPrice(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error getting price:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get price",
@@ -91,7 +88,7 @@ async function convertCurrency(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error converting currency:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to convert currency",
@@ -123,10 +120,7 @@ async function verifyGPSDelivery(req, res) {
         error: "Bad Request",
         message: "clientLat and clientLng are required and must be valid numbers"
       });
-    }
-    
-    // Utiliser gpsOracleService pour vérifier la livraison
-    const verification = await gpsOracleService.verifyDelivery(
+    }    const verification = await gpsOracleService.verifyDelivery(
       parseInt(orderId),
       parseFloat(clientLat),
       parseFloat(clientLng)
@@ -143,7 +137,7 @@ async function verifyGPSDelivery(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error verifying GPS delivery:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to verify GPS delivery",
@@ -169,17 +163,14 @@ async function getWeather(req, res) {
         error: "Bad Request",
         message: "lat and lng query parameters are required"
       });
-    }
-
-    // Use weatherOracleService to get real weather data
-    const weatherData = await weatherOracleService.getWeather(lat, lng);
+    }    const weatherData = await weatherOracleService.getWeather(lat, lng);
 
     return res.status(200).json({
       success: true,
       data: weatherData
     });
   } catch (error) {
-    console.error("Error getting weather:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get weather",
@@ -209,7 +200,7 @@ async function getLatestPrice(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error getting latest price:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get latest price",
@@ -235,7 +226,7 @@ async function getPriceMetrics(req, res) {
       data: metrics
     });
   } catch (error) {
-    console.error("Error getting price metrics:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get price metrics",
@@ -289,7 +280,7 @@ async function updateGPSLocation(req, res) {
       data: result
     });
   } catch (error) {
-    console.error("Error updating GPS location:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to update GPS location",
@@ -323,7 +314,7 @@ async function trackDelivery(req, res) {
       data: tracking
     });
   } catch (error) {
-    console.error("Error tracking delivery:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to track delivery",
@@ -348,7 +339,7 @@ async function getGPSMetrics(req, res) {
       data: metrics
     });
   } catch (error) {
-    console.error("Error getting GPS metrics:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get GPS metrics",

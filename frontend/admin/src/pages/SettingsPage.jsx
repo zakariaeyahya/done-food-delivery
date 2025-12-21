@@ -52,7 +52,6 @@ function SettingsPage() {
 
         setLoading(false);
       } catch (err) {
-        console.error('Error loading settings:', err);
         setLoading(false);
       }
     }
@@ -89,7 +88,6 @@ function SettingsPage() {
         alert('Erreur: ' + result.error);
       }
     } catch (err) {
-      console.error('Error assigning role:', err);
       alert('Erreur: ' + err.message);
     }
   }
@@ -109,7 +107,6 @@ function SettingsPage() {
 
       alert('Rôle retiré avec succès.');
     } catch (err) {
-      console.error('Error revoking role:', err);
       alert('Erreur: ' + err.message);
     }
   }
@@ -130,7 +127,6 @@ function SettingsPage() {
       alert('Paramètres sauvegardés avec succès.');
       setSaving(false);
     } catch (err) {
-      console.error('Error saving settings:', err);
       alert('Erreur: ' + err.message);
       setSaving(false);
     }

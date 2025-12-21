@@ -35,8 +35,6 @@ async function registerDeliverer(req, res) {
         message: "Deliverer already exists"
       });
     }
-    
-    // Valeur par défaut pour location si non fournie (Paris par défaut)
     const defaultLocation = {
       lat: 48.8566,  // Paris
       lng: 2.3522
@@ -75,9 +73,6 @@ async function registerDeliverer(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error registering deliverer:", error);
-
-    // Gérer les erreurs de validation Mongoose
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({
@@ -86,8 +81,6 @@ async function registerDeliverer(req, res) {
         details: validationErrors.join(', ')
       });
     }
-
-    // Gérer les erreurs de doublon
     if (error.code === 11000) {
       return res.status(409).json({
         error: "Conflict",
@@ -123,21 +116,15 @@ async function getDeliverer(req, res) {
         message: "Deliverer not found"
       });
     }
-    
-    // Récupérer le statut de staking depuis la blockchain
     let isStakedBlockchain = false;
     let stakedAmountBlockchain = "0";
     
     try {
       isStakedBlockchain = await blockchainService.isStaked(normalizedAddress);
-      
-      // Récupérer le montant staké depuis le contrat
       if (isStakedBlockchain) {
         const staking = require("../config/blockchain").getContractInstance("staking");
         const stakedAmountWei = await staking.stakedAmount(normalizedAddress);
         stakedAmountBlockchain = ethers.formatEther(stakedAmountWei);
-        
-        // Synchroniser avec MongoDB
         if (deliverer.isStaked !== isStakedBlockchain || deliverer.stakedAmount !== parseFloat(stakedAmountBlockchain)) {
           deliverer.isStaked = isStakedBlockchain;
           deliverer.stakedAmount = parseFloat(stakedAmountBlockchain);
@@ -145,8 +132,6 @@ async function getDeliverer(req, res) {
         }
       }
     } catch (blockchainError) {
-      console.warn("Error getting staking status from blockchain:", blockchainError.message);
-      // En cas d'erreur, utiliser les valeurs MongoDB
       isStakedBlockchain = deliverer.isStaked;
       stakedAmountBlockchain = deliverer.stakedAmount.toString();
     }
@@ -167,7 +152,7 @@ async function getDeliverer(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error getting deliverer:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -188,13 +173,6 @@ async function getDeliverer(req, res) {
 async function getAvailableDeliverers(req, res) {
   try {
     const { lat, lng } = req.query;
-    
-    console.log(`[Backend] 📋 Récupération commandes disponibles pour livreur (lat: ${lat}, lng: ${lng})...`);
-    
-    // Récupérer les commandes avec statut READY, PREPARING ou CREATED (pas encore assignées à un livreur)
-    // READY = préparation terminée, prête à être récupérée (prioritaire)
-    // PREPARING = en cours de préparation
-    // CREATED = commande créée mais pas encore confirmée
     const availableOrders = await Order.find({
       $or: [
         { status: 'READY', deliverer: null },
@@ -206,36 +184,26 @@ async function getAvailableDeliverers(req, res) {
     .populate('client', 'address name')
     .sort({ createdAt: -1 }); // Plus récentes en premier
     
-    console.log(`[Backend] ✅ ${availableOrders.length} commande(s) disponible(s) trouvée(s)`);
+    
     
     if (availableOrders.length > 0) {
-      console.log(`[Backend]   - Détails des commandes:`, availableOrders.map(o => ({
-        orderId: o.orderId,
-        status: o.status,
-        restaurant: o.restaurant?.name || 'Unknown',
-        hasDeliverer: !!o.deliverer
-      })));
+      
     } else {
-      // Diagnostic : vérifier combien de commandes existent avec différents statuts
       const totalOrders = await Order.countDocuments();
       const readyOrders = await Order.countDocuments({ status: 'READY' });
       const preparingOrders = await Order.countDocuments({ status: 'PREPARING' });
       const createdOrders = await Order.countDocuments({ status: 'CREATED' });
       const ordersWithDeliverer = await Order.countDocuments({ deliverer: { $ne: null } });
       
-      console.log(`[Backend] 🔍 Diagnostic - Total commandes en DB: ${totalOrders}`);
-      console.log(`[Backend]   - Commandes READY: ${readyOrders}`);
-      console.log(`[Backend]   - Commandes PREPARING: ${preparingOrders}`);
-      console.log(`[Backend]   - Commandes CREATED: ${createdOrders}`);
-      console.log(`[Backend]   - Commandes avec livreur assigné: ${ordersWithDeliverer}`);
-      console.log(`[Backend]   - Commandes sans livreur: ${totalOrders - ordersWithDeliverer}`);
+      
+      
+      
+      
+      
+      
     }
-    
-    // Formater les commandes pour le frontend
     let formattedOrders = availableOrders.map(order => {
       const orderObj = order.toObject();
-      
-      // Calculer la distance si location fournie
       let distance = null;
       if (lat && lng && orderObj.restaurant?.location) {
         const restaurantLocation = orderObj.restaurant.location;
@@ -263,8 +231,6 @@ async function getAvailableDeliverers(req, res) {
         distance: distance // Distance en km depuis la position du livreur
       };
     });
-    
-    // Trier par distance si location fournie
     if (lat && lng) {
       formattedOrders = formattedOrders
         .filter(order => order.distance !== null)
@@ -273,7 +239,7 @@ async function getAvailableDeliverers(req, res) {
     
     return res.status(200).json(formattedOrders);
   } catch (error) {
-    console.error("Error getting available orders:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -305,27 +271,19 @@ async function updateDelivererStatus(req, res) {
     
     const normalizedAddress = address.toLowerCase();
     
-    console.log(`[Backend] 🔄 Mise à jour statut livreur ${normalizedAddress}: isAvailable=${isAvailable}`);
+    
     
     const updatedDeliverer = await Deliverer.setAvailability(normalizedAddress, isAvailable);
     
     if (!updatedDeliverer) {
-      console.log(`[Backend] ❌ Livreur ${normalizedAddress} non trouvé dans la base de données`);
+      
       return res.status(404).json({
         error: "Not Found",
         message: "Deliverer not found"
       });
     }
-    
-    console.log(`[Backend] ✅ Statut livreur ${normalizedAddress} mis à jour:`, {
-      isAvailable: updatedDeliverer.isAvailable,
-      isStaked: updatedDeliverer.isStaked,
-      name: updatedDeliverer.name
-    });
-    
-    // Si le livreur devient disponible, vérifier et synchroniser le statut de staking
     if (isAvailable && !updatedDeliverer.isStaked) {
-      console.log(`[Backend] 💡 Livreur ${normalizedAddress} devient disponible mais n'est pas staké. Synchronisation blockchain...`);
+      
       try {
         const isStakedBlockchain = await blockchainService.isStaked(normalizedAddress);
         if (isStakedBlockchain) {
@@ -337,15 +295,12 @@ async function updateDelivererStatus(req, res) {
           updatedDeliverer.stakedAmount = parseFloat(stakedAmountBlockchain);
           await updatedDeliverer.save();
           
-          console.log(`[Backend] ✅ Statut de staking synchronisé pour ${normalizedAddress}:`, {
-            isStaked: true,
-            stakedAmount: stakedAmountBlockchain
-          });
+          
         } else {
-          console.log(`[Backend] ⚠️ Livreur ${normalizedAddress} n'est pas staké sur la blockchain`);
+          
         }
       } catch (blockchainError) {
-        console.warn(`[Backend] ⚠️ Erreur synchronisation staking pour ${normalizedAddress}:`, blockchainError.message);
+        
       }
     }
     
@@ -355,7 +310,7 @@ async function updateDelivererStatus(req, res) {
       isStaked: updatedDeliverer.isStaked
     });
   } catch (error) {
-    console.error("Error updating deliverer status:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -377,8 +332,6 @@ async function stakeAsDeliverer(req, res) {
     const { address, amount, delivererPrivateKey } = req.body;
     
     const normalizedAddress = address.toLowerCase();
-    
-    // Vérifier que le livreur existe
     const deliverer = await Deliverer.findByAddress(normalizedAddress);
     if (!deliverer) {
       return res.status(404).json({
@@ -386,27 +339,21 @@ async function stakeAsDeliverer(req, res) {
         message: "Deliverer not found"
       });
     }
-    
-    // Valider le montant minimum
     const minimumStake = ethers.parseEther("0.1");
     const stakeAmountWei = ethers.parseEther(amount.toString());
     
-    if (stakeAmountWei < minimumStake) {
+    if (stakeAmountWei < minimumSke) {
       return res.status(400).json({
         error: "Bad Request",
-        message: "Minimum stake is 0.1 MATIC"
+        message: "Minimum stake  0.1 MATIC"
       });
     }
-    
-    // Vérifier que la clé privée est fournie
     if (!delivererPrivateKey) {
       return res.status(400).json({
         error: "Bad Request",
         message: "delivererPrivateKey is required to sign the transaction"
       });
     }
-    
-    // Staker sur la blockchain
     let blockchainResult;
     try {
       blockchainResult = await blockchainService.stakeDeliverer(
@@ -415,15 +362,13 @@ async function stakeAsDeliverer(req, res) {
         delivererPrivateKey
       );
     } catch (blockchainError) {
-      console.error("Error staking on blockchain:", blockchainError);
+      
       return res.status(500).json({
         error: "Internal Server Error",
         message: "Failed to stake on blockchain",
         details: blockchainError.message
       });
     }
-    
-    // Synchroniser avec MongoDB
     const updatedDeliverer = await Deliverer.findOneAndUpdate(
       { address: normalizedAddress },
       { 
@@ -447,7 +392,7 @@ async function stakeAsDeliverer(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error staking deliverer:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -470,8 +415,6 @@ async function unstake(req, res) {
     const { delivererPrivateKey } = req.body;
     
     const normalizedAddress = address.toLowerCase();
-    
-    // Vérifier que le livreur existe
     const deliverer = await Deliverer.findByAddress(normalizedAddress);
     if (!deliverer) {
       return res.status(404).json({
@@ -479,8 +422,6 @@ async function unstake(req, res) {
         message: "Deliverer not found"
       });
     }
-    
-    // Vérifier qu'il n'y a pas de commandes actives
     const activeOrders = await Order.find({ 
       deliverer: deliverer._id,
       status: 'IN_DELIVERY'
@@ -492,16 +433,12 @@ async function unstake(req, res) {
         message: "Cannot unstake while having active deliveries"
       });
     }
-    
-    // Vérifier que la clé privée est fournie
     if (!delivererPrivateKey) {
       return res.status(400).json({
         error: "Bad Request",
         message: "delivererPrivateKey is required to sign the transaction"
       });
     }
-    
-    // Unstake sur la blockchain
     let blockchainResult;
     try {
       blockchainResult = await blockchainService.unstake(
@@ -509,15 +446,13 @@ async function unstake(req, res) {
         delivererPrivateKey
       );
     } catch (blockchainError) {
-      console.error("Error unstaking on blockchain:", blockchainError);
+      
       return res.status(500).json({
         error: "Internal Server Error",
         message: "Failed to unstake on blockchain",
         details: blockchainError.message
       });
     }
-    
-    // Synchroniser avec MongoDB
     const updatedDeliverer = await Deliverer.findOneAndUpdate(
       { address: normalizedAddress },
       { 
@@ -541,7 +476,7 @@ async function unstake(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error unstaking deliverer:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -577,11 +512,8 @@ async function getDelivererOrders(req, res) {
     const orders = await Order.getOrdersByDeliverer(deliverer._id, {
       status
     });
-
-    // Ajouter le champ earnings (deliveryFee converti en POL) pour chaque commande
     const ordersWithEarnings = orders.map(order => {
       const orderObj = order.toObject ? order.toObject() : order;
-      // Calculer earnings: deliveryFee en wei converti en POL
       const deliveryFeeWei = parseFloat(orderObj.deliveryFee || 0);
       const earningsPOL = deliveryFeeWei / 1e18;
       return {
@@ -596,7 +528,7 @@ async function getDelivererOrders(req, res) {
       count: ordersWithEarnings.length
     });
   } catch (error) {
-    console.error("Error getting deliverer orders:", error);
+    
 
     return res.status(500).json({
       error: "Internal Server Error",
@@ -633,9 +565,6 @@ async function getDelivererEarnings(req, res) {
       deliverer: deliverer._id,
       status: 'DELIVERED'
     };
-    
-    // Support du paramètre period (today, week, month) ou dates personnalisées
-    // Utilise completedAt si disponible, sinon updatedAt pour les commandes DELIVERED
     if (period) {
       const now = new Date();
       let start = new Date();
@@ -651,12 +580,10 @@ async function getDelivererEarnings(req, res) {
           start.setMonth(now.getMonth() - 1);
           break;
         default:
-          // Si period n'est pas reconnu, ignorer
           break;
       }
 
       if (period.toLowerCase() === 'today' || period.toLowerCase() === 'week' || period.toLowerCase() === 'month') {
-        // Utiliser $or pour matcher completedAt OU updatedAt (fallback si completedAt est null)
         query.$or = [
           { completedAt: { $gte: start, $lte: now } },
           { completedAt: null, updatedAt: { $gte: start, $lte: now } }
@@ -675,7 +602,6 @@ async function getDelivererEarnings(req, res) {
     const orders = await Order.find(query);
     
     const totalEarnings = orders.reduce((sum, order) => {
-      // Le livreur reçoit le deliveryFee complet (converti de wei en POL)
       const deliveryFeePOL = parseFloat(order.deliveryFee || 0) / 1e18;
       return sum + deliveryFeePOL;
     }, 0);
@@ -692,7 +618,7 @@ async function getDelivererEarnings(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error getting deliverer earnings:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -714,14 +640,14 @@ async function acceptOrder(req, res) {
     const orderId = parseInt(req.params.orderId);
     const delivererAddress = req.userAddress || req.body.delivererAddress;
     
-    console.log(`[Backend] 📥 Acceptation commande #${orderId} par livreur...`);
-    console.log(`[Backend]   - orderId: ${orderId} (type: ${typeof orderId})`);
-    console.log(`[Backend]   - req.userAddress: ${req.userAddress}`);
-    console.log(`[Backend]   - req.body.delivererAddress: ${req.body?.delivererAddress}`);
-    console.log(`[Backend]   - delivererAddress final: ${delivererAddress}`);
+    
+    
+    
+    
+    
     
     if (!orderId || isNaN(orderId)) {
-      console.log(`[Backend] ❌ Order ID invalide: ${orderId}`);
+      
       return res.status(400).json({
         error: "Bad Request",
         message: "Invalid order ID"
@@ -729,7 +655,7 @@ async function acceptOrder(req, res) {
     }
     
     if (!delivererAddress) {
-      console.log(`[Backend] ❌ Adresse livreur manquante`);
+      
       return res.status(400).json({
         error: "Bad Request",
         message: "Deliverer address is required"
@@ -737,76 +663,53 @@ async function acceptOrder(req, res) {
     }
     
     const normalizedAddress = delivererAddress.toLowerCase();
-    console.log(`[Backend]   - Adresse normalisée: ${normalizedAddress}`);
     
-    // Vérifier que la commande existe
-    console.log(`[Backend] 🔍 Recherche commande #${orderId}...`);
     const order = await Order.findOne({ orderId })
       .populate('restaurant', 'name address')
       .populate('client', 'address');
       
     if (!order) {
-      console.log(`[Backend] ❌ Commande #${orderId} non trouvée`);
+      
       return res.status(404).json({
         error: "Not Found",
         message: `Order with id ${orderId} not found`
       });
     }
-    
-    console.log(`[Backend] ✅ Commande trouvée:`, {
-      orderId: order.orderId,
-      status: order.status,
-      hasDeliverer: !!order.deliverer,
-      delivererId: order.deliverer
-    });
-    
-    // Vérifier le statut
     if (order.status !== 'READY' && order.status !== 'PREPARING' && order.status !== 'CREATED') {
-      console.log(`[Backend] ❌ Statut invalide: ${order.status} (attendu: READY, PREPARING ou CREATED)`);
+      
       return res.status(400).json({
         error: "Bad Request",
         message: `Order status must be READY, PREPARING or CREATED, current status: ${order.status}`
       });
     }
-    
-    // Vérifier que la commande n'est pas déjà assignée
     if (order.deliverer) {
-      console.log(`[Backend] ❌ Commande déjà assignée à un livreur: ${order.deliverer}`);
+      
       return res.status(400).json({
         error: "Bad Request",
         message: "Order is already assigned to a deliverer"
       });
     }
     
-    // Vérifier que le livreur existe et est disponible
-    console.log(`[Backend] 🔍 Recherche livreur ${normalizedAddress}...`);
     const deliverer = await Deliverer.findByAddress(normalizedAddress);
     if (!deliverer) {
-      console.log(`[Backend] ❌ Livreur ${normalizedAddress} non trouvé`);
+      
       return res.status(404).json({
         error: "Not Found",
         message: "Deliverer not found. Please register first."
       });
     }
     
-    console.log(`[Backend] ✅ Livreur trouvé:`, {
-      address: deliverer.address,
-      name: deliverer.name,
-      isAvailable: deliverer.isAvailable,
-      isStaked: deliverer.isStaked
-    });
+    
     
     if (!deliverer.isAvailable) {
-      console.log(`[Backend] ❌ Livreur non disponible (isAvailable: ${deliverer.isAvailable})`);
+      
       return res.status(400).json({
         error: "Bad Request",
         message: "Deliverer is not available. Please set your status to online."
       });
     }
-    
-    // Synchroniser le statut de staking depuis la blockchain avant de vérifier
     if (!deliverer.isStaked) {
-      console.log(`[Backend] 💡 Livreur marqué non staké dans DB, synchronisation blockchain...`);
+      
       try {
         const isStakedBlockchain = await blockchainService.isStaked(normalizedAddress);
         if (isStakedBlockchain) {
@@ -818,15 +721,10 @@ async function acceptOrder(req, res) {
           deliverer.stakedAmount = parseFloat(stakedAmountBlockchain);
           await deliverer.save();
           
-          console.log(`[Backend] ✅ Statut de staking synchronisé depuis blockchain:`, {
-            isStaked: true,
-            stakedAmount: stakedAmountBlockchain
-          });
+          
         } else {
-          console.log(`[Backend] ❌ Livreur non staké sur la blockchain`);
-          // En mode dev, permettre quand même si disponible
           if (process.env.NODE_ENV === 'development' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
-            console.log(`[Backend] 💡 Mode dev: Permettre acceptation même si non staké sur blockchain`);
+            
             deliverer.isStaked = true;
             await deliverer.save();
           } else {
@@ -837,24 +735,18 @@ async function acceptOrder(req, res) {
           }
         }
       } catch (blockchainError) {
-        // Gérer les erreurs RPC communes
         const isRpcError = blockchainError.code === -32002 || 
                           blockchainError.message?.includes('too many errors') ||
                           blockchainError.message?.includes('missing revert data') ||
                           blockchainError.message?.includes('CALL_EXCEPTION');
-        
-        // En mode dev ou si erreur RPC, permettre de continuer si le livreur est disponible
         if (process.env.NODE_ENV === 'development' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || isRpcError) {
-          console.warn(`[Backend] ⚠️ Erreur synchronisation staking (${isRpcError ? 'RPC error' : 'mode dev'}):`, blockchainError.message);
-          console.log(`[Backend] 💡 Permettre acceptation même si blockchain inaccessible`);
-          // Considérer comme staké si disponible
           if (deliverer.isAvailable) {
             deliverer.isStaked = true;
             await deliverer.save();
-            console.log(`[Backend] ✅ Livreur considéré comme staké (mode dev/RPC error)`);
+            
           }
         } else {
-          console.log(`[Backend] ❌ Erreur synchronisation staking:`, blockchainError.message);
+          
           return res.status(400).json({
             error: "Bad Request",
             message: "Deliverer is not staked. Please stake minimum 0.1 POL to accept orders."
@@ -862,34 +754,19 @@ async function acceptOrder(req, res) {
         }
       }
     }
-    
-    // Recharger le livreur depuis la DB pour avoir les valeurs à jour
     const updatedDeliverer = await Deliverer.findByAddress(normalizedAddress);
-    
-    // Vérifier à nouveau après synchronisation
     if (!updatedDeliverer.isStaked) {
-      console.log(`[Backend] ❌ Livreur non staké après synchronisation (isStaked: ${updatedDeliverer.isStaked})`);
+      
       return res.status(400).json({
         error: "Bad Request",
         message: "Deliverer is not staked. Please stake minimum 0.1 POL to accept orders."
       });
     }
-    
-    console.log(`[Backend] ✅ Livreur vérifié et prêt:`, {
-      isAvailable: updatedDeliverer.isAvailable,
-      isStaked: updatedDeliverer.isStaked
-    });
-    
-    // Assigner le livreur à la commande
     order.deliverer = deliverer._id;
     order.status = 'IN_DELIVERY';
     await order.save();
-    
-    // Notifier le client et le restaurant
     try {
       const notificationService = require("../services/notificationService");
-      
-      // Notifier le client
       const clientAddr = order.client?.address || order.client;
       if (clientAddr) {
         await notificationService.notifyClientOrderUpdate(
@@ -905,11 +782,8 @@ async function acceptOrder(req, res) {
           }
         );
       }
-      
-      // Notifier le restaurant
       const restaurantId = order.restaurant?._id || order.restaurant;
       if (restaurantId) {
-        // Émettre un événement Socket.io pour le restaurant
         const io = notificationService.getSocketIO();
         if (io) {
           io.to(`restaurant_${restaurantId}`).emit('delivererAssigned', {
@@ -922,10 +796,10 @@ async function acceptOrder(req, res) {
         }
       }
     } catch (notifError) {
-      console.warn("Error sending notifications:", notifError);
+      
     }
     
-    console.log(`[Backend] ✅ Commande #${orderId} acceptée par livreur ${normalizedAddress}`);
+    
     
     return res.status(200).json({
       success: true,
@@ -940,7 +814,7 @@ async function acceptOrder(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error accepting order:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -970,8 +844,6 @@ async function getDelivererRating(req, res) {
         message: "Deliverer not found"
       });
     }
-    
-    // Récupérer toutes les commandes livrées avec reviews
     const ordersWithReviews = await Order.find({
       deliverer: deliverer._id,
       status: 'DELIVERED',
@@ -979,8 +851,6 @@ async function getDelivererRating(req, res) {
     })
     .populate('client', 'address name')
     .sort({ 'review.createdAt': -1 });
-    
-    // Calculer la moyenne des ratings
     let averageRating = 0;
     if (ordersWithReviews.length > 0) {
       const sumRatings = ordersWithReviews.reduce((sum, order) => {
@@ -988,8 +858,6 @@ async function getDelivererRating(req, res) {
       }, 0);
       averageRating = sumRatings / ordersWithReviews.length;
     }
-    
-    // Formater les reviews pour le frontend
     const reviews = ordersWithReviews.map(order => ({
       orderId: order.orderId,
       rating: order.review?.rating || 0,
@@ -1006,7 +874,7 @@ async function getDelivererRating(req, res) {
       reviews: reviews
     });
   } catch (error) {
-    console.error("Error getting deliverer rating:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",
@@ -1059,15 +927,11 @@ async function cancelDelivery(req, res) {
         message: `Cannot cancel order with status ${order.status}`
       });
     }
-    
-    console.log(`[Backend] 🚫 Livreur ${normalizedAddress} abandonne commande #${orderId}`);
-    
-    // Remettre la commande en READY et supprimer le livreur
     order.status = 'READY';
     order.deliverer = null;
     await order.save();
     
-    console.log(`[Backend] ✅ Commande #${orderId} remise en READY - disponible pour un autre livreur`);
+    
     
     return res.status(200).json({
       success: true,
@@ -1075,7 +939,7 @@ async function cancelDelivery(req, res) {
       orderId: orderId
     });
   } catch (error) {
-    console.error("Error cancelling delivery:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to cancel delivery",
@@ -1127,15 +991,11 @@ async function forceCompleteDelivery(req, res) {
         message: `Cannot force complete order with status ${order.status}`
       });
     }
-    
-    console.log(`[Backend] ⚡ Livreur ${normalizedAddress} force la complétion de commande #${orderId}`);
-    
-    // Marquer comme livrée
     order.status = 'DELIVERED';
     order.deliveredAt = new Date();
     await order.save();
     
-    console.log(`[Backend] ✅ Commande #${orderId} forcée comme DELIVERED`);
+    
     
     return res.status(200).json({
       success: true,
@@ -1143,7 +1003,7 @@ async function forceCompleteDelivery(req, res) {
       orderId: orderId
     });
   } catch (error) {
-    console.error("Error force completing delivery:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to force complete delivery",
@@ -1173,8 +1033,6 @@ async function getActiveDelivery(req, res) {
         message: "Deliverer not found"
       });
     }
-    
-    // Récupérer TOUTES les commandes actives (en cours de livraison)
     const activeOrders = await Order.find({
       deliverer: deliverer._id,
       status: 'IN_DELIVERY'
@@ -1183,7 +1041,7 @@ async function getActiveDelivery(req, res) {
     .populate('client', 'address name')
     .sort({ createdAt: -1 }); // Plus récentes en premier
     
-    console.log(`[Backend] 📋 ${activeOrders.length} livraison(s) active(s) pour livreur ${normalizedAddress}`);
+    
     
     if (activeOrders.length === 0) {
       return res.status(200).json({
@@ -1192,8 +1050,6 @@ async function getActiveDelivery(req, res) {
         count: 0
       });
     }
-    
-    // Formater toutes les commandes pour le frontend
     const formattedOrders = activeOrders.map(order => ({
       orderId: order.orderId,
       restaurant: {
@@ -1214,15 +1070,13 @@ async function getActiveDelivery(req, res) {
       pickedUpAt: order.pickedUpAt,
       gpsTracking: order.gpsTracking || []
     }));
-    
-    // Retourner la plus récente comme "activeDelivery" et toutes comme "allActiveDeliveries"
     return res.status(200).json({
       activeDelivery: formattedOrders[0],  // La plus récente
       allActiveDeliveries: formattedOrders, // Toutes les livraisons actives
       count: formattedOrders.length
     });
   } catch (error) {
-    console.error("Error getting active delivery:", error);
+    
     
     return res.status(500).json({
       error: "Internal Server Error",

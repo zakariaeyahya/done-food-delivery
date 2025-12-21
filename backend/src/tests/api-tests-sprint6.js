@@ -6,14 +6,14 @@
  * Ce fichier teste toutes les nouvelles routes API du Sprint 6
  * Basé sur les routes définies dans backend/src/routes/oracles.js et disputes.js
  * 
- * ✅ ENDPOINTS TESTÉS (10 nouvelles routes):
+ *  ENDPOINTS TESTÉS (10 nouvelles routes):
  * 
  * 🔮 Price Oracles (3):
  *    - GET /api/oracles/price/latest
  *    - GET /api/oracles/price/metrics
  *    - POST /api/oracles/convert (déjà testé, mais inclus pour complétude)
  * 
- * 📍 GPS Oracles (4):
+ *  GPS Oracles (4):
  *    - POST /api/oracles/gps/update
  *    - GET /api/oracles/gps/track/:orderId
  *    - GET /api/oracles/gps/metrics
@@ -85,7 +85,7 @@ async function runTest(name, testFn, skipReason = null) {
     await testFn();
     testsPassed++;
     results.push({ name, status: 'PASS' });
-    console.log(`✅ PASS: ${name}`);
+    console.log(` PASS: ${name}`);
   } catch (error) {
     testsFailed++;
     let errorMsg = error.message || 'Erreur inconnue';
@@ -93,7 +93,7 @@ async function runTest(name, testFn, skipReason = null) {
       errorMsg = `Connexion refusée - Le serveur n'est pas démarré sur ${BASE_URL}`;
     }
     results.push({ name, status: 'FAIL', error: errorMsg });
-    console.log(`❌ FAIL: ${name}`);
+    console.log(` FAIL: ${name}`);
     console.log(`   Erreur: ${errorMsg}`);
   }
 }
@@ -115,9 +115,9 @@ async function runAllTests() {
     if (healthCheck.status !== 200) {
       throw new Error('Serveur non disponible');
     }
-    console.log('✅ Serveur disponible (status: 200)');
+    console.log(' Serveur disponible (status: 200)');
   } catch (error) {
-    console.error('❌ Serveur non disponible. Veuillez démarrer le serveur avec: npm run dev');
+    console.error(' Serveur non disponible. Veuillez démarrer le serveur avec: npm run dev');
     process.exit(1);
   }
 
@@ -125,9 +125,9 @@ async function runAllTests() {
   try {
     console.log('Connecting to MongoDB...');
     await connectDB();
-    console.log('✅ MongoDB connected');
+    console.log(' MongoDB connected');
   } catch (error) {
-    console.error('❌ MongoDB connection failed:', error.message);
+    console.error(' MongoDB connection failed:', error.message);
     process.exit(1);
   }
 
@@ -135,10 +135,10 @@ async function runAllTests() {
   try {
     console.log('Initializing blockchain...');
     await initBlockchain();
-    console.log('✅ Blockchain connected\n');
+    console.log(' Blockchain connected\n');
   } catch (error) {
-    console.warn('⚠️  Blockchain initialization failed:', error.message);
-    console.warn('⚠️  Some tests requiring blockchain may fail\n');
+    console.warn('  Blockchain initialization failed:', error.message);
+    console.warn('  Some tests requiring blockchain may fail\n');
   }
 
   // ============================================================================
@@ -185,7 +185,7 @@ async function runAllTests() {
   // ============================================================================
   // TESTS GPS ORACLES
   // ============================================================================
-  console.log('\n📍 === TESTS GPS ORACLES ===\n');
+  console.log('\n === TESTS GPS ORACLES ===\n');
 
   // Prérequis: Créer un order pour les tests GPS
   await runTest('SETUP: Créer un order pour les tests GPS', async () => {
@@ -508,14 +508,14 @@ async function runAllTests() {
   console.log('\n╔══════════════════════════════════════════════════════════════╗');
   console.log('║                    RÉSUMÉ DES TESTS                          ║');
   console.log('╠══════════════════════════════════════════════════════════════╣');
-  console.log(`║  ✅ Tests réussis:  ${String(testsPassed).padStart(3)}   / ${testsPassed + testsFailed + testsSkipped}                            ║`);
-  console.log(`║  ❌ Tests échoués:  ${String(testsFailed).padStart(3)}                                          ║`);
+  console.log(`║   Tests réussis:  ${String(testsPassed).padStart(3)}   / ${testsPassed + testsFailed + testsSkipped}                            ║`);
+  console.log(`║   Tests échoués:  ${String(testsFailed).padStart(3)}                                          ║`);
   console.log(`║  ⏭️  Tests ignorés: ${String(testsSkipped).padStart(3)}                                          ║`);
   console.log('╚══════════════════════════════════════════════════════════════╝\n');
 
   // Afficher les détails des échecs
   if (testsFailed > 0) {
-    console.log('❌ Détails des échecs:\n');
+    console.log(' Détails des échecs:\n');
     results.filter(r => r.status === 'FAIL').forEach(r => {
       console.log(`   - ${r.name}`);
       console.log(`     Erreur: ${r.error}\n`);
@@ -525,9 +525,9 @@ async function runAllTests() {
   // Déconnecter MongoDB proprement
   try {
     await disconnectDB();
-    console.log('✅ MongoDB disconnected');
+    console.log(' MongoDB disconnected');
   } catch (error) {
-    console.error('⚠️  MongoDB disconnect error:', error.message);
+    console.error('  MongoDB disconnect error:', error.message);
   }
 
   // Code de sortie
@@ -537,7 +537,7 @@ async function runAllTests() {
 // Exécuter les tests
 if (require.main === module) {
   runAllTests().catch(error => {
-    console.error('❌ Erreur fatale lors de l\'exécution des tests:', error);
+    console.error(' Erreur fatale lors de l\'exécution des tests:', error);
     process.exit(1);
   });
 }

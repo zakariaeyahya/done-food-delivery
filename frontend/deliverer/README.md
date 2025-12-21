@@ -1,6 +1,6 @@
 # DONE Food Delivery - Frontend Deliverer App
 
-## 📋 Table des matières
+##  Table des matières
 
 - [Introduction](#introduction)
 - [Architecture](#architecture)
@@ -26,16 +26,16 @@ L'application frontend deliverer de DONE Food Delivery est une interface React w
 
 ### Fonctionnalités principales
 
-- ✅ **Connexion Web3** : Intégration MetaMask avec vérification du rôle DELIVERER
-- ✅ **Staking** : Gestion du staking minimum (0.1 ETH) pour devenir livreur actif
-- ✅ **Commandes disponibles** : Liste des commandes à proximité avec tri par distance
-- ✅ **Navigation GPS** : Intégration Google Maps avec itinéraires en temps réel
-- ✅ **Tracking actif** : Suivi GPS automatique pendant les livraisons
-- ✅ **Confirmation pickup/delivery** : Validation on-chain des étapes
-- ✅ **Suivi des gains** : Analytics détaillées des revenus (20% du total)
-- ✅ **Notes et avis** : Affichage des ratings clients
-- ✅ **PWA mobile** : Installation sur écran d'accueil et accès GPS natif
-- ✅ **Design responsive** : Interface optimisée pour mobile et desktop
+-  **Connexion Web3** : Intégration MetaMask avec vérification du rôle DELIVERER
+-  **Staking** : Gestion du staking minimum (0.1 ETH) pour devenir livreur actif
+-  **Commandes disponibles** : Liste des commandes à proximité avec tri par distance
+-  **Navigation GPS** : Intégration Google Maps avec itinéraires en temps réel
+-  **Tracking actif** : Suivi GPS automatique pendant les livraisons
+-  **Confirmation pickup/delivery** : Validation on-chain des étapes
+-  **Suivi des gains** : Analytics détaillées des revenus (20% du total)
+-  **Notes et avis** : Affichage des ratings clients
+-  **PWA mobile** : Installation sur écran d'accueil et accès GPS natif
+-  **Design responsive** : Interface optimisée pour mobile et desktop
 
 ---
 
@@ -543,7 +543,7 @@ import ConnectWallet from './components/ConnectWallet'
 
 ---
 
-## 🔌 Services
+##  Services
 
 ### api.js
 
@@ -924,7 +924,7 @@ Les graphiques utilisent Chart.js. Personnalisez les couleurs et styles dans les
 
 ---
 
-## 📚 Ressources
+##  Ressources
 
 - **React Documentation** : https://react.dev/
 - **Vite Documentation** : https://vitejs.dev/
@@ -937,7 +937,7 @@ Les graphiques utilisent Chart.js. Personnalisez les couleurs et styles dans les
 
 ---
 
-## 📝 Scripts NPM
+##  Scripts NPM
 
 ```bash
 # Développement

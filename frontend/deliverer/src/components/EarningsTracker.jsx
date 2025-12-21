@@ -1,7 +1,3 @@
-/**
- * Composant EarningsTracker - Suivi des gains livreur
- * @fileoverview Affiche les gains par période avec graphiques
- */
 
 import { useState, useEffect } from "react";
 import api from "../services/api";
@@ -28,10 +24,6 @@ ChartJS.register(
   Legend
 );
 
-/**
- * Composant EarningsTracker
- * @param {string} address - Adresse wallet du livreur
- */
 function EarningsTracker({ address }) {
   const [earnings, setEarnings] = useState({
     today: 0,
@@ -46,7 +38,6 @@ function EarningsTracker({ address }) {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  /** Charger les données earnings + events blockchain */
   useEffect(() => {
     if (!address) return;
 
@@ -54,7 +45,6 @@ function EarningsTracker({ address }) {
     fetchEarningsEvents();
   }, [address, period]);
 
-  /** Récupérer earnings backend */
   async function fetchEarnings() {
     setLoading(true);
 
@@ -63,7 +53,6 @@ function EarningsTracker({ address }) {
       const weekResponse = await api.getEarnings(address, "week");
       const monthResponse = await api.getEarnings(address, "month");
 
-      // Extraire les données depuis la réponse structurée du backend
       const todayData = todayResponse?.earnings || {};
       const weekData = weekResponse?.earnings || {};
       const monthData = monthResponse?.earnings || {};
@@ -77,15 +66,12 @@ function EarningsTracker({ address }) {
       });
 
       setDeliveriesCount(weekData?.completedDeliveries || 0);
-      console.log("[EarningsTracker] 📊 Earnings chargés:", { today: todayData, week: weekData, month: monthData });
     } catch (err) {
-      console.error("Erreur récupération earnings :", err);
     } finally {
       setLoading(false);
     }
   }
 
-  /** Récupérer events de gains blockchain */
   async function fetchEarningsEvents() {
     try {
       const { events } = await blockchain.getEarningsEvents(address);
@@ -110,11 +96,9 @@ function EarningsTracker({ address }) {
         ],
       });
     } catch (err) {
-      console.error("Erreur récupération events earnings :", err);
     }
   }
 
-  /** Bouton Retirer (non utilisé dans pattern PUSH) */
   function handleWithdraw() {
     alert("Les paiements sont automatiques (pattern PUSH). Aucun retrait nécessaire.");
   }

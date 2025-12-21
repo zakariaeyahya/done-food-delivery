@@ -73,7 +73,7 @@ async function main() {
   for (const [roleName, roleHash] of Object.entries(ROLES)) {
     try {
       const hasRole = await orderManager.hasRole(roleHash, wallet.address);
-      console.log(`  ${roleName}: ${hasRole ? '✅ Yes' : '❌ No'}`);
+      console.log(`  ${roleName}: ${hasRole ? ' Yes' : ' No'}`);
     } catch (e) {
       console.log(`  ${roleName}: Error - ${e.message}`);
     }
@@ -85,10 +85,10 @@ async function main() {
   console.log('\n[Admin Check]');
 
   const isAdmin = await orderManager.hasRole(ROLES.DEFAULT_ADMIN_ROLE, wallet.address);
-  console.log('  Is Admin:', isAdmin ? '✅ Yes' : '❌ No');
+  console.log('  Is Admin:', isAdmin ? ' Yes' : ' No');
 
   if (!isAdmin) {
-    console.log('\n⚠️  WARNING: Wallet is not admin. Cannot grant roles.');
+    console.log('\n  WARNING: Wallet is not admin. Cannot grant roles.');
     console.log('  The deployer wallet should be admin. Check if PRIVATE_KEY is correct.');
     process.exit(1);
   }
@@ -100,16 +100,16 @@ async function main() {
 
   const hasRestaurantRole = await orderManager.hasRole(ROLES.RESTAURANT_ROLE, wallet.address);
   if (hasRestaurantRole) {
-    console.log('  Already has RESTAURANT_ROLE ✅');
+    console.log('  Already has RESTAURANT_ROLE ');
   } else {
     try {
       console.log('  Sending grantRole transaction...');
       const tx = await orderManager.grantRole(ROLES.RESTAURANT_ROLE, wallet.address);
       console.log('  TX Hash:', tx.hash);
       await tx.wait();
-      console.log('  ✅ RESTAURANT_ROLE granted!');
+      console.log('   RESTAURANT_ROLE granted!');
     } catch (error) {
-      console.error('  ❌ Error:', error.reason || error.message);
+      console.error('   Error:', error.reason || error.message);
     }
   }
 
@@ -120,16 +120,16 @@ async function main() {
 
   const hasPlatformRole = await orderManager.hasRole(ROLES.PLATFORM_ROLE, wallet.address);
   if (hasPlatformRole) {
-    console.log('  Already has PLATFORM_ROLE ✅');
+    console.log('  Already has PLATFORM_ROLE ');
   } else {
     try {
       console.log('  Sending grantRole transaction...');
       const tx = await orderManager.grantRole(ROLES.PLATFORM_ROLE, wallet.address);
       console.log('  TX Hash:', tx.hash);
       await tx.wait();
-      console.log('  ✅ PLATFORM_ROLE granted!');
+      console.log('   PLATFORM_ROLE granted!');
     } catch (error) {
-      console.error('  ❌ Error:', error.reason || error.message);
+      console.error('   Error:', error.reason || error.message);
     }
   }
 
@@ -142,7 +142,7 @@ async function main() {
     const isStaked = await staking.isStaked(wallet.address);
     if (isStaked) {
       const stakedAmount = await staking.stakedAmount(wallet.address);
-      console.log('  Already staked:', ethers.formatEther(stakedAmount), 'MATIC ✅');
+      console.log('  Already staked:', ethers.formatEther(stakedAmount), 'MATIC ');
     } else {
       // Get minimum stake amount
       let minStake;
@@ -157,10 +157,10 @@ async function main() {
       const tx = await staking.stakeAsDeliverer({ value: minStake });
       console.log('  TX Hash:', tx.hash);
       await tx.wait();
-      console.log('  ✅ Staked as deliverer!');
+      console.log('   Staked as deliverer!');
     }
   } catch (error) {
-    console.error('  ❌ Error staking:', error.reason || error.message);
+    console.error('   Error staking:', error.reason || error.message);
   }
 
   // ============================================
@@ -171,7 +171,7 @@ async function main() {
   for (const [roleName, roleHash] of Object.entries(ROLES)) {
     try {
       const hasRole = await orderManager.hasRole(roleHash, wallet.address);
-      console.log(`  ${roleName}: ${hasRole ? '✅ Yes' : '❌ No'}`);
+      console.log(`  ${roleName}: ${hasRole ? ' Yes' : ' No'}`);
     } catch (e) {
       console.log(`  ${roleName}: Error`);
     }
@@ -180,7 +180,7 @@ async function main() {
   // Check staking status
   try {
     const isStaked = await staking.isStaked(wallet.address);
-    console.log(`  DELIVERER (Staked): ${isStaked ? '✅ Yes' : '❌ No'}`);
+    console.log(`  DELIVERER (Staked): ${isStaked ? ' Yes' : ' No'}`);
   } catch (e) {
     console.log('  DELIVERER (Staked): Error');
   }

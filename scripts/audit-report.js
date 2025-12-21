@@ -11,7 +11,7 @@ const { ethers } = require("hardhat");
  * Fonction principale pour générer rapport d'audit
  */
 async function main() {
-  console.log("🔍 Démarrage de l'audit sécurité...\n");
+  console.log(" Démarrage de l'audit sécurité...\n");
 
   // Initialiser variables
   const findings = {
@@ -51,7 +51,7 @@ async function main() {
       }
       
       if (!fs.existsSync(contractPath)) {
-        console.warn(`⚠️  ${contractName} not found at ${contractPath}`);
+        console.warn(`  ${contractName} not found at ${contractPath}`);
         continue;
       }
       
@@ -115,7 +115,7 @@ async function main() {
         findings.medium.push({
           contract: contractName,
           issue: "Events for audit",
-          status: "⚠️  Aucun event émis",
+          status: "  Aucun event émis",
           severity: "medium"
         });
       }
@@ -135,13 +135,13 @@ async function main() {
         findings.low.push({
           contract: contractName,
           issue: "SafeMath usage",
-          status: "⚠️  SafeMath utilisé (pas nécessaire avec Solidity ≥ 0.8)",
+          status: "  SafeMath utilisé (pas nécessaire avec Solidity ≥ 0.8)",
           severity: "low"
         });
       }
       
     } catch (error) {
-      console.error(`❌ Erreur lors de l'analyse de ${contractName}:`, error.message);
+      console.error(` Erreur lors de l'analyse de ${contractName}:`, error.message);
       findings.medium.push({
         contract: contractName,
         issue: "Analysis error",
@@ -157,7 +157,7 @@ async function main() {
   // Sauvegarder rapport
   const reportPath = path.join(__dirname, "../audit-report.md");
   fs.writeFileSync(reportPath, report);
-  console.log(`\n✅ Rapport d'audit généré: ${reportPath}`);
+  console.log(`\n Rapport d'audit généré: ${reportPath}`);
 }
 
 /**

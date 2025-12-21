@@ -1,22 +1,16 @@
 const { ethers } = require('ethers');
 const Order = require('../models/Order');
 
-// Provider Polygon Amoy
 const provider = new ethers.JsonRpcProvider(
   process.env.AMOY_RPC_URL || 'https://rpc-amoy.polygon.technology'
 );
 
-// Adresses des contrats (depuis .env)
 const CONTRACTS = {
   OrderManager: process.env.ORDER_MANAGER_ADDRESS,
   PaymentSplitter: process.env.PAYMENT_SPLITTER_ADDRESS,
   Token: process.env.TOKEN_ADDRESS,
   Staking: process.env.STAKING_ADDRESS
 };
-
-// ================================
-// FONCTIONS DE CONVERSION
-// ================================
 
 /**
  * Convertir wei en POL (18 decimales)
@@ -48,9 +42,6 @@ function gasCostInPol(gweiValue, gasUsed) {
 
 class BlockchainMetricsService {
 
-  // ================================
-  // 1. STATS RESEAU EN TEMPS REEL
-  // ================================
   async getNetworkStats() {
     try {
       const [blockNumber, feeData, network] = await Promise.all([
@@ -84,9 +75,6 @@ class BlockchainMetricsService {
     }
   }
 
-  // ================================
-  // 2. VERIFIER SANTE SYSTEME
-  // ================================
   async getSystemHealth() {
     const health = {
       blockchain: { status: 'unknown' },
@@ -94,7 +82,6 @@ class BlockchainMetricsService {
       overall: 'unknown'
     };
 
-    // Test connexion RPC
     try {
       const start = Date.now();
       await provider.getBlockNumber();
@@ -106,7 +93,6 @@ class BlockchainMetricsService {
       health.blockchain = { status: 'disconnected' };
     }
 
-    // Verifier chaque contrat
     for (const [name, address] of Object.entries(CONTRACTS)) {
       if (!address) {
         health.contracts[name] = { status: 'not_configured' };
@@ -123,7 +109,6 @@ class BlockchainMetricsService {
       }
     }
 
-    // Statut global
     const allOk = health.blockchain.status === 'connected' &&
       Object.values(health.contracts).every(c =>
         c.status === 'deployed' || c.status === 'not_configured'
@@ -135,30 +120,23 @@ class BlockchainMetricsService {
     return health;
   }
 
-  // ================================
-  // 3. METRIQUES REELLES DEPUIS MONGODB
-  // ================================
   async getSimpleMetrics() {
     const network = await this.getNetworkStats();
     const health = await this.getSystemHealth();
 
-    // Recuperer les vraies donnees depuis MongoDB
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     try {
-      // Compter les commandes
       const totalOrders = await Order.countDocuments();
       const todayOrders = await Order.countDocuments({ createdAt: { $gte: today } });
       const deliveredOrders = await Order.countDocuments({ status: 'DELIVERED' });
       const disputedOrders = await Order.countDocuments({ status: 'DISPUTED' });
 
-      // Calculer le taux de succes
       const successRate = totalOrders > 0
         ? ((deliveredOrders / totalOrders) * 100).toFixed(1)
         : 0;
 
-      // Calculer le volume total (totalAmount est en wei)
       const volumeAggregation = await Order.aggregate([
         {
           $group: {
@@ -178,15 +156,13 @@ class BlockchainMetricsService {
         totalPlatformWei: 0
       };
 
-      // Convertir wei en POL
       const totalVolumePol = Number(volumeData.totalVolumeWei) / 1e18;
-      const restaurantsPol = (Number(volumeData.totalFoodWei) / 1e18) * 0.70;  // 70% du food
-      const deliverersPol = Number(volumeData.totalDeliveryWei) / 1e18;        // 100% delivery fee
-      const platformPol = Number(volumeData.totalPlatformWei) / 1e18;          // Platform fee
+      const restaurantsPol = (Number(volumeData.totalFoodWei) / 1e18) * 0.70;
+      const deliverersPol = Number(volumeData.totalDeliveryWei) / 1e18;
+      const platformPol = Number(volumeData.totalPlatformWei) / 1e18;
 
-      // Gas price actuel
       const currentGasPrice = network.gasPrice?.gwei || 30;
-      const avgGasUsed = 150000; // Gas moyen par transaction
+      const avgGasUsed = 150000;
       const estimatedGasCost = gasCostInPol(currentGasPrice, avgGasUsed * totalOrders);
 
       return {
@@ -198,7 +174,7 @@ class BlockchainMetricsService {
           successRate: parseFloat(successRate)
         },
         latency: {
-          average: 2.5,   // Temps moyen confirmation Polygon ~2-3s
+          average: 2.5,
           min: 1.0,
           max: 10.0,
           p95: 5.0
@@ -220,8 +196,6 @@ class BlockchainMetricsService {
         generatedAt: Date.now()
       };
     } catch (error) {
-      console.error('Erreur recuperation metriques MongoDB:', error);
-      // Retourner des valeurs par defaut en cas d'erreur
       return {
         network,
         health,
@@ -238,9 +212,6 @@ class BlockchainMetricsService {
     }
   }
 
-  // ================================
-  // 4. DASHBOARD COMPLET
-  // ================================
   async getDashboard() {
     return await this.getSimpleMetrics();
   }

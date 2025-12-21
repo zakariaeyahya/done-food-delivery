@@ -1,8 +1,3 @@
-/**
- * TopRestaurantsTable.jsx
- * Liste les meilleurs restaurants (revenus, commandes, rating)
- */
-
 import React, { useEffect, useState } from "react";
 import { getTopRestaurants } from "../services/api";
 import { formatCrypto, formatNumber, weiToPol } from "../services/formatters";
@@ -17,7 +12,6 @@ export default function TopRestaurantsTable() {
       const res = await getTopRestaurants();
       setRestaurants(res?.data || []);
     } catch (err) {
-      console.error("Erreur chargement top restaurants:", err);
     } finally {
       setLoading(false);
     }
@@ -29,7 +23,7 @@ export default function TopRestaurantsTable() {
 
   return (
     <div className="bg-white p-6 rounded-xl shadow border">
-      <h2 className="text-xl font-semibold mb-4">🏆 Top Restaurants</h2>
+      <h2 className="text-xl font-semibold mb-4">Top Restaurants</h2>
 
       {loading ? (
         <p className="text-gray-500 text-center py-6">Chargement...</p>

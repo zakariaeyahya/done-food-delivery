@@ -1,8 +1,3 @@
-/**
- * Composant ConnectWallet - Connexion MetaMask Admin
- * @notice Permet de connecter MetaMask pour accéder au dashboard admin
- */
-
 import React, { useState } from 'react';
 import { useWallet } from '../context/WalletContext';
 
@@ -22,7 +17,6 @@ function ConnectWallet() {
 
       await connect();
     } catch (err) {
-      console.error('Error connecting wallet:', err);
       setError(err.message || 'Erreur lors de la connexion du wallet');
     }
 

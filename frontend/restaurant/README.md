@@ -1,6 +1,6 @@
 # DONE Food Delivery - Frontend Restaurant Dashboard
 
-## 📋 Table des matières
+##  Table des matières
 
 - [Introduction](#introduction)
 - [Architecture](#architecture)
@@ -25,14 +25,14 @@ Le dashboard restaurant de DONE Food Delivery est une interface React moderne pe
 
 ### Fonctionnalités principales
 
-- ✅ **Gestion des commandes** : Réception et suivi des commandes en temps réel
-- ✅ **Confirmation de préparation** : Validation on-chain des commandes prêtes
-- ✅ **Gestion du menu** : CRUD complet des items avec upload IPFS
-- ✅ **Analytics avancées** : Statistiques détaillées avec graphiques
-- ✅ **Revenus on-chain** : Suivi des gains depuis la blockchain
-- ✅ **Retraits** : Retrait des fonds depuis le PaymentSplitter
-- ✅ **Notifications temps réel** : Alertes instantanées pour nouvelles commandes
-- ✅ **Design responsive** : Interface optimisée pour desktop et tablette
+-  **Gestion des commandes** : Réception et suivi des commandes en temps réel
+-  **Confirmation de préparation** : Validation on-chain des commandes prêtes
+-  **Gestion du menu** : CRUD complet des items avec upload IPFS
+-  **Analytics avancées** : Statistiques détaillées avec graphiques
+-  **Revenus on-chain** : Suivi des gains depuis la blockchain
+-  **Retraits** : Retrait des fonds depuis le PaymentSplitter
+-  **Notifications temps réel** : Alertes instantanées pour nouvelles commandes
+-  **Design responsive** : Interface optimisée pour desktop et tablette
 
 ---
 
@@ -461,7 +461,7 @@ import ConnectWallet from './components/ConnectWallet'
 
 ---
 
-## 🔌 Services
+##  Services
 
 ### api.js
 
@@ -732,7 +732,7 @@ Les graphiques utilisent Chart.js. Personnalisez les couleurs et styles dans les
 
 ---
 
-## 📚 Ressources
+##  Ressources
 
 - **React Documentation** : https://react.dev/
 - **Vite Documentation** : https://vitejs.dev/
@@ -743,7 +743,7 @@ Les graphiques utilisent Chart.js. Personnalisez les couleurs et styles dans les
 
 ---
 
-## 📝 Scripts NPM
+##  Scripts NPM
 
 ```bash
 # Développement

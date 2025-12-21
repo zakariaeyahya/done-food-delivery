@@ -29,7 +29,6 @@ function StakingPanel({ address }) {
         const amount = parseFloat(localStake);
         setStakedAmount(amount);
         setIsStaked(true);
-        console.log("📦 Données chargées depuis localStorage:", amount, "POL");
         return;
       }
   
@@ -38,12 +37,10 @@ function StakingPanel({ address }) {
       setStakedAmount(stakeInfo.amount);
       setIsStaked(stakeInfo.isStaked);
       
-      // Sauvegarder dans localStorage pour persistance
       if (stakeInfo.isStaked && stakeInfo.amount > 0) {
         localStorage.setItem(`staked_${address}`, stakeInfo.amount.toString());
       }
     } catch (err) {
-      console.error("Erreur récupération stake info:", err);
     }
   }
 
@@ -52,7 +49,6 @@ function StakingPanel({ address }) {
       const events = await blockchain.getSlashingEvents(address);
       setSlashingHistory(events);
     } catch (err) {
-      console.error("Erreur récupération slashing history:", err);
     }
   }
 
@@ -61,7 +57,6 @@ function StakingPanel({ address }) {
       const active = await api.getActiveDelivery(address);
       setHasActiveDelivery(!!active);
     } catch (err) {
-      console.error("Erreur récupération livraison active:", err);
     }
   }
 
@@ -88,21 +83,16 @@ function StakingPanel({ address }) {
     setSuccess(null);
 
     try {
-      // MVP MODE: Simulation staking
-      console.log("🎬 MVP Mode: Simulation staking de", amount, "POL");
       
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Simuler succès
       setStakedAmount(amount);
       setIsStaked(true);
       setSuccess(`Staking réussi ! Vous avez staké ${amount} POL.`);
       setStakeInput("0.1");
       
-      // Sauvegarder dans localStorage pour persistance
       localStorage.setItem(`staked_${address}`, amount.toString());
     } catch (err) {
-      console.error("Erreur staking:", err);
       setError(`Erreur: ${err.message}`);
     } finally {
       setLoading(false);
@@ -124,8 +114,6 @@ function StakingPanel({ address }) {
     setSuccess(null);
 
     try {
-      // MVP MODE: Simulation unstaking
-      console.log("🎬 MVP Mode: Simulation unstaking");
       
       await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -134,10 +122,8 @@ function StakingPanel({ address }) {
       setIsStaked(false);
       setSuccess(`Unstaking réussi ! ${amount} POL retirés.`);
       
-      // Supprimer du localStorage
       localStorage.removeItem(`staked_${address}`);
     } catch (err) {
-      console.error("Erreur unstaking:", err);
       setError(`Erreur: ${err.message}`);
     } finally {
       setLoading(false);
@@ -149,13 +135,13 @@ function StakingPanel({ address }) {
   return (
     <div className="staking-card">
       <div className="card-header">
-        <h2>💎 Gestion du Staking</h2>
+        <h2>Gestion du Staking</h2>
       </div>
 
       <div className="staking-status">
         {isStaked ? (
           <div className="status-badge success">
-            <span className="icon">✅</span>
+            <span className="icon"></span>
             <div className="status-info">
               <span className="label">Staké</span>
               <span className="amount">{stakedAmount} POL</span>
@@ -163,7 +149,7 @@ function StakingPanel({ address }) {
           </div>
         ) : (
           <div className="status-badge inactive">
-            <span className="icon">❌</span>
+            <span className="icon"></span>
             <div className="status-info">
               <span className="label">Non staké</span>
               <span className="amount">0 POL</span>
@@ -222,7 +208,7 @@ function StakingPanel({ address }) {
             disabled={loading || hasActiveDelivery}
           >
             {hasActiveDelivery ? (
-              "⚠️ Livraison active"
+              "Livraison active"
             ) : loading ? (
               <>
                 <span className="spinner"></span>
@@ -237,28 +223,28 @@ function StakingPanel({ address }) {
 
       {success && (
         <div className="alert success">
-          <span className="icon">✅</span>
+          <span className="icon"></span>
           <span>{success}</span>
         </div>
       )}
 
       {error && (
         <div className="alert error">
-          <span className="icon">⚠️</span>
+          <span className="icon"></span>
           <span>{error}</span>
         </div>
       )}
 
       {slashingHistory.length > 0 && (
         <div className="slashing-section">
-          <h3>📊 Historique Slashing</h3>
+          <h3>Historique Slashing</h3>
           <div className="slashing-total">
             Total slashé: <strong>{totalSlashed.toFixed(3)} POL</strong>
           </div>
-          
+
           {totalSlashed > 0.5 && (
             <div className="alert warning">
-              <span className="icon">⚠️</span>
+              <span className="icon"></span>
               <span>Attention: vous avez été slashé plusieurs fois!</span>
             </div>
           )}

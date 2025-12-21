@@ -34,7 +34,6 @@ export default function OrdersPage() {
       const res = await getOrderDetails(order.orderId);
       setDetails(res);
     } catch (err) {
-      console.error("Erreur details commande:", err);
     } finally {
       setLoadingDetails(false);
     }

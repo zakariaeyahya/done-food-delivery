@@ -90,11 +90,11 @@ cd frontend/deliverer && npm run dev   # Terminal 4 - Port 5175
 - 🛒 Client : http://localhost:5173
 - 🍽️ Restaurant : http://localhost:5174
 - 🚴 Livreur : http://localhost:5175
-- 🔌 Backend API : http://localhost:3000
+-  Backend API : http://localhost:3000
 
 ---
 
-## 📋 Setup Instructions Détaillées
+##  Setup Instructions Détaillées
 
 ### Prérequis
 
@@ -217,7 +217,7 @@ NETWORK=mumbai
 1. Ouvrir MetaMask
 2. Cliquer sur les 3 points → Account Details → Export Private Key
 3. Entrer votre mot de passe MetaMask
-4. Copier la clé (⚠️ **JAMAIS** la partager ou commiter dans Git)
+4. Copier la clé ( **JAMAIS** la partager ou commiter dans Git)
 
 ##### **3.2. `backend/.env` (pour l'API Node.js)**
 
@@ -375,13 +375,13 @@ npx hardhat run scripts/deploy.js --network mumbai
 **Résultat attendu** :
 ```
 Deploying contracts to Mumbai testnet...
-✅ DoneOrderManager deployed to: 0x1234...
-✅ DonePaymentSplitter deployed to: 0x5678...
-✅ DoneToken deployed to: 0x9abc...
-✅ DoneStaking deployed to: 0xdef0...
+ DoneOrderManager deployed to: 0x1234...
+ DonePaymentSplitter deployed to: 0x5678...
+ DoneToken deployed to: 0x9abc...
+ DoneStaking deployed to: 0xdef0...
 ```
 
-**⚠️ IMPORTANT** : Copier ces adresses et les coller dans :
+** IMPORTANT** : Copier ces adresses et les coller dans :
 - `backend/.env` (ORDER_MANAGER_ADDRESS, PAYMENT_SPLITTER_ADDRESS, etc.)
 - `frontend/client/.env` (VITE_ORDER_MANAGER_ADDRESS, VITE_TOKEN_ADDRESS)
 - `frontend/restaurant/.env` (VITE_ORDER_MANAGER_ADDRESS, VITE_PAYMENT_SPLITTER_ADDRESS)
@@ -398,28 +398,28 @@ Ouvrir **4 terminaux séparés** :
 cd backend
 npm run dev
 ```
-✅ Backend démarré sur http://localhost:3000
+ Backend démarré sur http://localhost:3000
 
 **Terminal 2 - Frontend Client** :
 ```bash
 cd frontend/client
 npm run dev
 ```
-✅ App Client sur http://localhost:5173
+ App Client sur http://localhost:5173
 
 **Terminal 3 - Frontend Restaurant** :
 ```bash
 cd frontend/restaurant
 npm run dev
 ```
-✅ App Restaurant sur http://localhost:5174
+ App Restaurant sur http://localhost:5174
 
 **Terminal 4 - Frontend Deliverer** :
 ```bash
 cd frontend/deliverer
 npm run dev
 ```
-✅ App Deliverer sur http://localhost:5175
+ App Deliverer sur http://localhost:5175
 
 ---
 
@@ -440,7 +440,7 @@ Cela va créer :
 
 ---
 
-## 🧪 Tester le Workflow Complet
+##  Tester le Workflow Complet
 
 ### Scénario : Créer une commande de A à Z
 
@@ -471,8 +471,8 @@ Cela va créer :
 - Retourner sur http://localhost:5173
 - Aller dans "Suivi de commande"
 - Cliquer "Confirmer livraison" (transaction MetaMask)
-- ✅ Paiement automatique : 70% restaurant, 20% livreur, 10% plateforme
-- ✅ Client reçoit des tokens DONE
+-  Paiement automatique : 70% restaurant, 20% livreur, 10% plateforme
+-  Client reçoit des tokens DONE
 
 ---
 
@@ -526,7 +526,7 @@ npx hardhat run scripts/deploy.js --network mumbai
 
 ---
 
-## 📚 Documentation Complémentaire
+##  Documentation Complémentaire
 
 Pour plus de détails sur chaque composant :
 

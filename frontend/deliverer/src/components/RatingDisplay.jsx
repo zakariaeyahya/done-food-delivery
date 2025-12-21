@@ -1,7 +1,3 @@
-/**
- * Composant RatingDisplay - Notes et avis livreur
- */
-
 import { useState, useEffect } from "react";
 import api from "../services/api";
 
@@ -26,10 +22,6 @@ ChartJS.register(
   Legend
 );
 
-/**
- * Composant RatingDisplay
- * @param {string} address - Adresse wallet du livreur
- */
 function RatingDisplay({ address }) {
   const [rating, setRating] = useState(0);
   const [totalDeliveries, setTotalDeliveries] = useState(0);
@@ -38,14 +30,12 @@ function RatingDisplay({ address }) {
   const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  /** Charger données */
   useEffect(() => {
     if (address) {
       fetchRating();
     }
   }, [address]);
 
-  /** Récupérer rating + reviews */
   async function fetchRating() {
     setLoading(true);
 
@@ -56,20 +46,17 @@ function RatingDisplay({ address }) {
       setTotalDeliveries(data.totalDeliveries || 0);
       setReviews(data.reviews || []);
 
-      // Placeholder : historique vide (à remplir avec une vraie API si besoin)
       setRatingHistory(buildRatingHistoryPlaceholder(data.rating));
 
       calculateAchievements(data.rating, data.totalDeliveries);
     } catch (err) {
-      console.error("Erreur récupération rating :", err);
     } finally {
       setLoading(false);
     }
   }
 
-  /** Création historique de rating (fake temp jusqu'à API dédiée) */
   function buildRatingHistoryPlaceholder(currentRating) {
-    const days = 7; // 1 semaine d’historique factice
+    const days = 7;
     const labels = Array.from({ length: days }).map(
       (_, i) => `J-${days - i}`
     );
@@ -93,11 +80,9 @@ function RatingDisplay({ address }) {
     };
   }
 
-  /** Calculer objectifs */
   function calculateAchievements(ratingValue = rating, deliveries = totalDeliveries) {
     const items = [];
 
-    // Objectif livraisons
     if (deliveries >= 100) {
       items.push({ name: "100 livraisons", unlocked: true });
     } else {
@@ -108,7 +93,6 @@ function RatingDisplay({ address }) {
       });
     }
 
-    // Objectif rating
     if (ratingValue >= 4.5) {
       items.push({ name: "Rating > 4.5", unlocked: true });
     } else {
@@ -126,7 +110,6 @@ function RatingDisplay({ address }) {
     <div className="rating-display card">
       <h2>Notes et Avis</h2>
 
-      {/* Note moyenne */}
       <div className="rating-average">
         <div className="stars">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -134,7 +117,7 @@ function RatingDisplay({ address }) {
               key={i}
               className={i < Math.round(rating) ? "star-filled" : "star-empty"}
             >
-              ⭐
+              *
             </span>
           ))}
         </div>
@@ -143,7 +126,6 @@ function RatingDisplay({ address }) {
         <p>{totalDeliveries} livraisons</p>
       </div>
 
-      {/* Avis récents */}
       <div className="recent-reviews">
         <h3>Avis récents</h3>
 
@@ -162,21 +144,19 @@ function RatingDisplay({ address }) {
         ))}
       </div>
 
-      {/* Graphique évolution */}
       {ratingHistory?.labels?.length > 0 && (
         <div className="rating-chart">
           <Line data={ratingHistory} />
         </div>
       )}
 
-      {/* Objectifs */}
       <div className="achievements">
         <h3>Objectifs</h3>
 
         {achievements.map((item, i) => (
           <div key={i} className="achievement-item">
             <span className={item.unlocked ? "unlocked" : "locked"}>
-              {item.unlocked ? "✅" : "🔒"} {item.name}
+              {item.unlocked ? "" : "X"} {item.name}
             </span>
 
             {!item.unlocked && item.progress !== undefined && (

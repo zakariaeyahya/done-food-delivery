@@ -30,15 +30,15 @@ let testsFailed = 0;
 
 async function test(name, testFn) {
   try {
-    log(`\n📋 Test: ${name}`, 'cyan');
+    log(`\n Test: ${name}`, 'cyan');
     await testFn();
-    log(`   ✅ PASSÉ`, 'green');
+    log(`    PASSÉ`, 'green');
     testsPassed++;
     return true;
   } catch (error) {
-    log(`   ❌ ÉCHOUÉ: ${error.message}`, 'red');
+    log(`    ÉCHOUÉ: ${error.message}`, 'red');
     if (error.stack) {
-      console.log(`   📚 ${error.stack.split('\n')[1]?.trim()}`);
+      console.log(`    ${error.stack.split('\n')[1]?.trim()}`);
     }
     testsFailed++;
     return false;
@@ -47,7 +47,7 @@ async function test(name, testFn) {
 
 async function runTests() {
   log('='.repeat(70), 'blue');
-  log('🧪 TEST DES UTILITAIRES PRIORITÉ 3', 'blue');
+  log(' TEST DES UTILITAIRES PRIORITÉ 3', 'blue');
   log('='.repeat(70), 'blue');
 
   try {
@@ -55,7 +55,7 @@ async function runTests() {
     // TEST 1: priceOracle.js
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('1️⃣  TEST DE priceOracle.js', 'blue');
+    log('  TEST DE priceOracle.js', 'blue');
     log('='.repeat(70), 'blue');
 
     const { 
@@ -125,7 +125,7 @@ async function runTests() {
         throw new Error(`Différence trop grande: ${difference.toFixed(2)} USD (tolérance: ${tolerance.toFixed(2)})`);
       }
       
-      log(`   ✅ ${originalUSD} USD → MATIC → ${convertedUSD.toFixed(2)} USD (diff: ${difference.toFixed(2)})`, 'reset');
+      log(`    ${originalUSD} USD → MATIC → ${convertedUSD.toFixed(2)} USD (diff: ${difference.toFixed(2)})`, 'reset');
     });
 
     await test('Formatage MATIC (formatMATIC)', async () => {
@@ -137,7 +137,7 @@ async function runTests() {
       if (typeof formatted !== 'string') throw new Error('Le résultat doit être une string');
       if (!formatted.includes('MATIC')) throw new Error('Le format doit contenir "MATIC"');
       
-      log(`   📝 Formaté: ${formatted}`, 'reset');
+      log(`    Formaté: ${formatted}`, 'reset');
     });
 
     await test('Formatage USD (formatUSD)', async () => {
@@ -154,7 +154,7 @@ async function runTests() {
     // TEST 2: gpsTracker.js
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('2️⃣  TEST DE gpsTracker.js', 'blue');
+    log('  TEST DE gpsTracker.js', 'blue');
     log('='.repeat(70), 'blue');
 
     const { 
@@ -184,9 +184,9 @@ async function runTests() {
       const tolerance = 50; // Tolérance de 50 km
       
       if (Math.abs(distance - expectedDistance) > tolerance) {
-        log(`   ⚠️  Distance calculée: ${distance.toFixed(2)} km (attendu: ~${expectedDistance} km)`, 'yellow');
+        log(`     Distance calculée: ${distance.toFixed(2)} km (attendu: ~${expectedDistance} km)`, 'yellow');
       } else {
-        log(`   📍 Distance Paris-Lyon: ${distance.toFixed(2)} km`, 'reset');
+        log(`    Distance Paris-Lyon: ${distance.toFixed(2)} km`, 'reset');
       }
     });
 
@@ -197,7 +197,7 @@ async function runTests() {
       if (distance < 0) throw new Error('La distance doit être positive');
       if (distance > 1) throw new Error('La distance semble trop grande pour des points proches');
       
-      log(`   📍 Distance points proches: ${(distance * 1000).toFixed(2)} mètres`, 'reset');
+      log(`    Distance points proches: ${(distance * 1000).toFixed(2)} mètres`, 'reset');
     });
 
     await test('Validation coordonnées invalides', async () => {
@@ -206,7 +206,7 @@ async function runTests() {
         throw new Error('Validation échouée - latitude invalide acceptée');
       } catch (error) {
         if (error.message.includes('Latitude')) {
-          log(`   ✅ Validation fonctionne: ${error.message}`, 'reset');
+          log(`    Validation fonctionne: ${error.message}`, 'reset');
         } else {
           throw error;
         }
@@ -223,7 +223,7 @@ async function runTests() {
       if (typeof nearby !== 'boolean') throw new Error('Le résultat doit être un boolean');
       if (!nearby) throw new Error('Le livreur devrait être proche');
       
-      log(`   ✅ Livreur proche: ${nearby}`, 'reset');
+      log(`    Livreur proche: ${nearby}`, 'reset');
     });
 
     await test('Vérification proximité - Livreur loin', async () => {
@@ -235,7 +235,7 @@ async function runTests() {
       
       if (nearby) throw new Error('Le livreur ne devrait pas être proche');
       
-      log(`   ✅ Livreur loin: ${nearby}`, 'reset');
+      log(`    Livreur loin: ${nearby}`, 'reset');
     });
 
     await test('Calcul ETA (getETA)', async () => {
@@ -292,8 +292,8 @@ async function runTests() {
       });
       
       log(`   🗺️  Route générée: ${route.length} points`, 'reset');
-      log(`   📍 Départ: (${route[0].lat}, ${route[0].lng})`, 'reset');
-      log(`   📍 Arrivée: (${lastPoint.lat.toFixed(4)}, ${lastPoint.lng.toFixed(4)})`, 'reset');
+      log(`    Départ: (${route[0].lat}, ${route[0].lng})`, 'reset');
+      log(`    Arrivée: (${lastPoint.lat.toFixed(4)}, ${lastPoint.lng.toFixed(4)})`, 'reset');
     });
 
     await test('Génération route avec steps par défaut', async () => {
@@ -311,24 +311,24 @@ async function runTests() {
     // RÉSUMÉ
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('📊 RÉSUMÉ DES TESTS', 'blue');
+    log(' RÉSUMÉ DES TESTS', 'blue');
     log('='.repeat(70), 'blue');
-    log(`✅ Tests réussis: ${testsPassed}`, 'green');
-    log(`❌ Tests échoués: ${testsFailed}`, testsFailed > 0 ? 'red' : 'green');
-    log(`📈 Taux de réussite: ${((testsPassed / (testsPassed + testsFailed)) * 100).toFixed(1)}%`, 'cyan');
+    log(` Tests réussis: ${testsPassed}`, 'green');
+    log(` Tests échoués: ${testsFailed}`, testsFailed > 0 ? 'red' : 'green');
+    log(` Taux de réussite: ${((testsPassed / (testsPassed + testsFailed)) * 100).toFixed(1)}%`, 'cyan');
     log('='.repeat(70), 'blue');
 
     if (testsFailed === 0) {
-      log('\n🎉 Tous les tests sont passés! Les utilitaires Priorité 3 fonctionnent correctement.', 'green');
+      log('\n Tous les tests sont passés! Les utilitaires Priorité 3 fonctionnent correctement.', 'green');
       log('\n💡 Les utilitaires sont prêts à être utilisés dans les services et controllers.', 'cyan');
     } else {
-      log('\n⚠️  Certains tests ont échoué. Vérifiez les erreurs ci-dessus.', 'yellow');
+      log('\n  Certains tests ont échoué. Vérifiez les erreurs ci-dessus.', 'yellow');
     }
 
     process.exit(testsFailed > 0 ? 1 : 0);
 
   } catch (error) {
-    log(`\n❌ Erreur fatale: ${error.message}`, 'red');
+    log(`\n Erreur fatale: ${error.message}`, 'red');
     if (error.stack) {
       console.error(error.stack);
     }

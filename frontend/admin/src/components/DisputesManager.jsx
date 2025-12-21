@@ -25,7 +25,6 @@ function DisputesManager() {
       const data = await apiService.getDisputes({ status: 'active' });
       setDisputes(data.disputes || []);
     } catch (err) {
-      console.error('Error fetching disputes:', err);
     }
 
     setLoading(false);
@@ -59,7 +58,6 @@ function DisputesManager() {
       await fetchDisputes();
       alert('Vote enregistré avec succès');
     } catch (err) {
-      console.error('Error voting on dispute:', err);
       alert('Erreur lors du vote: ' + err.message);
     }
   }
@@ -100,7 +98,6 @@ function DisputesManager() {
       await fetchDisputes();
       setShowModal(false);
     } catch (err) {
-      console.error('Error resolving dispute:', err);
       alert('Erreur lors de la résolution: ' + err.message);
     }
   }

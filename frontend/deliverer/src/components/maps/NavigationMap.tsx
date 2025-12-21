@@ -65,7 +65,6 @@ export default function NavigationMap({
       setDirections(routeData.route);
       setEta(routeData.duration);
     } catch (err) {
-      console.error("Erreur calcul route :", err);
     }
   }
 
@@ -102,7 +101,7 @@ export default function NavigationMap({
         onLoad={(mapInstance) => setMap(mapInstance)}
       >
         {currentPosition && (
-          <Marker position={currentPosition} label="📍 Vous" />
+          <Marker position={currentPosition} label=" Vous" />
         )}
 
         {step === "pickup" && destination && (

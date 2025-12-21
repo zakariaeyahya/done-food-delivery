@@ -41,7 +41,6 @@ export function ActiveDeliveryCard({ order }: ActiveDeliveryCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const watchIdRef = useRef<number | null>(null);
 
-  // Extraire les items de la commande
   const orderItems = order?.items || [];
 
   useEffect(() => {
@@ -70,7 +69,6 @@ export function ActiveDeliveryCard({ order }: ActiveDeliveryCardProps) {
       const position = await geolocation.getCurrentPosition();
       setCurrentLocation(position);
     } catch (error) {
-      console.error("Erreur GPS :", error);
     }
   }
 
@@ -373,7 +371,7 @@ export function ActiveDeliveryCard({ order }: ActiveDeliveryCardProps) {
                   </div>
                   <div className="bg-slate-800/50 rounded-xl p-4">
                     <p className="text-white font-medium">{order.client?.name || 'Client'}</p>
-                    <p className="text-sm text-slate-400 mt-1">📍 {order.deliveryAddress?.address || order.deliveryAddress || 'Adresse non spécifiée'}</p>
+                    <p className="text-sm text-slate-400 mt-1"> {order.deliveryAddress?.address || order.deliveryAddress || 'Adresse non spécifiée'}</p>
                     {order.client?.phone && (
                       <p className="text-sm text-slate-400 mt-1">📞 {order.client.phone}</p>
                     )}

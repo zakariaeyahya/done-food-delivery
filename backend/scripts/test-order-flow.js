@@ -68,7 +68,7 @@ async function main() {
   console.log('  Balance:', ethers.formatEther(balance), 'MATIC');
 
   if (balance < ethers.parseEther('0.01')) {
-    console.error('\n❌ ERROR: Insufficient MATIC balance. Need at least 0.01 MATIC for gas.');
+    console.error('\n ERROR: Insufficient MATIC balance. Need at least 0.01 MATIC for gas.');
     process.exit(1);
   }
 
@@ -143,17 +143,17 @@ async function main() {
         const parsed = orderManager.interface.parseLog(log);
         if (parsed && parsed.name === 'OrderCreated') {
           orderId = parsed.args.orderId;
-          console.log('  ✅ Order Created! ID:', orderId.toString());
+          console.log('   Order Created! ID:', orderId.toString());
         }
       } catch (e) {}
     }
 
     if (!orderId) {
-      console.error('  ❌ Could not find OrderCreated event');
+      console.error('   Could not find OrderCreated event');
       process.exit(1);
     }
   } catch (error) {
-    console.error('  ❌ Error creating order:', error.reason || error.message);
+    console.error('   Error creating order:', error.reason || error.message);
     process.exit(1);
   }
 
@@ -174,9 +174,9 @@ async function main() {
 
     const receipt2 = await tx2.wait();
     console.log('  Block:', receipt2.blockNumber);
-    console.log('  ✅ Preparation Confirmed!');
+    console.log('   Preparation Confirmed!');
   } catch (error) {
-    console.error('  ❌ Error confirming preparation:', error.reason || error.message);
+    console.error('   Error confirming preparation:', error.reason || error.message);
     process.exit(1);
   }
 
@@ -196,9 +196,9 @@ async function main() {
 
     const receipt3 = await tx3.wait();
     console.log('  Block:', receipt3.blockNumber);
-    console.log('  ✅ Deliverer Assigned!');
+    console.log('   Deliverer Assigned!');
   } catch (error) {
-    console.error('  ❌ Error assigning deliverer:', error.reason || error.message);
+    console.error('   Error assigning deliverer:', error.reason || error.message);
     process.exit(1);
   }
 
@@ -218,9 +218,9 @@ async function main() {
 
     const receipt4 = await tx4.wait();
     console.log('  Block:', receipt4.blockNumber);
-    console.log('  ✅ Pickup Confirmed!');
+    console.log('   Pickup Confirmed!');
   } catch (error) {
-    console.error('  ❌ Error confirming pickup:', error.reason || error.message);
+    console.error('   Error confirming pickup:', error.reason || error.message);
     process.exit(1);
   }
 
@@ -240,9 +240,9 @@ async function main() {
 
     const receipt5 = await tx5.wait();
     console.log('  Block:', receipt5.blockNumber);
-    console.log('  ✅ Delivery Confirmed!');
+    console.log('   Delivery Confirmed!');
   } catch (error) {
-    console.error('  ❌ Error confirming delivery:', error.reason || error.message);
+    console.error('   Error confirming delivery:', error.reason || error.message);
     process.exit(1);
   }
 

@@ -1,11 +1,3 @@
-/**
- * RestaurantsPage.jsx
- * Gestion de tous les restaurants
- * - Tableau complet
- * - Recherche / filtre cuisine
- * - Détails restaurant dans un modal
- */
-
 import React, { useState } from "react";
 import RestaurantsTable from "../components/RestaurantsTable";
 import RestaurantDetailsModal from "../components/RestaurantDetailsModal";
@@ -19,9 +11,6 @@ export default function RestaurantsPage() {
   const [details, setDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  /* ============================================================
-     LOAD DETAILS FOR MODAL
-     ============================================================ */
   async function openRestaurantModal(restaurant) {
     setSelectedRestaurant(restaurant);
     setLoadingDetails(true);
@@ -30,7 +19,6 @@ export default function RestaurantsPage() {
       const res = await getRestaurantDetails(restaurant.address);
       setDetails(res);
     } catch (err) {
-      console.error("Erreur details restaurant:", err);
     } finally {
       setLoadingDetails(false);
     }
@@ -40,10 +28,6 @@ export default function RestaurantsPage() {
     setSelectedRestaurant(null);
     setDetails(null);
   }
-
-  /* ============================================================
-     RENDER
-     ============================================================ */
 
   return (
     <div className="space-y-8">

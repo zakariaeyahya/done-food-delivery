@@ -61,7 +61,6 @@ export const formatPriceInMATIC = (amount) => {
       // S'assurer que c'est bien une string avant de parser
       const polAmount = parseFloat(String(polAmountStr));
       if (isNaN(polAmount)) {
-        console.warn('Failed to parse POL amount:', polAmountStr, 'from wei:', strValue);
         return '0.000000 POL';
       }
       return `${polAmount.toFixed(6)} POL`;
@@ -74,7 +73,6 @@ export const formatPriceInMATIC = (amount) => {
       return `${numValue.toFixed(6)} POL`;
     }
   } catch (error) {
-    console.error('Error formatting price:', error, 'amount:', amount, 'type:', typeof amount);
     return '0.000000 POL';
   }
 };
@@ -102,7 +100,6 @@ export const formatDateTime = (dateValue, formatStr = 'dd/MM/yyyy HH:mm') => {
     
     return format(date, formatStr);
   } catch (error) {
-    console.error('Error formatting date:', error, 'dateValue:', dateValue);
     return 'Date invalide';
   }
 };

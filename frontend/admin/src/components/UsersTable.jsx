@@ -58,7 +58,6 @@ export default function UsersTable() {
       setUsers(res?.data || []);
       setTotal(res?.total || 0);
     } catch (err) {
-      console.error("Erreur users:", err.message);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,3 @@
-/**
- * Composant AvailableOrders - Liste des commandes disponibles
- */
 
 import { useState, useEffect, useRef } from "react";
 import api from "../services/api";
@@ -19,14 +16,12 @@ function AvailableOrders({ limit = null }) {
   const SOCKET_URL =
     process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
 
-  /** Au montage : charger GPS + commandes + socket listeners */
   useEffect(() => {
     loadCurrentLocation();
     fetchAvailableOrders();
 
     const interval = setInterval(fetchAvailableOrders, 10000);
 
-    // Initialiser socket uniquement si pas déjà connecté
     let orderSocketWarning = false;
     let isOrderSocketCleaningUp = false;
 
@@ -42,11 +37,9 @@ function AvailableOrders({ limit = null }) {
         });
 
         socketRef.current.on("connect", () => {
-          console.log("[Livreur] ✅ Socket.io connecté - Notifications de commandes activées");
         });
 
         socketRef.current.on("orderReady", (order) => {
-          console.log("[Livreur] 🔔 Nouvelle commande reçue via Socket.io:", {
             orderId: order.orderId,
             restaurant: order.restaurant?.name || 'Restaurant',
             totalAmount: order.totalAmount,
@@ -55,10 +48,8 @@ function AvailableOrders({ limit = null }) {
           setOrders((prev) => {
             const exists = prev.find(o => o.orderId === order.orderId);
             if (exists) {
-              console.log(`[Livreur] ⚠️ Commande #${order.orderId} déjà dans la liste, ignorée`);
               return prev;
             }
-            console.log(`[Livreur] ✅ Commande #${order.orderId} ajoutée à la liste (total: ${prev.length + 1})`);
             return [order, ...prev];
           });
           playNotificationSound();
@@ -70,15 +61,12 @@ function AvailableOrders({ limit = null }) {
 
         socketRef.current.on("connect_error", (error) => {
           if (!orderSocketWarning && !isOrderSocketCleaningUp) {
-            console.warn("⚠️ Real-time order notifications unavailable. Orders will refresh every 10s.");
             orderSocketWarning = true;
           }
         });
 
-        // Start connection
         socketRef.current.connect();
       } catch (err) {
-        console.warn("Failed to initialize order socket");
       }
     }
 
@@ -92,37 +80,29 @@ function AvailableOrders({ limit = null }) {
             socketRef.current.disconnect();
           }
         } catch (err) {
-          // Silently ignore cleanup errors
         }
         socketRef.current = null;
       }
     };
   }, []);
 
-  /** Charger position actuelle */
   async function loadCurrentLocation() {
     try {
       const position = await geolocation.getCurrentPosition();
       setCurrentLocation(position);
     } catch (err) {
-      console.error("Erreur GPS :", err);
     }
   }
 
-  /** Récupérer commandes disponibles */
   async function fetchAvailableOrders() {
     if (!currentLocation) {
-      console.log("[Livreur] ⚠️ Position GPS non disponible, impossible de charger les commandes");
       return;
     }
     setLoading(true);
 
     try {
-      console.log(`[Livreur] 📡 Récupération commandes disponibles depuis API (lat: ${currentLocation.lat}, lng: ${currentLocation.lng})...`);
       const availableOrders = await api.getAvailableOrders(currentLocation);
-      console.log(`[Livreur] ✅ ${availableOrders.length} commande(s) disponible(s) reçue(s) de l'API`);
 
-      // Trier par distance
       const sortedOrders = availableOrders.sort((a, b) => {
         const dA = calculateDistance(a.restaurant.location);
         const dB = calculateDistance(b.restaurant.location);
@@ -131,19 +111,15 @@ function AvailableOrders({ limit = null }) {
 
       if (limit) {
         setOrders(sortedOrders.slice(0, limit));
-        console.log(`[Livreur] 📋 Affichage des ${limit} premières commandes (triées par distance)`);
       } else {
         setOrders(sortedOrders);
-        console.log(`[Livreur] 📋 ${sortedOrders.length} commande(s) affichée(s)`);
       }
     } catch (error) {
-      console.error("[Livreur] ❌ Erreur chargement commandes :", error);
     } finally {
       setLoading(false);
     }
   }
 
-  /** Calculer distance en mètres */
   function calculateDistance(restaurantLocation) {
     if (!currentLocation || !restaurantLocation) return Infinity;
 
@@ -153,68 +129,48 @@ function AvailableOrders({ limit = null }) {
     );
   }
 
-  /** Gains = 20% */
   function calculateEarnings(order) {
     const totalAmountNumber = parseFloat(formatPrice(order.totalAmount, 'POL', 5).replace(' POL', ''));
     return totalAmountNumber * 0.2;
   }
 
-  /** Icône couleur selon distance */
   function getDistanceIcon(distanceKm) {
     if (distanceKm < 2) return "🟢";
     if (distanceKm < 5) return "🟠";
     return "🔴";
   }
 
-  /** Accepter une commande */
   async function handleAcceptOrder(orderId) {
     try {
-      console.log(`[Livreur] 🚚 Acceptation commande #${orderId}...`);
       const signer = await blockchain.getSigner();
       const address = await signer.getAddress();
-      console.log(`[Livreur] 👤 Adresse livreur: ${address}`);
 
       const isStaked = await blockchain.isStaked(address);
       if (!isStaked) {
-        console.log(`[Livreur] ❌ Livreur non staké, impossible d'accepter la commande`);
         alert("Vous devez staker minimum 0.1 POL pour accepter une commande.");
         return;
       }
-      console.log(`[Livreur] ✅ Livreur staké, continuation...`);
 
       setAccepting(orderId);
 
-      // On-chain
-      console.log(`[Livreur] ⛓️ Acceptation on-chain commande #${orderId}...`);
       await blockchain.acceptOrderOnChain(orderId);
-      console.log(`[Livreur] ✅ Acceptation on-chain réussie pour commande #${orderId}`);
 
-      // Back-end
-      console.log(`[Livreur] 📡 Notification backend acceptation commande #${orderId}...`);
       await api.acceptOrder(orderId, address);
-      console.log(`[Livreur] ✅ Backend notifié pour commande #${orderId}`);
 
-      // Supprimer de la liste
       setOrders((prev) => {
         const filtered = prev.filter((o) => o.orderId !== orderId);
-        console.log(`[Livreur] 📋 Commande #${orderId} retirée de la liste (reste ${filtered.length} commande(s))`);
         return filtered;
       });
 
-      // Redirection
-      console.log(`[Livreur] 🔄 Redirection vers page livraison pour commande #${orderId}`);
       window.location.href = `/deliveries?orderId=${orderId}`;
     } catch (err) {
-      console.error(`[Livreur] ❌ Erreur acceptation commande #${orderId}:`, err);
       alert("Erreur: " + err.message);
     } finally {
       setAccepting(null);
     }
   }
 
-  /** Notification sonore */
   function playNotificationSound() {
-    // Décommenter si tu ajoutes un fichier
     // const audio = new Audio("/notification.mp3");
     // audio.play();
   }

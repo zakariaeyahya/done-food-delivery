@@ -39,7 +39,6 @@ export function RatingDisplay({ address }: RatingDisplayProps) {
       setRatingHistory(buildRatingHistoryPlaceholder(data.rating || 0));
       calculateAchievements(data.rating || 0, data.totalDeliveries || 0);
     } catch (err) {
-      console.error("Erreur récupération rating :", err);
     } finally {
       setLoading(false);
     }
@@ -194,7 +193,7 @@ export function RatingDisplay({ address }: RatingDisplayProps) {
                   </span>
                 </div>
                 <Badge variant={item.unlocked ? "success" : "default"}>
-                  {item.unlocked ? "✅ Débloqué" : "🔒 Verrouillé"}
+                  {item.unlocked ? " Débloqué" : "🔒 Verrouillé"}
                 </Badge>
               </div>
               {!item.unlocked && item.progress !== undefined && (

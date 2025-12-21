@@ -59,7 +59,6 @@ async function getStats(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error in getStats:", error);
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch platform statistics"
@@ -77,47 +76,37 @@ async function getStats(req, res) {
 async function getDisputes(req, res) {
   try {
     const { status, search } = req.query;
-    
-    // Construire la requête : chercher les commandes avec disputed = true OU status = 'DISPUTED'
-    // (pour compatibilité avec les anciennes commandes qui n'ont pas le champ disputed)
+
     const query = {
       $or: [
         { disputed: true },
         { status: 'DISPUTED' }
       ]
     };
-    
-    // Filtrer par statut si fourni
+
     if (status && status !== 'all') {
-      // Mapper les statuts du frontend vers les statuts du backend
       if (status === 'pending') {
         query.status = 'DISPUTED';
       } else if (status === 'resolved') {
-        query.status = { $in: ['DELIVERED', 'CANCELLED'] }; // Les litiges résolus peuvent avoir différents statuts
-        query.disputed = false; // Ou on peut ajouter un champ disputeResolved
+        query.status = { $in: ['DELIVERED', 'CANCELLED'] };
+        query.disputed = false;
       }
     }
-    
-    // Recherche par orderId si fourni
+
     if (search) {
       const orderIdSearch = parseInt(search);
       if (!isNaN(orderIdSearch)) {
         query.orderId = orderIdSearch;
       }
     }
-    
-    console.log(`[Backend] 🔍 Recherche litiges avec query:`, JSON.stringify(query, null, 2));
-    
+
     const disputes = await Order.find(query)
       .populate('client', 'address name')
       .populate('restaurant', 'address name')
       .populate('deliverer', 'address name')
       .sort({ createdAt: -1 })
       .lean();
-    
-    console.log(`[Backend] ✅ ${disputes.length} litige(s) trouvé(s)`);
-    
-    // Formater les données pour le frontend
+
     const disputesFormatted = disputes.map(dispute => ({
       id: dispute._id?.toString() || dispute.orderId?.toString(),
       disputeId: dispute.orderId, // Pour compatibilité
@@ -148,7 +137,6 @@ async function getDisputes(req, res) {
       data: disputesFormatted
     });
   } catch (error) {
-    console.error("Error in getDisputes:", error);
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch disputes",
@@ -174,10 +162,7 @@ async function getDisputeDetails(req, res) {
         message: "Invalid dispute ID. Must be a number."
       });
     }
-    
-    console.log(`[Backend] 🔍 Recherche détails litige #${disputeId}...`);
-    
-    // Trouver la commande avec orderId = disputeId et disputed = true ou status = DISPUTED
+
     const order = await Order.findOne({
       orderId: disputeId,
       $or: [
@@ -189,24 +174,19 @@ async function getDisputeDetails(req, res) {
       .populate('restaurant', 'address name cuisine')
       .populate('deliverer', 'address name vehicle')
       .lean();
-    
+
     if (!order) {
-      console.log(`[Backend] ❌ Litige #${disputeId} non trouvé`);
       return res.status(404).json({
         error: "Not Found",
         message: `Dispute with id ${disputeId} not found`
       });
     }
-    
-    console.log(`[Backend] ✅ Litige #${disputeId} trouvé`);
-    
-    // Formater les données pour le frontend
+
     const disputeDetails = {
       id: order._id?.toString() || order.orderId?.toString(),
       disputeId: order.orderId,
       orderId: order.orderId,
-      
-      // Informations de la commande
+
       order: {
         orderId: order.orderId,
         txHash: order.txHash,
@@ -218,8 +198,7 @@ async function getDisputeDetails(req, res) {
         updatedAt: order.updatedAt,
         completedAt: order.completedAt
       },
-      
-      // Participants
+
       client: order.client ? {
         address: order.client.address || order.client,
         name: order.client.name || 'N/A',
@@ -235,8 +214,7 @@ async function getDisputeDetails(req, res) {
         name: order.deliverer.name || 'N/A',
         vehicle: order.deliverer.vehicle || null
       } : null,
-      
-      // Informations du litige
+
       dispute: {
         status: order.status === 'DISPUTED' ? 'pending' : 
                 (order.disputed === false ? 'resolved' : 'pending'),
@@ -245,15 +223,13 @@ async function getDisputeDetails(req, res) {
         createdAt: order.createdAt,
         updatedAt: order.updatedAt
       },
-      
-      // Votes (si système d'arbitrage décentralisé)
+
       votes: order.votes || {
         client: 0,
         restaurant: 0,
         deliverer: 0
       },
-      
-      // Avis si disponible
+
       review: order.review || null
     };
     
@@ -262,7 +238,6 @@ async function getDisputeDetails(req, res) {
       data: disputeDetails
     });
   } catch (error) {
-    console.error("Error in getDisputeDetails:", error);
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch dispute details",
@@ -297,10 +272,7 @@ async function resolveDispute(req, res) {
         message: "Invalid winner. Must be CLIENT, RESTAURANT, or DELIVERER"
       });
     }
-    
-    console.log(`[Backend] 🔧 Résolution litige #${disputeId} en faveur de ${winner}...`);
-    
-    // Chercher la commande avec orderId = disputeId et disputed = true ou status = DISPUTED
+
     const order = await Order.findOne({
       orderId: disputeId,
       $or: [
@@ -308,38 +280,25 @@ async function resolveDispute(req, res) {
         { status: 'DISPUTED' }
       ]
     });
-    
+
     if (!order) {
-      console.log(`[Backend] ❌ Litige #${disputeId} non trouvé`);
       return res.status(404).json({
         error: "Not Found",
         message: `Dispute with id ${disputeId} not found`
       });
     }
-    
-    console.log(`[Backend] ✅ Litige #${disputeId} trouvé, résolution en cours...`);
-    
-    // Mettre à jour le statut
-    // Note: 'RESOLVED' n'est pas dans l'enum, on garde 'DISPUTED' mais on marque disputed = false
-    // ou on peut utiliser 'DELIVERED' si le gagnant est le client/restaurant
+
     order.disputed = false;
-    
-    // Si le gagnant est le client ou le restaurant, on peut considérer la commande comme livrée
-    // Sinon, on garde le statut DISPUTED mais avec disputed = false
+
     if (winner === 'CLIENT' || winner === 'RESTAURANT') {
       order.status = 'DELIVERED';
     } else {
-      // Pour le livreur ou autres cas, on garde DISPUTED mais marqué comme résolu
       order.status = 'DISPUTED';
     }
-    
-    // Note: disputeResolution n'est pas dans le schéma mais MongoDB l'acceptera comme champ dynamique
+
     order.disputeResolution = winner;
     await order.save();
-    
-    console.log(`[Backend] ✅ Litige #${disputeId} résolu en faveur de ${winner}`);
-    
-    // TODO: Appeler le smart contract pour résoudre sur la blockchain si nécessaire
+
     const txHash = "0x" + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
     
     return res.status(200).json({
@@ -353,7 +312,6 @@ async function resolveDispute(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error in resolveDispute:", error);
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to resolve dispute"
@@ -406,7 +364,6 @@ async function getAllUsers(req, res) {
       data: usersWithData
     });
   } catch (error) {
-    console.error("Error in getAllUsers:", error);
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch users"
@@ -457,7 +414,6 @@ async function getAllRestaurants(req, res) {
       data: restaurantsWithRevenue
     });
   } catch (error) {
-    console.error("Error in getAllRestaurants:", error);
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch restaurants"
@@ -510,27 +466,18 @@ async function getAllDeliverers(req, res) {
       data: deliverersWithEarnings
     });
   } catch (error) {
-    console.error("Error in getAllDeliverers:", error);
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch deliverers"
     });
   }
-}
-
-// ============================================
-// NOUVELLES FONCTIONS
-// ============================================
-
+}
 async function getOrders(req, res) {
   try {
-    const { page = 1, limit = 10, sortField = 'createdAt', sortOrder = 'desc', status } = req.query;
-    // Ensure page is at least 1 to avoid negative skip
+    const { page = 1, limit = 10, sortField = 'createdAt', sortOrder = 'desc', status } = req.query;    
     const safePage = Math.max(1, parseInt(page) || 1);
     const safeLimit = Math.max(1, parseInt(limit) || 10);
-    const query = {};
-    // Ignorer le filtre si status est "all" ou vide
-    if (status && status !== 'all') query.status = status;
+    const query = {};    if (status && status !== 'all') query.status = status;
     const sortOptions = {};
     sortOptions[sortField === 'date' ? 'createdAt' : sortField] = sortOrder === 'desc' ? -1 : 1;
     const total = await Order.countDocuments(query);
@@ -539,7 +486,7 @@ async function getOrders(req, res) {
       .sort(sortOptions).skip((safePage - 1) * safeLimit).limit(safeLimit).lean();
     return res.status(200).json({ success: true, data: orders, total, pagination: { page: safePage, limit: safeLimit, total, pages: Math.ceil(total / safeLimit) } });
   } catch (error) {
-    console.error("Error in getOrders:", error);
+    
     return res.status(500).json({ error: "Internal Server Error", message: "Failed to fetch orders" });
   }
 }
@@ -564,33 +511,29 @@ async function getOrderDetails(req, res) {
         error: "Not Found",
         message: `Commande #${orderId} non trouvée`
       });
-    }
-
-    // Construire la réponse avec tous les détails
-    const details = {
+    }    const details = {
       ...order,
-      // Informations client
+
       client: order.client || { name: "N/A", address: null },
-      // Informations restaurant
+
       restaurant: order.restaurant || { name: "N/A", address: null },
-      // Informations livreur
+
       deliverer: order.deliverer || null,
-      // Montants
+
       totalAmount: order.totalAmount || 0,
       platformFee: order.platformFee || Math.round((order.totalAmount || 0) * 0.1),
       restaurantAmount: order.restaurantAmount || Math.round((order.totalAmount || 0) * 0.7),
       delivererAmount: order.delivererAmount || Math.round((order.totalAmount || 0) * 0.2),
-      // Items de la commande
+
       items: order.items || [],
-      // Logs/historique
       logs: order.logs || order.statusHistory || [],
-      // Dates
+
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       completedAt: order.completedAt,
-      // Statut
+
       status: order.status,
-      // Adresse de livraison
+
       deliveryAddress: order.deliveryAddress || order.address || "N/A"
     };
 
@@ -599,7 +542,7 @@ async function getOrderDetails(req, res) {
       data: details
     });
   } catch (error) {
-    console.error("Error in getOrderDetails:", error);
+    
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch order details"
@@ -626,7 +569,7 @@ async function getAnalyticsOrders(req, res) {
     const chartData = Object.entries(groupedData).map(([date, data]) => ({ date, orders: data.count, revenue: data.total })).sort((a, b) => new Date(a.date) - new Date(b.date));
     return res.status(200).json({ success: true, data: chartData, timeframe, summary: { totalOrders: orders.length, totalRevenue: orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0) } });
   } catch (error) {
-    console.error("Error in getAnalyticsOrders:", error);
+    
     return res.status(500).json({ error: "Internal Server Error", message: "Failed to fetch orders analytics" });
   }
 }
@@ -667,7 +610,7 @@ async function getAnalyticsRevenue(req, res) {
     }, { platform: 0, restaurant: 0, deliverer: 0, total: 0 });
     return res.status(200).json({ success: true, data: chartData, timeframe, totals: { platform: parseFloat(totals.platform.toFixed(2)), restaurant: parseFloat(totals.restaurant.toFixed(2)), deliverer: parseFloat(totals.deliverer.toFixed(2)), total: parseFloat(totals.total.toFixed(2)) } });
   } catch (error) {
-    console.error("Error in getAnalyticsRevenue:", error);
+    
     return res.status(500).json({ error: "Internal Server Error", message: "Failed to fetch revenue analytics" });
   }
 }
@@ -696,7 +639,7 @@ async function getTopDeliverers(req, res) {
       }))
     });
   } catch (error) {
-    console.error("Error in getTopDeliverers:", error);
+    
     return res.status(500).json({ error: "Internal Server Error", message: "Failed to fetch top deliverers" });
   }
 }
@@ -725,7 +668,7 @@ async function getTopRestaurants(req, res) {
       }))
     });
   } catch (error) {
-    console.error("Error in getTopRestaurants:", error);
+    
     return res.status(500).json({ error: "Internal Server Error", message: "Failed to fetch top restaurants" });
   }
 }
@@ -744,10 +687,7 @@ async function getAnalyticsDisputes(req, res) {
       startDate.setMonth(startDate.getMonth() - 1);
     } else {
       startDate.setFullYear(startDate.getFullYear() - 1);
-    }
-
-    // Get disputed orders grouped by date
-    const disputes = await Order.aggregate([
+    }    const disputes = await Order.aggregate([
       {
         $match: {
           status: 'DISPUTED',
@@ -763,10 +703,7 @@ async function getAnalyticsDisputes(req, res) {
         }
       },
       { $sort: { _id: 1 } }
-    ]);
-
-    // Get dispute stats
-    const totalDisputes = await Order.countDocuments({ status: 'DISPUTED' });
+    ]);    const totalDisputes = await Order.countDocuments({ status: 'DISPUTED' });
     const resolvedDisputes = await Order.countDocuments({ status: 'RESOLVED' });
     const pendingDisputes = await Order.countDocuments({ status: 'DISPUTED', disputeReason: { $exists: true } });
 
@@ -784,7 +721,7 @@ async function getAnalyticsDisputes(req, res) {
       timeframe
     });
   } catch (error) {
-    console.error("Error in getAnalyticsDisputes:", error);
+    
     return res.status(500).json({ error: "Internal Server Error", message: "Failed to fetch disputes analytics" });
   }
 }

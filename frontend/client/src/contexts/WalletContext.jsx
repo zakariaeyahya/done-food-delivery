@@ -35,7 +35,6 @@ export function WalletProvider({ children }) {
       localStorage.setItem('walletAddress', connectedAddress);
       
     } catch (error) {
-      console.error('Error connecting wallet:', error);
       throw error;
     } finally {
       setIsConnecting(false);
@@ -55,11 +54,9 @@ export function WalletProvider({ children }) {
       const maticBalance = await blockchain.getMaticBalance(address);
       setBalance(maticBalance);
     } catch (error) {
-      console.error('Error refreshing balance:', error);
     }
   }
 
-  // Vérifier wallet au montage
   useEffect(() => {
     const savedAddress = localStorage.getItem('walletAddress');
     if (savedAddress) {
@@ -69,11 +66,10 @@ export function WalletProvider({ children }) {
       blockchain
         .getMaticBalance(savedAddress)
         .then(setBalance)
-        .catch((err) => console.error('Error getting initial balance:', err));
+        .catch((err) => {});
     }
   }, []);
 
-  // Rafraîchir balance toutes les 30s
   useEffect(() => {
     if (!address) return;
 

@@ -1,18 +1,7 @@
-/**
- * API Service – Admin Dashboard DONE
- * Tous les appels API centralisés ici
- */
-
 import axios from "axios";
 
-// ============================================
-// BASE URL depuis .env
-// ============================================
-export const API_BASE_URL = import.meta.env.VITE_API_URL;
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-// ============================================
-// GESTION AUTH – adresse admin (MetaMask)
-// ============================================
 export function authHeaders(address) {
   return {
     "x-admin-address": address,
@@ -20,17 +9,10 @@ export function authHeaders(address) {
   };
 }
 
-// ============================================
-// ERREURS UNIFORMES
-// ============================================
 function handleApiError(err) {
-  console.error("API Error:", err?.response?.data || err.message);
   throw err;
 }
 
-// ============================================
-// 1. UTILISATEURS
-// ============================================
 export async function getUsers(filters = {}) {
   try {
     const address = localStorage.getItem("adminWalletAddress");
@@ -61,9 +43,6 @@ export async function getUserDetails(userAddress) {
   }
 }
 
-// ============================================
-// 2. RESTAURANTS
-// ============================================
 export async function getRestaurants(filters = {}) {
   try {
     const address = localStorage.getItem("adminWalletAddress");
@@ -92,9 +71,6 @@ export async function getRestaurantDetails(restaurantAddress) {
   }
 }
 
-// ============================================
-// 3. LIVREURS
-// ============================================
 export async function getDeliverers(filters = {}) {
   try {
     const address = localStorage.getItem("adminWalletAddress");
@@ -123,9 +99,6 @@ export async function getDelivererDetails(delivererAddress) {
   }
 }
 
-// ============================================
-// 4. COMMANDES
-// ============================================
 export async function getOrders(filters = {}) {
   try {
     const address = localStorage.getItem("adminWalletAddress");
@@ -154,9 +127,6 @@ export async function getOrderDetails(orderId) {
   }
 }
 
-// ============================================
-// 5. LITIGES (DISPUTES)
-// ============================================
 export async function getDisputes(filters = {}) {
   try {
     const address = localStorage.getItem("adminWalletAddress");
@@ -191,8 +161,7 @@ export async function getDisputeDetails(disputeId) {
 export async function resolveDispute(disputeId, data) {
   try {
     const address = localStorage.getItem("adminWalletAddress");
-    
-    // data peut être un objet { winner, reason } ou juste winner (string)
+
     const body = typeof data === 'object' ? data : { winner: data };
 
     const res = await axios.post(
@@ -207,9 +176,6 @@ export async function resolveDispute(disputeId, data) {
   }
 }
 
-// ============================================
-// 6. ANALYTICS & GRAPHIQUES
-// ============================================
 export async function getAnalytics(type, filters = {}) {
   try {
     const address = localStorage.getItem("adminWalletAddress");
@@ -225,10 +191,6 @@ export async function getAnalytics(type, filters = {}) {
     handleApiError(err);
   }
 }
-
-// ============================================
-// 7. TOP RESTAURANTS & TOP DELIVERERS
-// ============================================
 
 export async function getTopRestaurants(limit = 10) {
   try {
@@ -260,10 +222,6 @@ export async function getTopDeliverers(limit = 10) {
   }
 }
 
-// ============================================
-// 8. ANALYTICS — HISTOGRAMME DES LITIGES
-// ============================================
-
 export async function getAnalyticsDisputes(filters = {}) {
   try {
     const address = localStorage.getItem("adminWalletAddress");
@@ -280,10 +238,6 @@ export async function getAnalyticsDisputes(filters = {}) {
     handleApiError(err);
   }
 }
-
-// ============================================
-// 9. DASHBOARD STATS (Stats globales)
-// ============================================
 
 export async function getDashboardStats() {
   try {

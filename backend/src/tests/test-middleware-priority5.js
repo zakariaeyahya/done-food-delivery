@@ -32,15 +32,15 @@ let testsFailed = 0;
 
 async function test(name, testFn) {
   try {
-    log(`\n📋 Test: ${name}`, 'cyan');
+    log(`\n Test: ${name}`, 'cyan');
     await testFn();
-    log(`   ✅ PASSÉ`, 'green');
+    log(`    PASSÉ`, 'green');
     testsPassed++;
     return true;
   } catch (error) {
-    log(`   ❌ ÉCHOUÉ: ${error.message}`, 'red');
+    log(`    ÉCHOUÉ: ${error.message}`, 'red');
     if (error.stack) {
-      console.log(`   📚 ${error.stack.split('\n')[1]?.trim()}`);
+      console.log(`    ${error.stack.split('\n')[1]?.trim()}`);
     }
     testsFailed++;
     return false;
@@ -97,7 +97,7 @@ function createMockNext() {
 
 async function runTests() {
   log('='.repeat(70), 'blue');
-  log('🧪 TEST DES MIDDLEWARES PRIORITÉ 5', 'blue');
+  log(' TEST DES MIDDLEWARES PRIORITÉ 5', 'blue');
   log('='.repeat(70), 'blue');
 
   try {
@@ -105,7 +105,7 @@ async function runTests() {
     // TEST 1: validation.js
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('1️⃣  TEST DE validation.js', 'blue');
+    log('  TEST DE validation.js', 'blue');
     log('='.repeat(70), 'blue');
 
     const { 
@@ -197,7 +197,7 @@ async function runTests() {
       
       // Le test peut échouer si Order model n'existe pas, mais c'est OK
       if (res.statusCode === 404 || res.statusCode === 500) {
-        log(`   ⚠️  Order model non disponible (normal si pas encore créé)`, 'yellow');
+        log(`     Order model non disponible (normal si pas encore créé)`, 'yellow');
         return; // Skip test
       }
       
@@ -280,7 +280,7 @@ async function runTests() {
     // TEST 2: auth.js
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('2️⃣  TEST DE auth.js', 'blue');
+    log('  TEST DE auth.js', 'blue');
     log('='.repeat(70), 'blue');
 
     const { 
@@ -378,7 +378,7 @@ async function runTests() {
       
       // Le test peut échouer si User model n'existe pas ou si l'utilisateur n'est pas enregistré
       if (res.statusCode === 500 || res.statusCode === 403) {
-        log(`   ⚠️  User model non disponible ou utilisateur non enregistré (normal)`, 'yellow');
+        log(`     User model non disponible ou utilisateur non enregistré (normal)`, 'yellow');
         return; // Skip test
       }
       
@@ -410,14 +410,14 @@ async function runTests() {
       
       // Le test peut échouer si Order model n'existe pas
       if (res.statusCode === 500 || res.statusCode === 404) {
-        log(`   ⚠️  Order model non disponible (normal si pas encore créé)`, 'yellow');
+        log(`     Order model non disponible (normal si pas encore créé)`, 'yellow');
         return; // Skip test
       }
       
       // Si l'order existe et appartient à l'utilisateur, next() devrait être appelé
       // Sinon, 403 Forbidden
       if (res.statusCode === 403) {
-        log(`   ⚠️  Order n'appartient pas à l'utilisateur (normal)`, 'yellow');
+        log(`     Order n'appartient pas à l'utilisateur (normal)`, 'yellow');
         return; // Skip test
       }
       
@@ -428,18 +428,18 @@ async function runTests() {
     // RÉSUMÉ
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('📊 RÉSUMÉ DES TESTS', 'blue');
+    log(' RÉSUMÉ DES TESTS', 'blue');
     log('='.repeat(70), 'blue');
-    log(`✅ Tests réussis: ${testsPassed}`, 'green');
-    log(`❌ Tests échoués: ${testsFailed}`, testsFailed > 0 ? 'red' : 'green');
-    log(`📈 Taux de réussite: ${((testsPassed / (testsPassed + testsFailed)) * 100).toFixed(1)}%`, 'cyan');
+    log(` Tests réussis: ${testsPassed}`, 'green');
+    log(` Tests échoués: ${testsFailed}`, testsFailed > 0 ? 'red' : 'green');
+    log(` Taux de réussite: ${((testsPassed / (testsPassed + testsFailed)) * 100).toFixed(1)}%`, 'cyan');
     log('='.repeat(70), 'blue');
 
     if (testsFailed === 0) {
-      log('\n🎉 Tous les tests sont passés! Les middlewares Priorité 5 fonctionnent correctement.', 'green');
+      log('\n Tous les tests sont passés! Les middlewares Priorité 5 fonctionnent correctement.', 'green');
       log('\n💡 Les middlewares sont prêts à être utilisés dans les routes.', 'cyan');
     } else {
-      log('\n⚠️  Certains tests ont échoué. Vérifiez les erreurs ci-dessus.', 'yellow');
+      log('\n  Certains tests ont échoué. Vérifiez les erreurs ci-dessus.', 'yellow');
       log('\n💡 Notes:', 'yellow');
       log('   - Certains tests nécessitent les modèles MongoDB (User, Order, etc.)', 'yellow');
       log('   - Les tests de signature nécessitent ethers.js', 'yellow');
@@ -448,7 +448,7 @@ async function runTests() {
     process.exit(testsFailed > 0 ? 1 : 0);
 
   } catch (error) {
-    log(`\n❌ Erreur fatale: ${error.message}`, 'red');
+    log(`\n Erreur fatale: ${error.message}`, 'red');
     if (error.stack) {
       console.error(error.stack);
     }

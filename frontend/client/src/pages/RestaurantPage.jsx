@@ -28,7 +28,6 @@ const RestaurantPage = () => {
         const response = await getRestaurantById(id);
         setRestaurant(response.data.restaurant || response.data);
       } catch (err) {
-        console.error(`Failed to fetch restaurant ${id}:`, err);
         setError('Impossible de charger les details du restaurant.');
       } finally {
         setLoading(false);
@@ -47,7 +46,6 @@ const RestaurantPage = () => {
       const response = await getRestaurantById(id);
       setRestaurant(response.data.restaurant || response.data);
     } catch (err) {
-      console.error(`Failed to refresh restaurant ${id}:`, err);
       setError('Impossible de charger les details du restaurant.');
     } finally {
       setRefreshing(false);
@@ -76,7 +74,6 @@ const RestaurantPage = () => {
         showToast(result.error || 'Echec de l\'ajout au panier', 'error');
       }
     } catch (err) {
-      console.error('[RestaurantPage] Error adding to cart:', err);
       showToast('Erreur lors de l\'ajout au panier', 'error');
     } finally {
       setAddingToCart(false);

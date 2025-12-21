@@ -4,7 +4,7 @@ Guide complet pour les restaurants utilisant la plateforme DoneFood. Ce guide vo
 
 ---
 
-## 📋 Table des matières
+##  Table des matières
 
 1. [Introduction](#introduction)
 2. [Premiers pas](#premiers-pas)
@@ -24,16 +24,16 @@ Guide complet pour les restaurants utilisant la plateforme DoneFood. Ce guide vo
 - 🍽️ **Gérer leur menu** en ligne avec images IPFS
 - 📦 **Recevoir des commandes** en temps réel via Socket.io
 - 💰 **Recevoir des paiements** automatiquement (70% du montant)
-- 📊 **Suivre leurs statistiques** et performances
+-  **Suivre leurs statistiques** et performances
 - ⚡ **Traiter les commandes** rapidement avec confirmation blockchain
 
 ### Avantages pour les restaurants
 
-- ✅ **Paiements sécurisés** : Les fonds sont en escrow jusqu'à livraison
-- ✅ **Répartition automatique** : 70% pour vous, 20% livreur, 10% plateforme
-- ✅ **Temps réel** : Notifications instantanées des nouvelles commandes
-- ✅ **Transparence** : Toutes les transactions sont sur la blockchain
-- ✅ **Pas de frais cachés** : Commission fixe de 10%
+-  **Paiements sécurisés** : Les fonds sont en escrow jusqu'à livraison
+-  **Répartition automatique** : 70% pour vous, 20% livreur, 10% plateforme
+-  **Temps réel** : Notifications instantanées des nouvelles commandes
+-  **Transparence** : Toutes les transactions sont sur la blockchain
+-  **Pas de frais cachés** : Commission fixe de 10%
 
 ---
 
@@ -67,11 +67,11 @@ Si vous n'avez pas encore MetaMask installé :
 3. Sélectionnez **MetaMask**
 4. Approuvez la connexion
 
-✅ **Vous êtes maintenant connecté !**
+ **Vous êtes maintenant connecté !**
 
 ---
 
-## 📝 Inscription et configuration
+##  Inscription et configuration
 
 ### Si c'est votre première fois
 
@@ -126,7 +126,7 @@ Remplissez les informations suivantes :
 3. Confirmez la transaction dans MetaMask (si nécessaire)
 4. Attendez la confirmation
 
-✅ **Votre restaurant est maintenant enregistré !**
+ **Votre restaurant est maintenant enregistré !**
 
 Vous serez automatiquement redirigé vers le dashboard.
 
@@ -196,7 +196,7 @@ Vous serez automatiquement redirigé vers le dashboard.
 2. Cliquez sur **"Supprimer"**
 3. Confirmez la suppression
 
-⚠️ **Attention** : La suppression est définitive. L'article ne pourra plus être récupéré.
+ **Attention** : La suppression est définitive. L'article ne pourra plus être récupéré.
 
 ### Filtrer par catégorie
 
@@ -210,10 +210,10 @@ Utilisez le filtre en haut de la page pour afficher :
 ### Conseils pour un bon menu
 
 - 📸 **Ajoutez des photos** : Les clients commandent plus avec des images
-- 📝 **Descriptions détaillées** : Mentionnez les ingrédients, allergènes
+-  **Descriptions détaillées** : Mentionnez les ingrédients, allergènes
 - 💰 **Prix compétitifs** : Comparez avec les restaurants similaires
 - 🏷️ **Catégories claires** : Organisez bien vos articles
-- ✅ **Mettez à jour** : Gardez votre menu à jour avec les disponibilités
+-  **Mettez à jour** : Gardez votre menu à jour avec les disponibilités
 
 ---
 
@@ -250,7 +250,7 @@ Une fois que vous avez commencé à préparer la commande :
 2. Confirmez la transaction dans MetaMask
 3. Le statut passe à **"En préparation"**
 
-✅ **La commande est maintenant en préparation !**
+ **La commande est maintenant en préparation !**
 
 > 💡 **Note** : Cette action est enregistrée sur la blockchain et déclenche l'assignation d'un livreur.
 
@@ -280,7 +280,7 @@ Utilisez la barre de recherche pour trouver une commande par :
 
 ---
 
-## 📊 Consulter vos statistiques
+##  Consulter vos statistiques
 
 ### Accéder aux statistiques
 
@@ -378,7 +378,7 @@ Vos revenus sont automatiquement accumulés dans le contrat `PaymentSplitter`.
 3. Confirmez la transaction dans MetaMask
 4. Les fonds seront transférés à votre wallet
 
-✅ **Les fonds sont maintenant dans votre wallet MetaMask !**
+ **Les fonds sont maintenant dans votre wallet MetaMask !**
 
 > 💡 **Note** : Vous pouvez retirer à tout moment. Il n'y a pas de minimum requis.
 
@@ -490,9 +490,9 @@ Si vous rencontrez un problème ou avez une question :
 
 ---
 
-## 📝 Notes importantes
+##  Notes importantes
 
-- ⚠️ **Sauvegardez votre phrase de récupération MetaMask** : C'est la seule façon de récupérer votre wallet
+-  **Sauvegardez votre phrase de récupération MetaMask** : C'est la seule façon de récupérer votre wallet
 - 💰 **Vérifiez vos revenus régulièrement** : Retirez vos fonds régulièrement pour sécuriser vos gains
 - 📦 **Confirmez rapidement les préparations** : Cela améliore l'expérience client et accélère le processus
 - 🍽️ **Mettez à jour votre menu** : Gardez votre menu à jour avec les disponibilités réelles

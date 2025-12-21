@@ -1,12 +1,3 @@
-/**
- * UsersPage.jsx
- * Page de gestion des utilisateurs
- * - Recherche
- * - Filtres activité
- * - Tableau utilisateurs
- * - Modal de détails utilisateur
- */
-
 import React, { useState, useEffect } from "react";
 import UsersTable from "../components/UsersTable";
 import UserDetailsModal from "../components/UserDetailsModal";
@@ -19,16 +10,12 @@ export default function UsersPage() {
   const [details, setDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  /* ============================================================
-     FETCH DETAILS FOR MODAL
-     ============================================================ */
   async function loadUserDetails(address) {
     try {
       setLoadingDetails(true);
       const data = await getUserDetails(address);
       setDetails(data);
     } catch (err) {
-      console.error("Erreur détails utilisateur:", err);
     } finally {
       setLoadingDetails(false);
     }
@@ -43,10 +30,6 @@ export default function UsersPage() {
     setSelectedUser(null);
     setDetails(null);
   }
-
-  /* ============================================================
-     RENDER
-     ============================================================ */
 
   return (
     <div className="space-y-8">

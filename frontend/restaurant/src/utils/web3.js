@@ -1,16 +1,6 @@
-/**
- * Utilitaires Web3 - Formatage d'adresses et de soldes
- * @notice Fonctions utilitaires pour formater les adresses Ethereum et les soldes
- * @dev Utilise ethers.js pour le formatage
- */
 
 import { ethers } from 'ethers';
 
-/**
- * Formate une adresse Ethereum pour l'affichage
- * @param {string} address - Adresse Ethereum complète
- * @returns {string} Adresse formatée (ex: "0x1234...5678")
- */
 export function formatAddress(address) {
   if (!address) return '';
   
@@ -30,13 +20,6 @@ export function formatAddress(address) {
   }
 }
 
-/**
- * Formate un solde (en wei ou BigInt) pour l'affichage
- * @param {string|BigInt|number} balance - Solde en wei ou déjà formaté
- * @param {number} decimals - Nombre de décimales (par défaut 18 pour ETH/MATIC)
- * @param {number} displayDecimals - Nombre de décimales à afficher (par défaut 4)
- * @returns {string} Solde formaté (ex: "1.2345")
- */
 export function formatBalance(balance, decimals = 18, displayDecimals = 4) {
   if (!balance && balance !== 0) return '0';
   
@@ -93,18 +76,10 @@ export function formatBalance(balance, decimals = 18, displayDecimals = 4) {
     
     return balance?.toString() || '0';
   } catch (error) {
-    console.error('Error formatting balance:', error);
     return balance?.toString() || '0';
   }
 }
 
-/**
- * Formate un prix pour l'affichage
- * @param {string|number|BigInt} price - Prix en wei
- * @param {number} decimals - Nombre de décimales (par défaut 18)
- * @param {number} displayDecimals - Nombre de décimales à afficher (par défaut 2)
- * @returns {string} Prix formaté (ex: "1.23")
- */
 export function formatPrice(price, decimals = 18, displayDecimals = 2) {
   return formatBalance(price, decimals, displayDecimals);
 }

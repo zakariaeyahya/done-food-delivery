@@ -64,7 +64,6 @@ export default function OrdersTable({ filters, onViewDetails }) {
       setOrders(res?.data || []);
       setTotal(res?.total || 0);
     } catch (err) {
-      console.error("Erreur fetch commandes:", err);
     } finally {
       setLoading(false);
     }

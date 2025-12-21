@@ -1,8 +1,3 @@
-/**
- * Page RegisterPage - Inscription Restaurant
- * @notice Formulaire d'inscription pour créer un nouveau restaurant
- * @dev Vérifie d'abord si le wallet est déjà enregistré, sinon affiche le formulaire
- */
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -59,7 +54,6 @@ function RegisterPage() {
         }
       } catch (err) {
         // Pas de restaurant trouvé (404) - c'est normal, afficher le formulaire
-        console.log('Aucun restaurant existant pour cette adresse');
       } finally {
         setIsCheckingExisting(false);
       }
@@ -144,7 +138,6 @@ function RegisterPage() {
       }, 2000);
 
     } catch (err) {
-      console.error('Error registering restaurant:', err);
       setError(err.message);
     } finally {
       setIsSubmitting(false);

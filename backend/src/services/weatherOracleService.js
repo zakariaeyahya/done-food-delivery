@@ -4,15 +4,10 @@ require("dotenv").config();
 
 /**
  * Weather Oracle Service - DoneWeatherOracle contract interaction
- *
- * Manages weather data for delivery fee adjustments
- * Connected to deployed DoneWeatherOracle contract
  */
 
-// Configuration
 const WEATHER_ORACLE_ADDRESS = process.env.WEATHER_ORACLE_ADDRESS;
 
-// Weather conditions enum (matches contract)
 const WeatherCondition = {
   SUNNY: 0,
   CLOUDY: 1,
@@ -23,16 +18,14 @@ const WeatherCondition = {
 
 const WeatherConditionNames = ["SUNNY", "CLOUDY", "RAINY", "SNOWY", "STORM"];
 
-// Fee multipliers (100% = 10000)
 const FeeMultipliers = {
-  SUNNY: 10000,   // 100%
-  CLOUDY: 10000,  // 100%
-  RAINY: 12000,   // 120%
-  SNOWY: 15000,   // 150%
-  STORM: 20000    // 200%
+  SUNNY: 10000,
+  CLOUDY: 10000,
+  RAINY: 12000,
+  SNOWY: 15000,
+  STORM: 20000
 };
 
-// DoneWeatherOracle ABI (minimal)
 const WEATHER_ORACLE_ABI = [
   "function getWeather(int256 lat, int256 lng) external view returns (uint8 condition, int256 temperature, uint256 timestamp, bool isExtreme)",
   "function canDeliver(int256 lat, int256 lng) external view returns (bool)",
@@ -43,10 +36,8 @@ const WEATHER_ORACLE_ABI = [
   "event ExtremeWeatherAlert(bytes32 indexed locationHash, uint8 condition)"
 ];
 
-// Weather Oracle contract instance (lazy loaded)
 let weatherOracleContract = null;
 
-// Performance metrics
 let totalWeatherFetches = 0;
 let onChainFetches = 0;
 let fallbackFetches = 0;
@@ -59,22 +50,18 @@ function getWeatherOracleContract() {
   if (weatherOracleContract) return weatherOracleContract;
 
   if (!WEATHER_ORACLE_ADDRESS) {
-    console.warn("⚠️ WEATHER_ORACLE_ADDRESS not configured");
     return null;
   }
 
   try {
     const provider = getProvider();
     if (!provider) {
-      console.warn("⚠️ Provider not initialized for Weather Oracle");
       return null;
     }
 
     weatherOracleContract = new ethers.Contract(WEATHER_ORACLE_ADDRESS, WEATHER_ORACLE_ABI, provider);
-    console.log("✓ Weather Oracle contract initialized:", WEATHER_ORACLE_ADDRESS);
     return weatherOracleContract;
   } catch (error) {
-    console.error("❌ Failed to initialize Weather Oracle:", error.message);
     return null;
   }
 }
@@ -88,11 +75,9 @@ function getWeatherOracleContract() {
 async function getWeather(lat, lng) {
   totalWeatherFetches++;
 
-  // Scale coordinates (contract uses int256 with 6 decimals)
   const latScaled = Math.round(lat * 1e6);
   const lngScaled = Math.round(lng * 1e6);
 
-  // Try on-chain first
   if (WEATHER_ORACLE_ADDRESS) {
     try {
       const weatherOracle = getWeatherOracleContract();
@@ -100,7 +85,6 @@ async function getWeather(lat, lng) {
         const [condition, temperature, timestamp, isExtreme] = await weatherOracle.getWeather(latScaled, lngScaled);
 
         onChainFetches++;
-        console.log(`✓ Weather from on-chain: ${WeatherConditionNames[condition]}, ${Number(temperature) / 100}°C`);
 
         return {
           source: "on-chain",
@@ -108,7 +92,7 @@ async function getWeather(lat, lng) {
           weather: {
             condition: WeatherConditionNames[Number(condition)],
             conditionCode: Number(condition),
-            temperature: Number(temperature) / 100, // Contract stores temp * 100
+            temperature: Number(temperature) / 100,
             temperatureUnit: "C",
             isExtreme: isExtreme
           },
@@ -121,14 +105,10 @@ async function getWeather(lat, lng) {
         };
       }
     } catch (onChainError) {
-      console.warn("⚠️ On-chain weather fetch failed:", onChainError.message);
-      // Fall through to fallback
     }
   }
 
-  // Fallback: simulate weather data (for testing or when no on-chain data)
   fallbackFetches++;
-  console.log("⚠️ Using fallback weather simulation");
 
   return getSimulatedWeather(lat, lng);
 }
@@ -140,11 +120,10 @@ async function getWeather(lat, lng) {
  * @returns {Object} Simulated weather data
  */
 function getSimulatedWeather(lat, lng) {
-  // Simple simulation based on location
   const conditions = ["SUNNY", "CLOUDY", "RAINY"];
   const randomIndex = Math.floor(Math.random() * conditions.length);
   const condition = conditions[randomIndex];
-  const temperature = Math.floor(Math.random() * 30) + 5; // 5-35°C
+  const temperature = Math.floor(Math.random() * 30) + 5;
   const isExtreme = condition === "STORM" || temperature < 0 || temperature > 40;
 
   return {
@@ -181,15 +160,12 @@ async function canDeliver(lat, lng) {
       const weatherOracle = getWeatherOracleContract();
       if (weatherOracle) {
         const result = await weatherOracle.canDeliver(latScaled, lngScaled);
-        console.log(`✓ canDeliver check: ${result}`);
         return result;
       }
     } catch (error) {
-      console.warn("⚠️ On-chain canDeliver check failed:", error.message);
     }
   }
 
-  // Fallback: always allow delivery
   return true;
 }
 
@@ -237,27 +213,20 @@ async function updateWeather(lat, lng, condition, temperature) {
     throw new Error("Provider not initialized");
   }
 
-  // Get condition code
   const conditionCode = WeatherCondition[condition.toUpperCase()];
   if (conditionCode === undefined) {
     throw new Error(`Invalid condition: ${condition}. Valid: ${Object.keys(WeatherCondition).join(", ")}`);
   }
 
-  // Scale values
   const latScaled = Math.round(lat * 1e6);
   const lngScaled = Math.round(lng * 1e6);
-  const tempScaled = Math.round(temperature * 100); // Contract stores temp * 100
+  const tempScaled = Math.round(temperature * 100);
 
-  // Use admin wallet
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
   const oracleWithSigner = weatherOracle.connect(wallet);
 
-  console.log(`📍 Updating weather: (${lat}, ${lng}) = ${condition}, ${temperature}°C`);
-
   const tx = await oracleWithSigner.updateWeather(latScaled, lngScaled, conditionCode, tempScaled);
   const receipt = await tx.wait();
-
-  console.log(`✓ Weather updated on-chain: txHash=${tx.hash}`);
 
   return {
     success: true,

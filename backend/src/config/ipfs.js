@@ -35,24 +35,18 @@ async function initIPFS() {
 
     if (isPinataConfigured) {
       pinataAPI = new pinataSDK(process.env.PINATA_API_KEY, process.env.PINATA_SECRET_KEY);
-      
-      const test = await pinataAPI.testAuthentication();
-      console.log("Pinata authentication successful:", test);
-      
+
+      await pinataAPI.testAuthentication();
+
       gatewayURL = process.env.IPFS_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
-      
-      console.log("✅ IPFS initialized with Pinata");
+
       return pinataAPI;
     } else {
       gatewayURL = process.env.IPFS_GATEWAY_URL || "https://ipfs.io/ipfs/";
-      
-      console.log("⚠️  Pinata not configured - Public gateway only (downloads only)");
-      console.log("💡 For uploads, configure PINATA_API_KEY and PINATA_SECRET_KEY in .env");
-      
+
       return null;
     }
   } catch (error) {
-    console.error("Error initializing IPFS:", error);
     throw error;
   }
 }
@@ -125,13 +119,11 @@ async function testConnection() {
     }
 
     if (gatewayURL) {
-      console.log("⚠️  Pinata not configured - Public gateway available (downloads only)");
       return false;
     }
 
     return false;
   } catch (error) {
-    console.error("IPFS connection test failed:", error);
     return false;
   }
 }

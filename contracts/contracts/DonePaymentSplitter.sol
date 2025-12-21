@@ -13,7 +13,7 @@ contract DonePaymentSplitter is Ownable, ReentrancyGuard, IPaymentSplitter {
 
     mapping(address => uint256) public balances;
 
-    // ❌ SUPPRIMÉ : l'événement doublon
+    //  SUPPRIMÉ : l'événement doublon
     // event PaymentSplit(...) {}
 
     event Withdrawn(address indexed payee, uint256 amount);

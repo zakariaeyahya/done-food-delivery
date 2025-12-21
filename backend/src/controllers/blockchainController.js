@@ -6,8 +6,7 @@ async function getDashboard(req, res) {
     const data = await blockchainMetricsService.getDashboard();
     res.json({ success: true, data });
   } catch (error) {
-    console.error('Erreur dashboard blockchain:', error);
-    res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -15,7 +14,11 @@ async function getDashboard(req, res) {
 async function getNetworkStats(req, res) {
   try {
     const stats = await blockchainMetricsService.getNetworkStats();
-    res.json({ success: true, data: stats });
+    const data = {
+      ...stats,
+      connected: stats?.isConnected ? 1 : 0,
+    };
+    res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -25,8 +28,20 @@ async function getNetworkStats(req, res) {
 async function getHealth(req, res) {
   try {
     const health = await blockchainMetricsService.getSystemHealth();
-    const statusCode = health.overall === 'healthy' ? 200 : 503;
-    res.status(statusCode).json({ success: true, data: health });
+    const overall = health?.overall || 'unknown';
+    const overallCode =
+      overall === 'healthy' ? 1 :
+      overall === 'degraded' ? 0.5 :
+      0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...health,
+        overall,
+        overallCode,
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

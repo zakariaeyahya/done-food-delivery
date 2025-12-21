@@ -32,7 +32,6 @@ export default function DeliverersPage() {
       const res = await getDelivererDetails(deliverer.address);
       setDetails(res);
     } catch (err) {
-      console.error("Erreur details livreur:", err);
     } finally {
       setLoadingDetails(false);
     }

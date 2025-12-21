@@ -65,7 +65,6 @@ function TokenomicsPanel() {
       // setTopHolders(topHoldersData || []);
       setLoading(false);
     } catch (err) {
-      console.error('Error fetching tokenomics:', err);
       setLoading(false);
     }
   }

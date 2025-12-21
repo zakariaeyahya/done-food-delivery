@@ -50,12 +50,10 @@ export default function OrdersAnalyticsChart() {
       setError(null);
 
       const response = await getAnalytics("orders", { timeframe });
-      console.log("📊 Orders Analytics API response:", response);
 
       // Vérifier si les données sont valides
       // Le backend retourne: { success, data: [{date, orders, revenue}], summary }
       if (!response || !response.data || response.data.length === 0) {
-        console.log("❌ Pas de données orders");
         setChartData(null);
         setSummary(null);
         setError("Aucune donnée disponible pour cette période");
@@ -66,8 +64,6 @@ export default function OrdersAnalyticsChart() {
       const labels = response.data.map((item) => formatDateShort(item.date));
       const ordersData = response.data.map((item) => item.orders);
 
-      console.log("📈 Labels:", labels);
-      console.log("📈 Orders:", ordersData);
 
       const formatted = {
         labels,
@@ -84,7 +80,6 @@ export default function OrdersAnalyticsChart() {
         ],
       };
 
-      console.log("✅ Chart data formatted:", formatted);
       setChartData(formatted);
 
       // Résumé KPI
@@ -109,7 +104,6 @@ export default function OrdersAnalyticsChart() {
         totalOrders: totalOrders,
       });
     } catch (err) {
-      console.error("Orders analytics error:", err);
       setError(
         err.response?.data?.message || 
         err.message || 

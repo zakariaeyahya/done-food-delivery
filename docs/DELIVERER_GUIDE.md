@@ -4,7 +4,7 @@ Guide complet pour les livreurs utilisant la plateforme DoneFood. Ce guide vous 
 
 ---
 
-## 📋 Table des matières
+##  Table des matières
 
 1. [Introduction](#introduction)
 2. [Premiers pas](#premiers-pas)
@@ -23,18 +23,18 @@ Guide complet pour les livreurs utilisant la plateforme DoneFood. Ce guide vous 
 **DoneFood** est une plateforme de livraison de repas décentralisée qui permet aux livreurs de :
 
 - 🚴 **Accepter des livraisons** en temps réel
-- 📍 **Suivre les trajets** avec navigation GPS
+-  **Suivre les trajets** avec navigation GPS
 - 💰 **Gagner des revenus** automatiquement (20% du montant de chaque commande)
 - 🔒 **Garantir leur fiabilité** avec un système de staking
 - ⭐ **Recevoir des notes** et améliorer leur réputation
 
 ### Avantages pour les livreurs
 
-- ✅ **Paiements automatiques** : 20% du montant de chaque commande livrée
-- ✅ **Staking sécurisé** : Garantie de fiabilité avec 0.1 ETH minimum
-- ✅ **Navigation GPS** : Intégration Google Maps pour les trajets optimaux
-- ✅ **Temps réel** : Notifications instantanées des nouvelles commandes
-- ✅ **Transparence** : Toutes les transactions sont sur la blockchain
+-  **Paiements automatiques** : 20% du montant de chaque commande livrée
+-  **Staking sécurisé** : Garantie de fiabilité avec 0.1 ETH minimum
+-  **Navigation GPS** : Intégration Google Maps pour les trajets optimaux
+-  **Temps réel** : Notifications instantanées des nouvelles commandes
+-  **Transparence** : Toutes les transactions sont sur la blockchain
 
 ---
 
@@ -76,11 +76,11 @@ Pour effectuer des transactions et du staking, vous avez besoin de POL :
 3. Sélectionnez **MetaMask**
 4. Approuvez la connexion
 
-✅ **Vous êtes maintenant connecté !**
+ **Vous êtes maintenant connecté !**
 
 ---
 
-## 📝 Inscription et configuration
+##  Inscription et configuration
 
 ### Si c'est votre première fois
 
@@ -105,7 +105,7 @@ Remplissez les informations suivantes :
 2. Cliquez sur **"S'inscrire comme livreur"**
 3. Attendez la confirmation
 
-✅ **Vous êtes maintenant inscrit comme livreur !**
+ **Vous êtes maintenant inscrit comme livreur !**
 
 ---
 
@@ -117,10 +117,10 @@ Le **staking** est un dépôt de garantie qui prouve votre fiabilité en tant qu
 
 ### Pourquoi staker ?
 
-- ✅ **Obligatoire** : Vous devez staker pour accepter des commandes
-- ✅ **Garantie de fiabilité** : Montre votre engagement
-- ✅ **Protection** : En cas de faute grave, une partie peut être confisquée (slashing)
-- ✅ **Récupérable** : Vous pouvez retirer votre stake quand vous voulez (si aucune livraison active)
+-  **Obligatoire** : Vous devez staker pour accepter des commandes
+-  **Garantie de fiabilité** : Montre votre engagement
+-  **Protection** : En cas de faute grave, une partie peut être confisquée (slashing)
+-  **Récupérable** : Vous pouvez retirer votre stake quand vous voulez (si aucune livraison active)
 
 ### Montant minimum
 
@@ -135,15 +135,15 @@ Le **staking** est un dépôt de garantie qui prouve votre fiabilité en tant qu
 4. Cliquez sur **"Staker"**
 5. Confirmez la transaction dans MetaMask
 
-✅ **Votre stake est maintenant actif !**
+ **Votre stake est maintenant actif !**
 
 Vous pouvez maintenant accepter des commandes.
 
 ### Retirer votre stake (Unstake)
 
 Vous pouvez retirer votre stake si :
-- ✅ Vous n'avez **aucune livraison active**
-- ✅ Vous souhaitez arrêter temporairement
+-  Vous n'avez **aucune livraison active**
+-  Vous souhaitez arrêter temporairement
 
 **Comment retirer :**
 
@@ -152,7 +152,7 @@ Vous pouvez retirer votre stake si :
 3. Cliquez sur **"Retirer le stake"**
 4. Confirmez la transaction dans MetaMask
 
-⚠️ **Attention** : Après le retrait, vous ne pourrez plus accepter de commandes jusqu'à ce que vous stakiez à nouveau.
+ **Attention** : Après le retrait, vous ne pourrez plus accepter de commandes jusqu'à ce que vous stakiez à nouveau.
 
 ### Slashing (confiscation)
 
@@ -199,7 +199,7 @@ Les commandes sont automatiquement triées par distance (plus proche en premier)
 3. Cliquez sur **"Accepter la commande"**
 4. Confirmez la transaction dans MetaMask
 
-✅ **La commande est maintenant assignée à vous !**
+ **La commande est maintenant assignée à vous !**
 
 > 💡 **Astuce** : Acceptez les commandes proches pour optimiser vos gains et votre temps.
 
@@ -228,7 +228,7 @@ Une fois une commande acceptée, elle apparaît comme **"Livraison active"** sur
    - Le bouton **"Confirmer la récupération"** devient actif
    - Cliquez dessus et confirmez dans MetaMask
 
-✅ **Vous avez récupéré la commande !**
+ **Vous avez récupéré la commande !**
 
 Le statut passe à **"En livraison"**.
 
@@ -247,7 +247,7 @@ Le statut passe à **"En livraison"**.
    - Le bouton **"Confirmer la livraison"** devient actif
    - Cliquez dessus et confirmez dans MetaMask
 
-✅ **Livraison confirmée !**
+ **Livraison confirmée !**
 
 **Actions automatiques :**
 - Le paiement est réparti automatiquement (70% restaurant, 20% vous, 10% plateforme)
@@ -483,11 +483,11 @@ Si vous rencontrez un problème ou avez une question :
 
 ---
 
-## 📝 Notes importantes
+##  Notes importantes
 
-- ⚠️ **Sauvegardez votre phrase de récupération MetaMask** : C'est la seule façon de récupérer votre wallet
+-  **Sauvegardez votre phrase de récupération MetaMask** : C'est la seule façon de récupérer votre wallet
 - 🔒 **Stakez au minimum 0.1 POL** : Obligatoire pour accepter des commandes
-- 📍 **Autorisez le GPS** : Essentiel pour la navigation et la confirmation de livraison
+-  **Autorisez le GPS** : Essentiel pour la navigation et la confirmation de livraison
 - ⚡ **Confirmez rapidement** : Les confirmations rapides améliorent votre rating
 - 💰 **Vérifiez vos gains régulièrement** : Dans la page "Revenus"
 

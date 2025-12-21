@@ -1,8 +1,3 @@
-/**
- * Composant ConnectWallet - Restaurant
- * @notice Gère la connexion au wallet MetaMask pour le restaurant
- * @dev Détecte MetaMask, connecte le wallet, vérifie le rôle RESTAURANT_ROLE, fetch restaurant profile
- */
 
 import { useState, useEffect } from 'react';
 import * as blockchain from '../services/blockchain';
@@ -10,10 +5,6 @@ import { useWallet } from '../contexts/WalletContext';
 import { formatAddress } from '../utils/web3';
 import { ethers } from 'ethers';
 
-/**
- * Composant ConnectWallet
- * @returns {JSX.Element} Composant de connexion wallet restaurant
- */
 function ConnectWallet() {
   const { address, restaurant, isConnected, connect, disconnect } = useWallet();
   const [isConnecting, setIsConnecting] = useState(false);
@@ -44,7 +35,6 @@ function ConnectWallet() {
       const balanceEther = ethers.formatEther(balanceWei);
       setBalance(parseFloat(balanceEther).toFixed(4));
     } catch (error) {
-      console.info('Balance non disponible (RPC):', error.message?.slice(0, 50) || 'Erreur reseau');
       setBalance('--');
     }
   }
@@ -63,7 +53,6 @@ function ConnectWallet() {
         setNetwork(`Réseau incorrect (${net.chainId})`);
       }
     } catch (error) {
-      console.error('Error checking network:', error);
     }
   }
 
@@ -124,9 +113,9 @@ function ConnectWallet() {
           <div className="wallet-info flex flex-col items-end">
             <span className="address text-sm font-medium">{formatAddress(address)}</span>
             {restaurant ? (
-              <span className="role text-xs text-success-600">✓ {restaurant.name}</span>
+              <span className="role text-xs text-success-600">{restaurant.name}</span>
             ) : (
-              <span className="role text-xs text-warning-600">⚠ Non enregistré</span>
+              <span className="role text-xs text-warning-600">Non enregistré</span>
             )}
             <span className="network text-xs text-gray-500">{network || 'Vérification...'}</span>
             <span className="balance text-xs text-gray-600">{balance} POL</span>

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useApp } from "@/providers/AppProvider";
 
-// Désactiver le pré-rendu car cette page utilise des APIs côté client (window, localStorage, etc.)
 export const dynamic = 'force-dynamic';
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Card } from "@/components/ui/Card";
@@ -56,10 +55,8 @@ export default function HomePage() {
   async function loadData() {
     setCheckingRegistration(true);
     try {
-      console.log(`[Livreur] 🔍 Vérification enregistrement livreur ${address}...`);
       const delivererData = await api.getDeliverer(address).catch((err: any) => {
         if (err.response?.status === 404) {
-          console.log(`[Livreur] ⚠️ Livreur ${address} non enregistré dans la base de données`);
           setIsRegistered(false);
           setCheckingRegistration(false);
           return null;
@@ -73,7 +70,6 @@ export default function HomePage() {
         return;
       }
 
-      console.log(`[Livreur] ✅ Livreur enregistré:`, {
         address: delivererData.deliverer?.address,
         name: delivererData.deliverer?.name,
         isAvailable: delivererData.deliverer?.isAvailable,
@@ -84,66 +80,44 @@ export default function HomePage() {
       setIsRegistered(true);
       setCheckingRegistration(false);
 
-      // Vérifier les conditions pour recevoir des commandes
       const isAvailable = delivererData.deliverer?.isAvailable || false;
       const isStaked = delivererData.deliverer?.isStaked || false;
       
       if (!isStaked) {
-        console.warn(`[Livreur] ⚠️ ATTENTION: Vous n'êtes pas staké sur la blockchain !`);
-        console.warn(`[Livreur] 💡 Pour recevoir des commandes, vous devez:`);
-        console.warn(`[Livreur]    1. Staker minimum 0.1 POL sur la blockchain`);
-        console.warn(`[Livreur]    2. Mettre votre statut à "disponible"`);
-        console.warn(`[Livreur]    → Le backend synchronisera automatiquement votre statut de staking`);
       } else if (!isAvailable) {
-        console.log(`[Livreur] 💡 Vous êtes staké mais pas disponible. Cliquez sur "Passer en ligne" pour recevoir des commandes.`);
       } else {
-        console.log(`[Livreur] ✅ Vous êtes prêt à recevoir des commandes (staké + disponible)`);
       }
 
-      // Synchroniser la disponibilité si le livreur est staké mais pas disponible
       if (isStaked && !isAvailable) {
-        console.log(`[Livreur] 💡 Livreur staké mais pas disponible. Mise à jour automatique...`);
         try {
           await api.updateStatus(address, true);
           setIsOnline(true);
-          console.log(`[Livreur] ✅ Statut mis à jour: disponible`);
         } catch (statusError) {
-          console.warn(`[Livreur] ⚠️ Erreur mise à jour statut:`, statusError);
         }
       } else if (isAvailable) {
         setIsOnline(true);
       }
 
-      // Récupérer toutes les livraisons actives
       const activeData = await api.getAllActiveDeliveries(address).catch(() => ({
         activeDelivery: null,
         allActiveDeliveries: [],
         count: 0
       }));
       
-      // Stocker toutes les livraisons actives
       setAllActiveDeliveries(activeData.allActiveDeliveries || []);
       
-      // Utiliser la plus récente comme livraison active
       setActiveDelivery(activeData.activeDelivery);
       
-      // Si le livreur a plusieurs commandes actives, l'alerter
       if (activeData.count > 1) {
-        console.warn(`[Livreur] ⚠️ Vous avez ${activeData.count} livraisons actives !`);
-        console.warn(`[Livreur] 💡 Commandes actives:`, activeData.allActiveDeliveries.map((o: any) => `#${o.orderId}`).join(', '));
       }
 
       const earningsResponse = await api.getEarnings(address, "today").catch(() => ({
         earnings: { completedDeliveries: 0, totalEarnings: 0 }
       }));
-      // Extraire les données depuis la réponse structurée du backend
       const earnings = earningsResponse.earnings || { completedDeliveries: 0, totalEarnings: 0 };
-      console.log("[HomePage] 📊 Earnings reçus:", earnings);
 
       const stakeInfo = await blockchain.getStakeInfo(address).catch((err: any) => {
-        // Ne pas logger les erreurs RPC communes (trop verbeuses)
         if (!err.message?.includes('RPC endpoint') && !err.message?.includes('too many errors')) {
-          console.warn("Blockchain stake info not available:", err.message);
         }
         return { amount: 0, isStaked: false };
       });
@@ -158,9 +132,7 @@ export default function HomePage() {
         rating: 0,
         stakedAmount: stakedAmount,
       });
-      console.log("[HomePage] ✅ Stats mises à jour:", { todayDeliveries: earnings.completedDeliveries, todayEarnings: earnings.totalEarnings });
     } catch (err) {
-      console.error("Erreur chargement:", err);
     }
   }
 
@@ -183,7 +155,6 @@ export default function HomePage() {
       alert("Inscription réussie !");
       await loadData();
     } catch (err: any) {
-      // Si déjà inscrit, recharger les données pour afficher le dashboard
       if (err.alreadyRegistered) {
         alert("Ce wallet est déjà inscrit. Redirection vers le tableau de bord...");
         await loadData();
@@ -200,7 +171,6 @@ export default function HomePage() {
     }
   }
 
-  // Gérer les commandes bloquées
   async function handleCancelDelivery(orderId: number) {
     if (!address) return;
     if (!confirm(`Annuler la livraison #${orderId} ? Elle sera remise à disposition pour un autre livreur.`)) return;
@@ -237,11 +207,9 @@ export default function HomePage() {
     setLoading(true);
     try {
       const newStatus = !isOnline;
-      console.log(`[Livreur] 🔄 Changement statut disponibilité: ${isOnline ? 'disponible' : 'indisponible'} → ${newStatus ? 'disponible' : 'indisponible'}`);
       
-      // Avertir si le livreur n'est pas staké mais veut devenir disponible
       if (newStatus && !isStaked) {
-        const confirmMessage = "⚠️ Vous n'êtes pas staké sur la blockchain.\n\n" +
+        const confirmMessage = " Vous n'êtes pas staké sur la blockchain.\n\n" +
           "Pour recevoir des commandes, vous devez staker minimum 0.1 POL.\n\n" +
           "Voulez-vous quand même passer en ligne ? (Vous ne recevrez pas de commandes tant que vous n'êtes pas staké)";
         
@@ -249,27 +217,21 @@ export default function HomePage() {
           setLoading(false);
           return;
         }
-        console.warn(`[Livreur] ⚠️ Livreur passe en ligne SANS être staké - il ne recevra pas de commandes`);
       }
       
       await api.updateStatus(address!, newStatus);
       setIsOnline(newStatus);
-      console.log(`[Livreur] ✅ Statut mis à jour dans la base de données: ${newStatus ? 'disponible' : 'indisponible'}`);
       
-      // Recharger les données pour synchroniser le statut de staking
       if (newStatus) {
-        console.log(`[Livreur] 🔄 Rechargement données pour synchroniser statut de staking...`);
         await loadData();
       }
     } catch (err: any) {
-      console.error(`[Livreur] ❌ Erreur mise à jour statut:`, err);
       alert("Erreur: " + err.message);
     } finally {
       setLoading(false);
     }
   }
 
-  // Protection contre le pré-rendu
   if (!isMounted) {
     return null;
   }
@@ -292,7 +254,6 @@ export default function HomePage() {
     );
   }
 
-  // Show loading while checking registration status
   if (checkingRegistration) {
     return (
       <PageTransition>
@@ -391,7 +352,7 @@ export default function HomePage() {
               <Lock className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
               <div>
                 <h3 className="text-amber-400 font-semibold mb-1">
-                  ⚠️ Vous n'êtes pas staké
+                   Vous n'êtes pas staké
                 </h3>
                 <p className="text-amber-300/80 text-sm">
                   Pour recevoir des commandes, vous devez staker minimum <strong>0.1 POL</strong> sur la blockchain.

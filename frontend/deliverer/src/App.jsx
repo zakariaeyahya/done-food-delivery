@@ -9,7 +9,6 @@ import DeliveriesPage from "./pages/DeliveriesPage";
 import EarningsPage from "./pages/EarningsPage";
 import ProfilePage from "./pages/ProfilePage";
 
-// Global Context
 const AppContext = createContext();
 
 function App() {
@@ -18,7 +17,6 @@ function App() {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [activeDelivery, setActiveDelivery] = useState(null);
 
-  // Init Socket.io
   useEffect(() => {
     const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
     let newSocket = null;
@@ -33,34 +31,27 @@ function App() {
         reconnectionDelay: 1000,
         reconnectionAttempts: 3,
         timeout: 5000,
-        autoConnect: false  // Manual connection control
+        autoConnect: false
       });
 
       newSocket.on("connect", () => {
-        console.log("✅ WebSocket connected to backend");
         connectionWarningShown = false;
         isConnected = true;
       });
 
       newSocket.on("connect_error", (error) => {
         if (!connectionWarningShown && !isCleaningUp) {
-          console.warn("⚠️ Backend server not available. Real-time features disabled. Start backend at:", SOCKET_URL);
           connectionWarningShown = true;
         }
       });
 
       newSocket.on("disconnect", () => {
-        if (isConnected && !isCleaningUp) {
-          console.log("WebSocket disconnected");
-        }
         isConnected = false;
       });
 
-      // Start connection attempt
       newSocket.connect();
       setSocket(newSocket);
     } catch (err) {
-      console.warn("Failed to initialize WebSocket");
     }
 
     return () => {
@@ -72,33 +63,25 @@ function App() {
             newSocket.disconnect();
           }
         } catch (err) {
-          // Ignore cleanup errors
         }
       }
     };
   }, []);
 
-  // Join deliverer room
   useEffect(() => {
     if (socket && address) {
       socket.emit("join-deliverer-room", address);
     }
   }, [socket, address]);
 
-  // Load GPS
   useEffect(() => {
     geolocation
       .getCurrentPosition()
       .then(setCurrentLocation)
       .catch((error) => {
-        // Gérer l'erreur de géolocalisation de manière gracieuse
-        console.warn("⚠️ Géolocalisation indisponible:", error.message);
-        // L'application continue de fonctionner sans position GPS
-        // L'utilisateur pourra activer la géolocalisation plus tard si nécessaire
       });
   }, []);
 
-  // Auto-connect wallet
   useEffect(() => {
     if (typeof window !== "undefined" && window.ethereum) {
       window.ethereum
@@ -110,9 +93,7 @@ function App() {
           }
         })
         .catch((error) => {
-          // Ignore errors from extension communication
           if (error.code !== -32002) {
-            console.error("Wallet connection error:", error);
           }
         });
     }
@@ -129,7 +110,6 @@ function App() {
       setAddress(walletAddress);
       localStorage.setItem('walletAddress', walletAddress);
     } catch (error) {
-      // Ignore user rejection errors
       if (error.code !== 4001) {
         alert("Erreur connexion wallet");
       }
@@ -146,7 +126,7 @@ function App() {
       >
         <div className="app">
           <header className="header">
-            <h1>🚀 DONE Livreur</h1>
+            <h1>DONE Livreur</h1>
             <nav>
               <Link to="/">Accueil</Link>
               <Link to="/deliveries">Livraisons</Link>

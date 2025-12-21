@@ -51,12 +51,10 @@ export default function RevenueChart() {
 
       // Off-chain analytics depuis l'API
       const response = await api.getAnalytics("revenue", { timeframe });
-      console.log("💰 Revenue API response:", response);
 
       // Vérifier si les données sont valides
       // Backend retourne: { success, data: [{date, platform, restaurant, deliverer, total}], totals }
       if (!response || !response.data || response.data.length === 0) {
-        console.log("❌ Pas de données revenue");
         setChartData(null);
         setBreakdown(null);
         setComparison(null);
@@ -70,8 +68,6 @@ export default function RevenueChart() {
       const datasetRestaurants = response.data.map((item) => weiToPol(item.restaurant || 0));
       const datasetDeliverers = response.data.map((item) => weiToPol(item.deliverer || 0));
 
-      console.log("📈 Revenue Labels:", labels);
-      console.log("📈 Platform:", datasetPlatform);
 
       // Calculer les totaux pour la répartition réelle
       const totalPlatform = datasetPlatform.reduce((a, b) => a + b, 0);
@@ -114,7 +110,6 @@ export default function RevenueChart() {
         ],
       };
 
-      console.log("✅ Revenue chart data formatted:", formatted);
       setChartData(formatted);
 
       // Totaux pour la répartition (utiliser les pourcentages calculés)
@@ -126,7 +121,6 @@ export default function RevenueChart() {
 
       setComparison(null);
     } catch (err) {
-      console.error("Erreur revenue chart:", err);
       setChartData(null);
       setBreakdown(null);
       setError(
@@ -171,7 +165,6 @@ export default function RevenueChart() {
   /* ============================================================
      RENDER
      ============================================================ */
-  console.log("🔄 RevenueChart render - loading:", loading, "chartData:", !!chartData);
 
   return (
     <div className="bg-white border shadow rounded-xl p-6">

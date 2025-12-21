@@ -1,8 +1,5 @@
 import { Variants } from "framer-motion";
 
-/**
- * Animations Framer Motion réutilisables
- */
 
 export const fadeInUp: Variants = {
   initial: { opacity: 0, y: 20 },

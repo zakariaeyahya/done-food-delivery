@@ -74,14 +74,14 @@ async function main() {
     
     if (balanceBefore < estimatedCost) {
       const needed = estimatedCost - balanceBefore;
-      console.error("\n❌ Balance insuffisante!");
+      console.error("\n Balance insuffisante!");
       console.error("Il vous manque:", hre.ethers.formatEther(needed), "POL");
       console.error("Obtenez plus de POL via: https://faucet.polygon.technology/");
       console.error("Sélectionnez 'Polygon Amoy' et entrez votre adresse:", deployer.address);
       process.exit(1);
     }
   } catch (error) {
-    console.warn("⚠️  Impossible d'estimer le gas, tentative de déploiement quand même...");
+    console.warn("  Impossible d'estimer le gas, tentative de déploiement quand même...");
   }
   
   const orderManager = await DoneOrderManager.deploy(

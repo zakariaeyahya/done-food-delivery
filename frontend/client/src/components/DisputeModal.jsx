@@ -78,8 +78,6 @@ const DisputeModal = ({ isOpen, onClose, orderId, onSuccess }) => {
             };
           }
         } catch (uploadError) {
-          console.warn('Erreur lors de l\'upload de l\'image:', uploadError);
-          // Continuer sans l'image si l'upload échoue
         }
       } else {
         // Même sans image, créer un objet JSON avec les informations du litige
@@ -95,21 +93,11 @@ const DisputeModal = ({ isOpen, onClose, orderId, onSuccess }) => {
       // Construire la raison complète avec le type de problème
       const fullReason = `${problemType}: ${description}`;
       
-      // Ouvrir litige via API
-      // Le backend va uploader evidenceData sur IPFS si fourni
-      console.log('[DisputeModal] Envoi du litige:', {
-        orderId,
-        reason: fullReason,
-        hasEvidence: !!evidenceData
-      });
-      
       const response = await openDispute(orderId, {
         reason: fullReason,
         evidence: evidenceData
       });
-      
-      console.log('[DisputeModal] Réponse du serveur:', response.data);
-      
+
       setSuccess(true);
       
       // Appeler le callback de succès si fourni
@@ -130,15 +118,6 @@ const DisputeModal = ({ isOpen, onClose, orderId, onSuccess }) => {
       }, 2000);
       
     } catch (error) {
-      console.error('[DisputeModal] Erreur lors de l\'ouverture du litige:', error);
-      console.error('[DisputeModal] Détails de l\'erreur:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message
-      });
-      
-      // Message d'erreur plus détaillé
       let errorMessage = 'Erreur lors de l\'ouverture du litige. Veuillez réessayer.';
       
       if (error.response?.status === 401) {

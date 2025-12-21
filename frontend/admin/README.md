@@ -1,6 +1,6 @@
 # Frontend Admin Dashboard - Guide de Développement
 
-## 📋 Vue d'Ensemble
+##  Vue d'Ensemble
 
 Ce dossier contient l'application React pour le dashboard administrateur de la plateforme DONE Food Delivery. Cette application permet de monitorer la plateforme, gérer les utilisateurs, restaurants, livreurs, et résoudre les litiges.
 
@@ -1981,7 +1981,7 @@ L'application sera accessible sur `http://localhost:3003`
 
 ---
 
-## 📝 Ordre de Développement Recommandé
+##  Ordre de Développement Recommandé
 
 1. **Configuration de base:**
    - `package.json` - Installer dépendances
@@ -2033,7 +2033,7 @@ L'application sera accessible sur `http://localhost:3003`
 
 ---
 
-## 📊 Technologies Utilisées
+##  Technologies Utilisées
 
 - **React 18** - Framework UI
 - **React Router** - Routing
@@ -2047,13 +2047,13 @@ L'application sera accessible sur `http://localhost:3003`
 
 ## 🎯 Fonctionnalités Principales
 
-✅ Dashboard avec KPIs en temps réel
-✅ Analytics avec graphiques (commandes, revenus)
-✅ Gestion utilisateurs/restaurants/livreurs
-✅ Gestion litiges avec interface vote
-✅ Tokenomics DONE avec statistiques
-✅ Configuration plateforme et rôles
-✅ **Blockchain Analytics** - Monitoring réseau Polygon Amoy:
+ Dashboard avec KPIs en temps réel
+ Analytics avec graphiques (commandes, revenus)
+ Gestion utilisateurs/restaurants/livreurs
+ Gestion litiges avec interface vote
+ Tokenomics DONE avec statistiques
+ Configuration plateforme et rôles
+ **Blockchain Analytics** - Monitoring réseau Polygon Amoy:
    - Statut connexion RPC en temps réel
    - Block number, Gas price (Gwei), Chain ID
    - Vérification déploiement des 4 smart contracts
@@ -2065,7 +2065,7 @@ L'application sera accessible sur `http://localhost:3003`
 
 ---
 
-## 📚 Références
+##  Références
 
 - **Frontend Client:** `frontend/client/README.md`
 - **Frontend Restaurant:** `frontend/restaurant/README.md`

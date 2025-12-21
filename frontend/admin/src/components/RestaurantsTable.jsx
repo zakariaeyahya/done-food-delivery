@@ -80,7 +80,6 @@ export default function RestaurantsTable() {
       setRestaurants(res?.data || []);
       setTotal(res?.total || 0);
     } catch (err) {
-      console.error("Erreur restaurants:", err.message);
     } finally {
       setLoading(false);
     }

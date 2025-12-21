@@ -30,15 +30,15 @@ let testsFailed = 0;
 
 async function test(name, testFn) {
   try {
-    log(`\n📋 Test: ${name}`, 'cyan');
+    log(`\n Test: ${name}`, 'cyan');
     await testFn();
-    log(`   ✅ PASSÉ`, 'green');
+    log(`    PASSÉ`, 'green');
     testsPassed++;
     return true;
   } catch (error) {
-    log(`   ❌ ÉCHOUÉ: ${error.message}`, 'red');
+    log(`    ÉCHOUÉ: ${error.message}`, 'red');
     if (error.stack) {
-      console.log(`   📚 ${error.stack.split('\n')[1]?.trim()}`);
+      console.log(`    ${error.stack.split('\n')[1]?.trim()}`);
     }
     testsFailed++;
     return false;
@@ -47,7 +47,7 @@ async function test(name, testFn) {
 
 async function runTests() {
   log('='.repeat(70), 'blue');
-  log('🧪 TEST DES SERVICES PRIORITÉ 4', 'blue');
+  log(' TEST DES SERVICES PRIORITÉ 4', 'blue');
   log('='.repeat(70), 'blue');
 
   try {
@@ -55,7 +55,7 @@ async function runTests() {
     // TEST 1: ipfsService.js
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('1️⃣  TEST DE ipfsService.js', 'blue');
+    log('  TEST DE ipfsService.js', 'blue');
     log('='.repeat(70), 'blue');
 
     const { 
@@ -83,10 +83,10 @@ async function runTests() {
       const isConfigured = isPinataConfigured();
       
       if (!isConfigured) {
-        log(`   ⚠️  Pinata non configuré - certains tests seront ignorés`, 'yellow');
+        log(`     Pinata non configuré - certains tests seront ignorés`, 'yellow');
         log(`   💡 Configurez PINATA_API_KEY et PINATA_SECRET_KEY dans .env pour tester les uploads`, 'yellow');
       } else {
-        log(`   ✅ Pinata configuré`, 'reset');
+        log(`    Pinata configuré`, 'reset');
       }
     });
 
@@ -94,7 +94,7 @@ async function runTests() {
       const { isPinataConfigured } = require('../config/ipfs');
       
       if (!isPinataConfigured()) {
-        log(`   ⚠️  Test ignoré - Pinata non configuré`, 'yellow');
+        log(`     Test ignoré - Pinata non configuré`, 'yellow');
         return; // Skip test
       }
       
@@ -113,7 +113,7 @@ async function runTests() {
       if (!result.url) throw new Error('url manquante');
       if (!result.url.includes(result.ipfsHash)) throw new Error('URL incorrecte');
       
-      log(`   📝 JSON uploadé: ${result.ipfsHash}`, 'reset');
+      log(`    JSON uploadé: ${result.ipfsHash}`, 'reset');
       log(`   🔗 URL: ${result.url}`, 'reset');
       
       // Sauvegarder le hash pour les tests suivants
@@ -124,7 +124,7 @@ async function runTests() {
       const { isPinataConfigured } = require('../config/ipfs');
       
       if (!isPinataConfigured() || !global.testIPFSHash) {
-        log(`   ⚠️  Test ignoré - Pinata non configuré ou aucun hash disponible`, 'yellow');
+        log(`     Test ignoré - Pinata non configuré ou aucun hash disponible`, 'yellow');
         return; // Skip test
       }
       
@@ -141,7 +141,7 @@ async function runTests() {
       const { isPinataConfigured } = require('../config/ipfs');
       
       if (!isPinataConfigured()) {
-        log(`   ⚠️  Test ignoré - Pinata non configuré`, 'yellow');
+        log(`     Test ignoré - Pinata non configuré`, 'yellow');
         return; // Skip test
       }
       
@@ -169,7 +169,7 @@ async function runTests() {
       const { isPinataConfigured } = require('../config/ipfs');
       
       if (!isPinataConfigured()) {
-        log(`   ⚠️  Test ignoré - Pinata non configuré`, 'yellow');
+        log(`     Test ignoré - Pinata non configuré`, 'yellow');
         return; // Skip test
       }
       
@@ -205,7 +205,7 @@ async function runTests() {
       const { isPinataConfigured } = require('../config/ipfs');
       
       if (!isPinataConfigured() || !global.testIPFSHash) {
-        log(`   ⚠️  Test ignoré - Pinata non configuré ou aucun hash disponible`, 'yellow');
+        log(`     Test ignoré - Pinata non configuré ou aucun hash disponible`, 'yellow');
         return; // Skip test
       }
       
@@ -221,7 +221,7 @@ async function runTests() {
       const { isPinataConfigured } = require('../config/ipfs');
       
       if (!isPinataConfigured()) {
-        log(`   ⚠️  Test ignoré - Pinata non configuré`, 'yellow');
+        log(`     Test ignoré - Pinata non configuré`, 'yellow');
         return; // Skip test
       }
       
@@ -229,14 +229,14 @@ async function runTests() {
       
       if (!isConnected) throw new Error('Connexion IPFS échouée');
       
-      log(`   ✅ Connexion IPFS fonctionne`, 'reset');
+      log(`    Connexion IPFS fonctionne`, 'reset');
     });
 
     // ============================================
     // TEST 2: notificationService.js
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('2️⃣  TEST DE notificationService.js', 'blue');
+    log('  TEST DE notificationService.js', 'blue');
     log('='.repeat(70), 'blue');
 
     const { 
@@ -274,7 +274,7 @@ async function runTests() {
       const io = getSocketIO();
       if (!io) throw new Error('Socket.io non initialisé');
       
-      log(`   ✅ Service notifications initialisé`, 'reset');
+      log(`    Service notifications initialisé`, 'reset');
     });
 
     await test('Notification création commande (notifyOrderCreated)', async () => {
@@ -286,7 +286,7 @@ async function runTests() {
       if (!result) throw new Error('Résultat manquant');
       if (result.success !== true) throw new Error('Notification échouée');
       
-      log(`   ✅ Notification envoyée pour commande #123`, 'reset');
+      log(`    Notification envoyée pour commande #123`, 'reset');
     });
 
     await test('Notification livreurs disponibles (notifyDeliverersAvailable)', async () => {
@@ -303,7 +303,7 @@ async function runTests() {
       if (!result) throw new Error('Résultat manquant');
       if (result.success !== true) throw new Error('Notification échouée');
       
-      log(`   ✅ ${delivererAddresses.length} livreurs notifiés`, 'reset');
+      log(`    ${delivererAddresses.length} livreurs notifiés`, 'reset');
     });
 
     await test('Notification client - statut DELIVERED', async () => {
@@ -317,7 +317,7 @@ async function runTests() {
       if (!result) throw new Error('Résultat manquant');
       if (result.success !== true) throw new Error('Notification échouée');
       
-      log(`   ✅ Client notifié - Commande livrée`, 'reset');
+      log(`    Client notifié - Commande livrée`, 'reset');
     });
 
     await test('Notification client - statut IN_DELIVERY', async () => {
@@ -331,7 +331,7 @@ async function runTests() {
       if (!result) throw new Error('Résultat manquant');
       if (result.success !== true) throw new Error('Notification échouée');
       
-      log(`   ✅ Client notifié - Commande en route`, 'reset');
+      log(`    Client notifié - Commande en route`, 'reset');
     });
 
     await test('Notification arbitres (notifyArbitrators)', async () => {
@@ -343,7 +343,7 @@ async function runTests() {
       if (!result) throw new Error('Résultat manquant');
       if (result.success !== true) throw new Error('Notification échouée');
       
-      log(`   ✅ Arbitres notifiés - Litige #1`, 'reset');
+      log(`    Arbitres notifiés - Litige #1`, 'reset');
     });
 
     await test('Envoi email (sendEmail) - Test avec transporter', async () => {
@@ -356,16 +356,16 @@ async function runTests() {
         
         // Si le transporter n'est pas configuré, result.success devrait être false
         if (result && result.success === false) {
-          log(`   ⚠️  Email non envoyé (transporter non configuré - normal)`, 'yellow');
+          log(`     Email non envoyé (transporter non configuré - normal)`, 'yellow');
         } else if (result && result.success === true) {
-          log(`   ✅ Email envoyé: ${result.messageId}`, 'reset');
+          log(`    Email envoyé: ${result.messageId}`, 'reset');
         } else {
           throw new Error('Résultat inattendu');
         }
       } catch (error) {
         // Gérer les erreurs SSL/certificat de manière gracieuse
         if (error.code === 'ESOCKET' || error.message.includes('certificate') || error.message.includes('SSL')) {
-          log(`   ⚠️  Erreur SSL/certificat (normal en développement sans certificat valide)`, 'yellow');
+          log(`     Erreur SSL/certificat (normal en développement sans certificat valide)`, 'yellow');
           log(`   💡 Pour corriger: configurez un SMTP avec certificat valide ou utilisez SendGrid`, 'yellow');
           // Ne pas faire échouer le test pour une erreur SSL
           return;
@@ -383,25 +383,25 @@ async function runTests() {
       // Vérifier que io a la méthode to()
       if (typeof io.to !== 'function') throw new Error('Socket.io instance invalide');
       
-      log(`   ✅ Socket.io instance valide`, 'reset');
+      log(`    Socket.io instance valide`, 'reset');
     });
 
     // ============================================
     // RÉSUMÉ
     // ============================================
     log('\n' + '='.repeat(70), 'blue');
-    log('📊 RÉSUMÉ DES TESTS', 'blue');
+    log(' RÉSUMÉ DES TESTS', 'blue');
     log('='.repeat(70), 'blue');
-    log(`✅ Tests réussis: ${testsPassed}`, 'green');
-    log(`❌ Tests échoués: ${testsFailed}`, testsFailed > 0 ? 'red' : 'green');
-    log(`📈 Taux de réussite: ${((testsPassed / (testsPassed + testsFailed)) * 100).toFixed(1)}%`, 'cyan');
+    log(` Tests réussis: ${testsPassed}`, 'green');
+    log(` Tests échoués: ${testsFailed}`, testsFailed > 0 ? 'red' : 'green');
+    log(` Taux de réussite: ${((testsPassed / (testsPassed + testsFailed)) * 100).toFixed(1)}%`, 'cyan');
     log('='.repeat(70), 'blue');
 
     if (testsFailed === 0) {
-      log('\n🎉 Tous les tests sont passés! Les services Priorité 4 fonctionnent correctement.', 'green');
+      log('\n Tous les tests sont passés! Les services Priorité 4 fonctionnent correctement.', 'green');
       log('\n💡 Les services sont prêts à être utilisés dans les controllers.', 'cyan');
     } else {
-      log('\n⚠️  Certains tests ont échoué. Vérifiez les erreurs ci-dessus.', 'yellow');
+      log('\n  Certains tests ont échoué. Vérifiez les erreurs ci-dessus.', 'yellow');
       log('\n💡 Notes:', 'yellow');
       log('   - Les tests IPFS nécessitent Pinata configuré (PINATA_API_KEY et PINATA_SECRET_KEY)', 'yellow');
       log('   - Les tests email nécessitent SMTP ou SendGrid configuré (optionnel)', 'yellow');
@@ -410,7 +410,7 @@ async function runTests() {
     process.exit(testsFailed > 0 ? 1 : 0);
 
   } catch (error) {
-    log(`\n❌ Erreur fatale: ${error.message}`, 'red');
+    log(`\n Erreur fatale: ${error.message}`, 'red');
     if (error.stack) {
       console.error(error.stack);
     }

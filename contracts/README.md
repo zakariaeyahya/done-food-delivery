@@ -1,6 +1,6 @@
 # DONE Food Delivery - Smart Contracts
 
-## 📋 Table des matières
+##  Table des matières
 
 - [Introduction](#introduction)
 - [Architecture](#architecture)
@@ -23,12 +23,12 @@ Ce dépôt contient tous les smart contracts Solidity qui constituent le cœur m
 
 ### Fonctionnalités principales
 
-- ✅ **Gestion complète des commandes** : Cycle de vie de la commande (création → livraison)
-- ✅ **Système de paiement sécurisé** : Escrow et répartition automatique (70% restaurant, 20% livreur, 10% plateforme)
-- ✅ **Token de fidélité** : Token ERC20 (DONE) pour récompenser les clients
-- ✅ **Staking des livreurs** : Garantie de fiabilité avec staking minimum
-- ✅ **Système d'arbitrage** : Résolution décentralisée des litiges
-- ✅ **Oracles Chainlink** : Intégration avec Chainlink pour prix, GPS et météo
+-  **Gestion complète des commandes** : Cycle de vie de la commande (création → livraison)
+-  **Système de paiement sécurisé** : Escrow et répartition automatique (70% restaurant, 20% livreur, 10% plateforme)
+-  **Token de fidélité** : Token ERC20 (DONE) pour récompenser les clients
+-  **Staking des livreurs** : Garantie de fiabilité avec staking minimum
+-  **Système d'arbitrage** : Résolution décentralisée des litiges
+-  **Oracles Chainlink** : Intégration avec Chainlink pour prix, GPS et météo
 
 ### Technologies utilisées
 
@@ -185,10 +185,10 @@ enum OrderStatus {
 
 #### Sécurité
 
-- ✅ **ReentrancyGuard** : Protection contre les attaques de réentrance
-- ✅ **Pausable** : Possibilité de mettre en pause en cas d'urgence
-- ✅ **AccessControl** : Gestion fine des rôles
-- ✅ **Checks-Effects-Interactions** : Pattern de sécurité respecté
+-  **ReentrancyGuard** : Protection contre les attaques de réentrance
+-  **Pausable** : Possibilité de mettre en pause en cas d'urgence
+-  **AccessControl** : Gestion fine des rôles
+-  **Checks-Effects-Interactions** : Pattern de sécurité respecté
 
 ---
 
@@ -221,9 +221,9 @@ function splitPayment(
 
 #### Sécurité
 
-- ✅ **ReentrancyGuard** : Protection contre la réentrance
-- ✅ **Low-level call** : Utilisation de `.call()` pour plus de flexibilité
-- ✅ **Validation des adresses** : Vérification que les adresses ne sont pas nulles
+-  **ReentrancyGuard** : Protection contre la réentrance
+-  **Low-level call** : Utilisation de `.call()` pour plus de flexibilité
+-  **Validation des adresses** : Vérification que les adresses ne sont pas nulles
 
 ---
 
@@ -256,8 +256,8 @@ function splitPayment(
 
 #### Sécurité
 
-- ✅ **AccessControl** : Seul le `MINTER_ROLE` peut mint
-- ✅ **Standard ERC20** : Compatible avec tous les wallets et DEX
+-  **AccessControl** : Seul le `MINTER_ROLE` peut mint
+-  **Standard ERC20** : Compatible avec tous les wallets et DEX
 
 ---
 
@@ -298,9 +298,9 @@ function splitPayment(
 
 #### Sécurité
 
-- ✅ **ReentrancyGuard** : Protection contre la réentrance
-- ✅ **AccessControl** : Seul `PLATFORM_ROLE` peut slasher
-- ✅ **Validation** : Vérification du montant minimum
+-  **ReentrancyGuard** : Protection contre la réentrance
+-  **AccessControl** : Seul `PLATFORM_ROLE` peut slasher
+-  **Validation** : Vérification du montant minimum
 
 ---
 
@@ -394,7 +394,7 @@ POLYGONSCAN_API_KEY=votre_cle_polygonscan
 NETWORK=amoy
 ```
 
-**⚠️ IMPORTANT** : Ne jamais commiter le fichier `.env` dans Git !
+** IMPORTANT** : Ne jamais commiter le fichier `.env` dans Git !
 
 #### 2. Configuration Hardhat
 
@@ -411,7 +411,7 @@ Le fichier `hardhat.config.js` est déjà configuré avec :
 
 ### Ordre de déploiement
 
-⚠️ **IMPORTANT** : Les contrats doivent être déployés dans cet **ordre exact** car ils dépendent les uns des autres :
+ **IMPORTANT** : Les contrats doivent être déployés dans cet **ordre exact** car ils dépendent les uns des autres :
 
 1. **DoneToken.sol** (indépendant)
 2. **DonePaymentSplitter.sol** (indépendant)
@@ -445,16 +445,16 @@ npx hardhat run scripts/deploy-all.js --network amoy
 ```
 Deploying contracts to Polygon Amoy...
 Deploying DoneToken...
-✅ DoneToken deployed to: 0x...
+ DoneToken deployed to: 0x...
 
 Deploying DonePaymentSplitter...
-✅ DonePaymentSplitter deployed to: 0x...
+ DonePaymentSplitter deployed to: 0x...
 
 Deploying DoneStaking...
-✅ DoneStaking deployed to: 0x...
+ DoneStaking deployed to: 0x...
 
 Deploying DoneOrderManager...
-✅ DoneOrderManager deployed to: 0x...
+ DoneOrderManager deployed to: 0x...
 
 All contracts deployed successfully!
 Contract addresses saved to: contracts-amoy.json
@@ -512,7 +512,7 @@ npx hardhat verify --network amoy <ORDER_MANAGER_ADDRESS> "<PAYMENT_SPLITTER_ADD
 
 ---
 
-## 🧪 Tests
+##  Tests
 
 ### Lancer les tests
 
@@ -539,32 +539,32 @@ npx hardhat coverage
 ### Tests critiques
 
 #### T1 : Création de commande avec paiement correct
-- ✅ Vérifie que le paiement est correct
-- ✅ Vérifie que les fonds sont bloqués
-- ✅ Vérifie l'émission de l'event `OrderCreated`
+-  Vérifie que le paiement est correct
+-  Vérifie que les fonds sont bloqués
+-  Vérifie l'émission de l'event `OrderCreated`
 
 #### T2 : Workflow complet (CREATED → DELIVERED)
-- ✅ Teste toutes les transitions d'état
-- ✅ Vérifie le split automatique des paiements
-- ✅ Vérifie le mint des tokens DONE
+-  Teste toutes les transitions d'état
+-  Vérifie le split automatique des paiements
+-  Vérifie le mint des tokens DONE
 
 #### T3 : Split de paiement automatique (70/20/10)
-- ✅ Vérifie les calculs mathématiques
-- ✅ Vérifie la gestion des arrondis
-- ✅ Vérifie les transferts réussis
+-  Vérifie les calculs mathématiques
+-  Vérifie la gestion des arrondis
+-  Vérifie les transferts réussis
 
 #### T4 : Dispute et gel des fonds
-- ✅ Vérifie que les fonds sont gelés lors d'un litige
-- ✅ Vérifie que seul un arbitre peut résoudre
+-  Vérifie que les fonds sont gelés lors d'un litige
+-  Vérifie que seul un arbitre peut résoudre
 
 #### T5 : Staking et slashing livreur
-- ✅ Vérifie le minimum de 0.1 ETH
-- ✅ Vérifie le slashing en cas d'abus
-- ✅ Vérifie l'unstake
+-  Vérifie le minimum de 0.1 ETH
+-  Vérifie le slashing en cas d'abus
+-  Vérifie l'unstake
 
 #### T6 : Distribution de récompenses tokens
-- ✅ Vérifie le calcul correct des tokens
-- ✅ Vérifie le mint automatique
+-  Vérifie le calcul correct des tokens
+-  Vérifie le mint automatique
 
 ---
 
@@ -573,27 +573,27 @@ npx hardhat coverage
 ### Mesures de sécurité implémentées
 
 #### 1. Protection contre la réentrance
-- ✅ `ReentrancyGuard` sur toutes les fonctions critiques
-- ✅ Pattern Checks-Effects-Interactions respecté
+-  `ReentrancyGuard` sur toutes les fonctions critiques
+-  Pattern Checks-Effects-Interactions respecté
 
 #### 2. Gestion des rôles
-- ✅ `AccessControl` d'OpenZeppelin
-- ✅ Rôles séparés pour chaque acteur
-- ✅ Vérification stricte des permissions
+-  `AccessControl` d'OpenZeppelin
+-  Rôles séparés pour chaque acteur
+-  Vérification stricte des permissions
 
 #### 3. Gestion des fonds
-- ✅ Pattern Escrow pour sécuriser les paiements
-- ✅ Pull over Push pour les transferts
-- ✅ Validation des montants avant transfert
+-  Pattern Escrow pour sécuriser les paiements
+-  Pull over Push pour les transferts
+-  Validation des montants avant transfert
 
 #### 4. Pause d'urgence
-- ✅ `Pausable` pour arrêter le contrat en cas d'urgence
-- ✅ Seul le `DEFAULT_ADMIN_ROLE` peut pauser
+-  `Pausable` pour arrêter le contrat en cas d'urgence
+-  Seul le `DEFAULT_ADMIN_ROLE` peut pauser
 
 #### 5. Validation des entrées
-- ✅ Vérification des adresses non nulles
-- ✅ Vérification des montants > 0
-- ✅ Vérification des états valides
+-  Vérification des adresses non nulles
+-  Vérification des montants > 0
+-  Vérification des états valides
 
 ### Audit recommandé
 
@@ -606,17 +606,17 @@ Avant un déploiement en production, il est **fortement recommandé** de faire a
 ### Optimisations gas
 
 #### 1. Compilateur
-- ✅ Optimizer activé (200 runs)
-- ✅ ViaIR activé pour optimisations avancées
+-  Optimizer activé (200 runs)
+-  ViaIR activé pour optimisations avancées
 
 #### 2. Stockage
-- ✅ Stockage minimal on-chain (détails dans IPFS)
-- ✅ Utilisation de `uint256` (optimal pour l'EVM)
-- ✅ Events au lieu de storage pour les logs
+-  Stockage minimal on-chain (détails dans IPFS)
+-  Utilisation de `uint256` (optimal pour l'EVM)
+-  Events au lieu de storage pour les logs
 
 #### 3. Fonctions
-- ✅ Pas de boucles dans les fonctions critiques
-- ✅ Utilisation de bibliothèques pour réduire la taille du contrat
+-  Pas de boucles dans les fonctions critiques
+-  Utilisation de bibliothèques pour réduire la taille du contrat
 
 ### Coûts de gas estimés
 
@@ -685,7 +685,7 @@ npm install dotenv
 
 ---
 
-## 📚 Ressources
+##  Ressources
 
 ### Documentation
 
@@ -708,7 +708,7 @@ npm install dotenv
 
 ---
 
-## 📝 Checklist de déploiement
+##  Checklist de déploiement
 
 Avant de déployer en production (Polygon Mainnet) :
 

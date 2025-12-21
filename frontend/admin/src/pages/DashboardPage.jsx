@@ -1,14 +1,3 @@
-/**
- * DashboardPage.jsx
- * Page centrale du backoffice
- * Affiche :
- * - Cards statistiques globales
- * - Graphique des commandes récentes
- * - Graphique des revenus
- * - Tableau des derniers litiges
- * - Tableau des commandes récentes
- */
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
@@ -32,13 +21,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fonction pour recharger les stats sans recharger toute la page
   const reloadStats = async () => {
     try {
       setLoading(true);
       setError(null);
       const response = await getDashboardStats();
-      console.log("📊 Dashboard Stats API response:", response);
 
       const data = response?.data || response;
 
@@ -55,12 +42,10 @@ export default function DashboardPage() {
           avgDeliveryTime: data.avgDeliveryTime || 0,
           activeUsers: totalActiveUsers || data.activeUsers || 0,
         });
-        console.log("✅ Stats loaded:", data);
       } else {
         setError("Aucune donnée disponible");
       }
     } catch (err) {
-      console.error("❌ Erreur chargement stats dashboard:", err);
       setError(
         err.response?.data?.message || 
         err.message || 
@@ -71,9 +56,6 @@ export default function DashboardPage() {
     }
   };
 
-  /* ============================================================
-     FETCH DASHBOARD STATS
-     ============================================================ */
   useEffect(() => {
     reloadStats();
   }, []);
@@ -81,7 +63,6 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 md:space-y-8">
 
-      {/* ===================== HEADER ===================== */}
       <div className="bg-gradient-to-r from-orange-600 via-red-500 to-pink-600 rounded-xl p-6 md:p-8 text-white shadow-lg">
         <h1 className="text-3xl md:text-4xl font-bold mb-2">Tableau de Bord</h1>
         <p className="text-orange-100 text-sm md:text-base">
@@ -89,7 +70,6 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* ===================== ERROR MESSAGE ===================== */}
       {error && !loading && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
           <svg className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,7 +88,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ===================== GLOBAL STATS ===================== */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -128,13 +107,11 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* ===================== ROW : ORDERS + REVENUE ===================== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <OrdersAnalyticsChart />
         <RevenueChart />
       </div>
 
-      {/* ===================== LAST ORDERS ===================== */}
       <div className="bg-white border rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
@@ -155,7 +132,6 @@ export default function DashboardPage() {
         <RecentOrdersTable limit={5} />
       </div>
 
-      {/* ===================== LAST DISPUTES ===================== */}
       <div className="bg-white border rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>

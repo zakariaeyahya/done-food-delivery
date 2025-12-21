@@ -31,7 +31,7 @@ async function main() {
   const addressesPath = path.join(__dirname, "../deployed-addresses.json");
 
   if (!fs.existsSync(addressesPath)) {
-    console.error("❌ Fichier deployed-addresses.json introuvable!");
+    console.error(" Fichier deployed-addresses.json introuvable!");
     console.error("Executez d'abord: npx hardhat run scripts/deploy-all.js --network <network>");
     process.exit(1);
   }
@@ -42,7 +42,7 @@ async function main() {
   console.log("- DoneOrderManager:", existingAddresses.DoneOrderManager);
 
   if (!existingAddresses.DoneToken) {
-    console.error("❌ Adresse DoneToken manquante!");
+    console.error(" Adresse DoneToken manquante!");
     process.exit(1);
   }
 
@@ -59,7 +59,7 @@ async function main() {
 
   await arbitration.waitForDeployment();
   const arbitrationAddress = await arbitration.getAddress();
-  console.log("✅ DoneArbitration deploye a:", arbitrationAddress);
+  console.log(" DoneArbitration deploye a:", arbitrationAddress);
 
   // === CONFIGURATION POST-DEPLOIEMENT ===
   console.log("\n2. Configuration post-deploiement...");
@@ -68,7 +68,7 @@ async function main() {
   if (existingAddresses.DoneOrderManager) {
     console.log("Configuration de OrderManager dans Arbitration...");
     await arbitration.setOrderManager(existingAddresses.DoneOrderManager);
-    console.log("✅ OrderManager configure");
+    console.log(" OrderManager configure");
   }
 
   // Afficher les parametres par defaut
@@ -90,7 +90,7 @@ async function main() {
   existingAddresses.deployedAt = new Date().toISOString();
 
   fs.writeFileSync(addressesPath, JSON.stringify(existingAddresses, null, 2));
-  console.log("✅ Adresse sauvegardee dans deployed-addresses.json");
+  console.log(" Adresse sauvegardee dans deployed-addresses.json");
 
   // === RECAPITULATIF ===
   console.log("\n=== RECAPITULATIF ===");

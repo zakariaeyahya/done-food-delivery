@@ -1,8 +1,3 @@
-/**
- * Composant MenuManager - Restaurant
- * @notice Gestion complète du menu restaurant (CRUD)
- * @dev Upload images IPFS, gestion catégories, activation/désactivation items
- */
 
 import { useEffect, useMemo, useState } from "react";
 import * as api from "../services/api";
@@ -45,7 +40,6 @@ function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }
       const restaurant = await api.getRestaurant(restaurantId);
       setMenu(restaurant?.menu || []);
     } catch (e) {
-      console.error("Error fetching menu:", e);
       showError?.("Erreur lors du chargement du menu");
     } finally {
       setLoadingMenu(false);
@@ -86,7 +80,6 @@ function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }
       setFormData((prev) => ({ ...prev, image: result.ipfsHash }));
       showSuccess?.("Image uploadée sur IPFS");
     } catch (e) {
-      console.error("Error uploading image:", e);
       showError?.("Erreur lors de l'upload de l'image");
     } finally {
       setUploading(false);
@@ -105,7 +98,6 @@ function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }
       setIsModalOpen(false);
       showSuccess?.("Item ajouté avec succès");
     } catch (e) {
-      console.error("Error adding item:", e);
       showError?.(`Erreur: ${e.message}`);
     }
   }
@@ -125,7 +117,6 @@ function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }
       setIsModalOpen(false);
       showSuccess?.("Item modifié avec succès");
     } catch (e) {
-      console.error("Error updating item:", e);
       showError?.(`Erreur: ${e.message}`);
     }
   }
@@ -139,7 +130,6 @@ function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }
       await fetchMenu();
       showSuccess?.("Item supprimé avec succès");
     } catch (e) {
-      console.error("Error deleting item:", e);
       showError?.(`Erreur: ${e.message}`);
     }
   }
@@ -154,7 +144,6 @@ function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }
       );
       await fetchMenu();
     } catch (e) {
-      console.error("Error toggling availability:", e);
       showError?.(`Erreur: ${e.message}`);
     }
   }
@@ -348,153 +337,3 @@ function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }
   );
 }
 
-/* ---------------- UI Components ---------------- */
-
-function CategoryButton({ label, active, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={[
-        "rounded-full px-3 py-1.5 text-sm font-medium transition",
-        active
-          ? "bg-orange-500 text-white shadow-soft"
-          : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700",
-      ].join(" ")}
-    >
-      {label}
-    </button>
-  );
-}
-
-function MenuItemCard({ item, onEdit, onDelete, onToggle }) {
-  return (
-    <div className="rounded-2xl bg-white p-4 shadow-soft dark:bg-neutral-800">
-      {item.image && (
-        <img
-          src={`${IPFS_GATEWAY}${item.image}`}
-          alt={item.name}
-          className="mb-3 h-40 w-full rounded-xl object-cover"
-        />
-      )}
-
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="font-display text-lg text-neutral-900 dark:text-neutral-50">
-            {item.name}
-          </h3>
-          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            {item.description || "—"}
-          </p>
-        </div>
-
-        <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800 dark:bg-red-900/30 dark:text-red-200">
-          {item.category}
-        </span>
-      </div>
-
-      <div className="mt-3 flex items-center justify-between">
-        <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
-          {formatPrice(item.price, 'POL', 5)}
-        </p>
-
-        <label className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200">
-          <input
-            type="checkbox"
-            checked={Boolean(item.available)}
-            onChange={onToggle}
-            className="rounded border-neutral-300 text-orange-600 focus:ring-orange-200 dark:border-neutral-600 dark:bg-neutral-800"
-          />
-          Disponible
-        </label>
-      </div>
-
-      <div className="mt-4 flex gap-2">
-        <button
-          onClick={onEdit}
-          className="flex-1 rounded-xl bg-neutral-100 px-3 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600"
-        >
-          Modifier
-        </button>
-        <button
-          onClick={onDelete}
-          className="flex-1 rounded-xl bg-error-100 px-3 py-2 text-sm font-semibold text-error-800 hover:bg-error-200 dark:bg-error-900/30 dark:text-error-200 dark:hover:bg-error-900/50"
-        >
-          Supprimer
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function Modal({ children, onClose }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-strong dark:bg-neutral-800"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Input({ label, type = "text", value, onChange, ...props }) {
-  return (
-    <div className="space-y-1">
-      <label className="block text-sm text-neutral-600 dark:text-neutral-300">
-        {label}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 dark:focus:border-orange-500 dark:focus:ring-orange-900"
-        {...props}
-      />
-    </div>
-  );
-}
-
-function Textarea({ label, value, onChange, ...props }) {
-  return (
-    <div className="space-y-1">
-      <label className="block text-sm text-neutral-600 dark:text-neutral-300">
-        {label}
-      </label>
-      <textarea
-        rows={3}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 dark:focus:border-orange-500 dark:focus:ring-orange-900"
-        {...props}
-      />
-    </div>
-  );
-}
-
-function Select({ label, value, onChange, options }) {
-  return (
-    <div className="space-y-1">
-      <label className="block text-sm text-neutral-600 dark:text-neutral-300">
-        {label}
-      </label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-50 dark:focus:border-orange-500 dark:focus:ring-orange-900"
-      >
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-export default MenuManager;

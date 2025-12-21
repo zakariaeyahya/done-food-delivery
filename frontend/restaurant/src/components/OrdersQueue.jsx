@@ -1,8 +1,3 @@
-/**
- * Composant OrdersQueue - Restaurant
- * @notice File d'attente des commandes en temps réel
- * @dev Écoute Socket.io pour nouvelles commandes, permet confirmation préparation
- */
 
 import { useEffect, useMemo, useState } from "react";
 import OrderCard from "./OrderCard";
@@ -11,16 +6,6 @@ import * as api from "../services/api";
 import * as blockchain from "../services/blockchain";
 import { useSocket } from "../contexts/SocketContext";
 
-/**
- * Composant OrdersQueue
- * @param {string} restaurantId
- * @param {string} restaurantAddress
- * @param {'all'|'CREATED'|'PREPARING'|'IN_DELIVERY'} filter
- * @param {(f:string)=>void} onFilterChange - optionnel si parent veut contrôler le filtre
- * @param {(msg:string)=>void} showSuccess
- * @param {(msg:string)=>void} showError
- * @param {(msg:string)=>void} showNotification
- */
 function OrdersQueue({
   restaurantId,
   restaurantAddress,
@@ -117,7 +102,6 @@ function OrdersQueue({
 
       setOrders(sorted);
     } catch (e) {
-      console.error("Error fetching orders:", e);
       showError?.("Erreur lors du chargement des commandes");
     } finally {
       setLoading(false);
@@ -126,16 +110,12 @@ function OrdersQueue({
 
   async function handleConfirmPreparation(orderId) {
     try {
-      console.log(`[Restaurant] 🍽️ Confirmation préparation commande #${orderId}`);
       setLoading(true);
 
       // 1) confirmer via API backend
-      console.log(`[Restaurant] 📡 Envoi requête API pour commande #${orderId}...`);
       await api.confirmPreparation(orderId, restaurantAddress, {
         preparationTime,
       });
-      console.log(`[Restaurant] ✅ API confirmée pour commande #${orderId}`);
-      console.log(`[Restaurant] 📢 Notification envoyée aux livreurs pour commande #${orderId}`);
 
       // 2) confirmer on-chain (optionnel en dev mode)
       const isDevMode = !import.meta.env.VITE_ORDER_MANAGER_ADDRESS || 
@@ -147,15 +127,11 @@ function OrdersQueue({
         try {
           // Essayer de se connecter si pas déjà connecté
           await blockchain.connectWallet();
-          console.log(`[Restaurant] ⛓️ Appel blockchain pour commande #${orderId}...`);
           await blockchain.confirmPreparationOnChain(orderId, preparationTime);
-          console.log(`[Restaurant] ✅ Blockchain confirmée pour commande #${orderId}`);
         } catch (blockchainError) {
-          console.warn(`[Restaurant] ⚠️ Erreur blockchain (mais API réussie):`, blockchainError.message);
           // Ne pas faire échouer si l'API a réussi
         }
       } else {
-        console.log(`[Restaurant] ⚠️  Dev mode: Skipping blockchain call, backend handles mock mode`);
       }
 
       // 3) update local optimiste
@@ -167,11 +143,9 @@ function OrdersQueue({
         )
       );
 
-      console.log(`[Restaurant] ✅ Commande #${orderId} mise à jour en statut PREPARING`);
       showSuccess?.("Préparation confirmée avec succès");
       showNotification?.(`Commande #${orderId} en préparation`);
     } catch (e) {
-      console.error(`[Restaurant] ❌ Erreur confirmation préparation commande #${orderId}:`, e);
       showError?.(`Erreur: ${e.message}`);
     } finally {
       setLoading(false);
@@ -180,14 +154,10 @@ function OrdersQueue({
 
   async function handleMarkReady(orderId) {
     try {
-      console.log(`[Restaurant] ✅ Marquage commande #${orderId} comme prête...`);
       setLoading(true);
 
       // 1) Mettre à jour via API backend
-      console.log(`[Restaurant] 📡 Envoi requête API pour marquer prête commande #${orderId}...`);
       await api.markOrderReady(orderId, restaurantAddress);
-      console.log(`[Restaurant] ✅ Commande #${orderId} marquée comme prête dans la base de données`);
-      console.log(`[Restaurant] 📢 Notification envoyée aux livreurs - commande #${orderId} prête à être récupérée`);
 
       // 2) Update local optimiste
       setOrders((prev) =>
@@ -198,11 +168,9 @@ function OrdersQueue({
         )
       );
 
-      console.log(`[Restaurant] ✅ Commande #${orderId} mise à jour en statut READY`);
       showSuccess?.("Commande marquée comme prête !");
       showNotification?.(`Commande #${orderId} prête - En attente d'un livreur`);
     } catch (e) {
-      console.error(`[Restaurant] ❌ Erreur marquage prête commande #${orderId}:`, e);
       showError?.(`Erreur: ${e.message}`);
     } finally {
       setLoading(false);
@@ -213,7 +181,6 @@ function OrdersQueue({
     try {
       const audio = new Audio("/notification.mp3");
       audio.play().catch((err) =>
-        console.error("Error playing sound:", err)
       );
     } catch (e) {
       // silencieux si fichier absent
@@ -351,21 +318,3 @@ function OrdersQueue({
   );
 }
 
-/* -------- Small UI component -------- */
-function FilterChip({ active, children, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={[
-        "rounded-full px-3 py-1.5 text-sm font-medium transition",
-        active
-          ? "bg-orange-500 text-white shadow-soft"
-          : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700",
-      ].join(" ")}
-    >
-      {children}
-    </button>
-  );
-}
-
-export default OrdersQueue;

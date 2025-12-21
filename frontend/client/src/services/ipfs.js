@@ -21,7 +21,6 @@ export const uploadImage = async (file) => {
     });
     return response.data.Hash;
   } catch (error) {
-    console.error('Error uploading image to IPFS:', error);
     throw error;
   }
 };
@@ -53,7 +52,6 @@ export const uploadJSON = async (jsonData) => {
     });
     return response.data.Hash;
   } catch (error) {
-    console.error('Error uploading JSON to IPFS:', error);
     throw error;
   }
 };
@@ -69,7 +67,6 @@ export const getJSON = async (hash) => {
     const response = await axios.get(url);
     return response.data;
   } catch (error) {
-    console.error('Error retrieving JSON from IPFS:', error);
     throw error;
   }
 };

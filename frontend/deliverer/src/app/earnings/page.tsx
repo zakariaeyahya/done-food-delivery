@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useApp } from "@/providers/AppProvider";
 
-// Désactiver le pré-rendu car cette page utilise des APIs côté client (window, localStorage, etc.)
 export const dynamic = 'force-dynamic';
 import { PageTransition } from "@/components/ui/PageTransition";
 import { Card } from "@/components/ui/Card";
@@ -50,7 +49,6 @@ export default function EarningsPage() {
       const { events } = await blockchain.getEarningsEvents(address!);
       setTransactions(events);
     } catch (err) {
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -62,7 +60,6 @@ export default function EarningsPage() {
       const weekResponse = await api.getEarnings(address!, "week");
       const monthResponse = await api.getEarnings(address!, "month");
 
-      // Extraire les données depuis la réponse structurée du backend
       const todayData = todayResponse?.earnings || {};
       const weekData = weekResponse?.earnings || {};
       const monthData = monthResponse?.earnings || {};
@@ -74,9 +71,7 @@ export default function EarningsPage() {
       });
 
       setDeliveriesCount(weekData?.completedDeliveries || 0);
-      console.log("[EarningsPage] 📊 Earnings chargés:", { today: todayData, week: weekData, month: monthData });
     } catch (err) {
-      console.error("Erreur récupération earnings :", err);
     }
   }
 
@@ -92,7 +87,6 @@ export default function EarningsPage() {
 
       setChartData({ labels, values });
     } catch (err) {
-      console.error("Erreur récupération events earnings :", err);
     }
   }
 
@@ -117,7 +111,6 @@ export default function EarningsPage() {
     link.click();
   }
 
-  // Protection contre le pré-rendu
   if (!isMounted) {
     return null;
   }
@@ -245,7 +238,7 @@ export default function EarningsPage() {
                           </a>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="text-emerald-400">✅</span>
+                          <span className="text-emerald-400"></span>
                         </td>
                       </motion.tr>
                     ))}

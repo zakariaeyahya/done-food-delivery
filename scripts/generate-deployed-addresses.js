@@ -17,7 +17,7 @@ async function main() {
   const contractsAmoyPath = path.join(__dirname, "../contracts/contracts-amoy.json");
   
   if (!fs.existsSync(contractsAmoyPath)) {
-    console.error("❌ Fichier contracts-amoy.json introuvable!");
+    console.error(" Fichier contracts-amoy.json introuvable!");
     console.error("   Chemin attendu:", contractsAmoyPath);
     console.error("\n   Option 1: Déployer les contrats avec:");
     console.error("   cd contracts && npx hardhat run ../scripts/deploy-all.js --network amoy");
@@ -26,12 +26,12 @@ async function main() {
   }
 
   const contractsAmoy = JSON.parse(fs.readFileSync(contractsAmoyPath, "utf8"));
-  console.log("✅ Fichier contracts-amoy.json trouvé");
+  console.log(" Fichier contracts-amoy.json trouvé");
 
   // Récupérer l'adresse du déployeur depuis le compte configuré
   const [deployer] = await hre.ethers.getSigners();
   const deployerAddress = deployer.address;
-  console.log("✅ Adresse du déployeur:", deployerAddress);
+  console.log(" Adresse du déployeur:", deployerAddress);
 
   // Récupérer l'adresse de la plateforme depuis DoneOrderManager
   let platformAddress = deployerAddress; // Par défaut
@@ -44,14 +44,14 @@ async function main() {
     // Si le contrat a une fonction platformAddress() ou owner()
     try {
       platformAddress = await orderManager.platformAddress();
-      console.log("✅ Adresse de la plateforme récupérée depuis le contrat:", platformAddress);
+      console.log(" Adresse de la plateforme récupérée depuis le contrat:", platformAddress);
     } catch (e) {
       // Si la fonction n'existe pas, utiliser l'adresse du déployeur
-      console.log("⚠️  Impossible de récupérer platformAddress depuis le contrat, utilisation du déployeur");
+      console.log("  Impossible de récupérer platformAddress depuis le contrat, utilisation du déployeur");
       platformAddress = deployerAddress;
     }
   } catch (error) {
-    console.log("⚠️  Impossible de se connecter au contrat, utilisation du déployeur comme plateforme");
+    console.log("  Impossible de se connecter au contrat, utilisation du déployeur comme plateforme");
     platformAddress = deployerAddress;
   }
 
@@ -71,9 +71,9 @@ async function main() {
   const outputPath = path.join(__dirname, "../deployed-addresses.json");
   fs.writeFileSync(outputPath, JSON.stringify(addresses, null, 2));
 
-  console.log("\n✅ Fichier deployed-addresses.json créé avec succès!");
+  console.log("\n Fichier deployed-addresses.json créé avec succès!");
   console.log("   Chemin:", outputPath);
-  console.log("\n📋 Contenu:");
+  console.log("\n Contenu:");
   console.log(JSON.stringify(addresses, null, 2));
   console.log("\n💡 Vous pouvez maintenant utiliser ce fichier dans votre backend et frontend!");
 }
@@ -81,7 +81,7 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("❌ Erreur:", error);
+    console.error(" Erreur:", error);
     process.exit(1);
   });
 
