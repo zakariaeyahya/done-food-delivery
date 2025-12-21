@@ -1,10 +1,8 @@
-/* TODO: Directives Tailwind */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* TODO: Styles de base */
   * {
     @apply border-neutral-200;
   }
@@ -34,7 +32,6 @@
     @apply text-xl md:text-2xl;
   }
 
-  /* TODO: Scrollbar personnalisée */
   ::-webkit-scrollbar {
     @apply w-2 h-2;
   }
@@ -53,7 +50,6 @@
 }
 
 @layer components {
-  /* TODO: Boutons pour dashboard */
   .btn {
     @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
@@ -94,7 +90,6 @@
     @apply opacity-50 cursor-not-allowed;
   }
 
-  /* TODO: Cards pour dashboard */
   .card {
     @apply bg-white rounded-xl shadow-soft p-6 transition-all duration-200 hover:shadow-medium;
   }
@@ -103,7 +98,6 @@
     @apply hover:scale-[1.02] cursor-pointer;
   }
 
-  /* TODO: Inputs */
   .input {
     @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all;
   }
@@ -116,12 +110,10 @@
     @apply border-success-500 focus:ring-success-500;
   }
 
-  /* TODO: Labels */
   .label {
     @apply block text-sm font-medium text-gray-700 mb-1;
   }
 
-  /* TODO: Badges pour statuts commandes */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
@@ -146,17 +138,14 @@
     @apply bg-gray-100 text-gray-800;
   }
 
-  /* TODO: Container */
   .container-custom {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
 
-  /* TODO: Skeleton loader */
   .skeleton {
     @apply animate-pulse bg-gray-200 rounded;
   }
 
-  /* TODO: Modal backdrop */
   .modal-backdrop {
     @apply fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4;
   }
@@ -165,12 +154,10 @@
     @apply bg-white rounded-xl shadow-strong max-w-md w-full p-6 max-h-[90vh] overflow-y-auto;
   }
 
-  /* TODO: Loading spinner */
   .spinner {
     @apply inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin;
   }
 
-  /* TODO: Styles spécifiques dashboard restaurant */
   .dashboard-layout {
     @apply min-h-screen bg-gray-50;
   }
@@ -234,17 +221,14 @@
 }
 
 @layer utilities {
-  /* TODO: Text utilities */
   .text-balance {
     text-wrap: balance;
   }
 
-  /* TODO: Gradient text */
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-orange-500 via-red-500 to-pink-600;
   }
 
-  /* TODO: Truncate with ellipsis */
   .truncate-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -259,12 +243,10 @@
     overflow: hidden;
   }
 
-  /* TODO: Smooth scroll */
   .smooth-scroll {
     scroll-behavior: smooth;
   }
 
-  /* TODO: Hide scrollbar but keep functionality */
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -275,7 +257,6 @@
   }
 }
 
-/* TODO: Animations personnalisées */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -307,7 +288,6 @@
   }
 }
 
-/* TODO: Styles pour les cartes de commande */
 .order-card {
   @apply card overflow-hidden;
 }
@@ -324,7 +304,6 @@
   @apply p-4 border-t border-gray-200 bg-gray-50;
 }
 
-/* TODO: Styles pour le menu manager */
 .menu-item-card {
   @apply card card-hover overflow-hidden;
 }
@@ -337,12 +316,10 @@
   @apply scale-110;
 }
 
-/* TODO: Styles pour les graphiques analytics */
 .chart-container {
   @apply bg-white rounded-xl shadow-soft p-6;
 }
 
-/* TODO: Styles pour les notifications */
 .notification {
   @apply fixed top-4 right-4 z-50 p-4 rounded-lg shadow-strong animate-slide-down;
 }
@@ -363,7 +340,6 @@
   @apply bg-orange-500 text-white;
 }
 
-/* TODO: Styles pour la page d'inscription */
 .register-page {
   @apply min-h-screen bg-gradient-to-br from-orange-50 via-white to-pink-50 py-12 px-4;
 }

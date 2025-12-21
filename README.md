@@ -213,7 +213,7 @@ POLYGONSCAN_API_KEY=votre_cle_polygonscan
 NETWORK=mumbai
 ```
 
-**🔑 Comment obtenir votre PRIVATE_KEY** :
+**Comment obtenir votre PRIVATE_KEY** :
 1. Ouvrir MetaMask
 2. Cliquer sur les 3 points → Account Details → Export Private Key
 3. Entrer votre mot de passe MetaMask
@@ -264,7 +264,7 @@ EMAIL_FROM=noreply@donefood.com
 GOOGLE_MAPS_API_KEY=votre_google_maps_api_key
 ```
 
-**🔑 Comment obtenir MongoDB URI** :
+**Comment obtenir MongoDB URI** :
 1. Se connecter à [MongoDB Atlas](https://cloud.mongodb.com/)
 2. Clusters → Connect → Connect your application
 3. Copier la connection string
@@ -476,7 +476,7 @@ Cela va créer :
 
 ---
 
-## 🔧 Troubleshooting (Résolution de problèmes)
+##  Troubleshooting (Résolution de problèmes)
 
 ### Problème : MetaMask ne se connecte pas
 

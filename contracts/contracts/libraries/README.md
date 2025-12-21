@@ -333,10 +333,12 @@ library OrderLib {
         uint256 foodPrice,
         uint256 deliveryFee
     ) internal pure {
-        // TODO: Implémenter validations
-        // TODO: require(foodPrice > 0, ...)
-        // TODO: require(deliveryFee > 0, ...)
-        // TODO: Check overflow
+        require(foodPrice > 0, "OrderLib: Food price must be greater than 0");
+        require(deliveryFee > 0, "OrderLib: Delivery fee must be greater than 0");
+
+        // Check overflow protection
+        uint256 total = foodPrice + deliveryFee;
+        require(total >= foodPrice, "OrderLib: Amount overflow");
     }
 
     /**
@@ -351,10 +353,17 @@ library OrderLib {
         uint256 deliveryFee,
         uint256 platformFeePercent
     ) internal pure returns (uint256) {
-        // TODO: Calculer platformFee = (foodPrice * platformFeePercent) / 100
-        // TODO: Calculer totalAmount = foodPrice + deliveryFee + platformFee
-        // TODO: Vérifier pas d'overflow
-        // TODO: return totalAmount
+        // Calculate platform fee (10% of food price)
+        uint256 platformFee = (foodPrice * platformFeePercent) / 100;
+
+        // Sum all components
+        uint256 totalAmount = foodPrice + deliveryFee + platformFee;
+
+        // Check no overflow occurred
+        require(totalAmount >= foodPrice, "OrderLib: Total amount overflow");
+        require(totalAmount >= deliveryFee, "OrderLib: Total amount overflow");
+
+        return totalAmount;
     }
 
     /**
@@ -366,12 +375,40 @@ library OrderLib {
         OrderStatus currentStatus,
         OrderStatus newStatus
     ) internal pure {
-        // TODO: Implémenter validation transitions
-        // CREATED → PREPARING ou DISPUTED
-        // PREPARING → IN_DELIVERY ou DISPUTED
-        // IN_DELIVERY → DELIVERED ou DISPUTED
-        // DELIVERED → Aucune transition
-        // DISPUTED → Résolu par arbitrator uniquement
+        // Cannot transition from DELIVERED
+        require(
+            currentStatus != OrderStatus.DELIVERED,
+            "OrderLib: Cannot transition from DELIVERED"
+        );
+
+        // CREATED can only go to PREPARING or DISPUTED
+        if (currentStatus == OrderStatus.CREATED) {
+            require(
+                newStatus == OrderStatus.PREPARING || newStatus == OrderStatus.DISPUTED,
+                "OrderLib: Invalid transition from CREATED"
+            );
+        }
+
+        // PREPARING can only go to IN_DELIVERY or DISPUTED
+        else if (currentStatus == OrderStatus.PREPARING) {
+            require(
+                newStatus == OrderStatus.IN_DELIVERY || newStatus == OrderStatus.DISPUTED,
+                "OrderLib: Invalid transition from PREPARING"
+            );
+        }
+
+        // IN_DELIVERY can only go to DELIVERED or DISPUTED
+        else if (currentStatus == OrderStatus.IN_DELIVERY) {
+            require(
+                newStatus == OrderStatus.DELIVERED || newStatus == OrderStatus.DISPUTED,
+                "OrderLib: Invalid transition from IN_DELIVERY"
+            );
+        }
+
+        // DISPUTED cannot transition (resolved by arbitrator only)
+        else if (currentStatus == OrderStatus.DISPUTED) {
+            revert("OrderLib: Disputed orders cannot transition");
+        }
     }
 
     /**
@@ -384,8 +421,12 @@ library OrderLib {
         uint256 foodPrice,
         uint256 feePercent
     ) internal pure returns (uint256) {
-        // TODO: require(feePercent <= 100, ...)
-        // TODO: return (foodPrice * feePercent) / 100
+        require(feePercent <= 100, "OrderLib: Fee percent cannot exceed 100");
+        require(feePercent > 0, "OrderLib: Fee percent must be > 0");
+
+        uint256 platformFee = (foodPrice * feePercent) / 100;
+
+        return platformFee;
     }
 
     /**
@@ -394,9 +435,20 @@ library OrderLib {
      * @return bool True si valide
      */
     function isValidIPFSHash(string memory ipfsHash) internal pure returns (bool) {
-        // TODO: Vérifier non vide
-        // TODO: Vérifier longueur minimale (46 chars)
-        // TODO: return true si OK
+        // Check not empty
+        bytes memory hashBytes = bytes(ipfsHash);
+
+        if (hashBytes.length == 0) {
+            return false;
+        }
+
+        // IPFS hashes typically start with "Qm" (CIDv0) or "bafy" (CIDv1)
+        // Minimum length check
+        if (hashBytes.length < 46) {  // Qm + 44 chars
+            return false;
+        }
+
+        return true;
     }
 }
 ```

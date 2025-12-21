@@ -1953,7 +1953,7 @@ EXPORTER router
 
 ---
 
-## 🔧 Installation et Démarrage
+##  Installation et Démarrage
 
 ### 1. Installation des Dépendances
 
