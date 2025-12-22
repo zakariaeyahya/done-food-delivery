@@ -34,7 +34,7 @@ ChartJS.register(
 );
 
 export default function RevenueChart() {
-  const [timeframe, setTimeframe] = useState("week");
+  const [timeframe, setTimeframe] = useState("all");
   const [chartData, setChartData] = useState(null);
   const [comparison, setComparison] = useState(null);
   const [breakdown, setBreakdown] = useState(null);
@@ -174,7 +174,7 @@ export default function RevenueChart() {
         <h3 className="text-xl font-semibold">Évolution des Revenus</h3>
 
         <div className="flex gap-2">
-          {["day", "week", "month"].map((p) => (
+          {["all", "day", "week", "month"].map((p) => (
             <button
               key={p}
               onClick={() => setTimeframe(p)}
@@ -184,7 +184,7 @@ export default function RevenueChart() {
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
               }`}
             >
-              {p === "day" ? "Jour" : p === "week" ? "Semaine" : "Mois"}
+              {p === "all" ? "Tout" : p === "day" ? "Jour" : p === "week" ? "Semaine" : "Mois"}
             </button>
           ))}
         </div>

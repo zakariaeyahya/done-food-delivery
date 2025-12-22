@@ -23,7 +23,7 @@ export default function Topbar({ title }) {
      ============================================================ */
   async function pingBackend() {
     try {
-      const res = await fetch(import.meta.env.VITE_API_URL + "/api/ping");
+      const res = await fetch(import.meta.env.VITE_API_URL + "/ping");
 
       if (res.ok) {
         setBackendStatus("up");

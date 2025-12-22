@@ -20,7 +20,7 @@ export async function getUsers(filters = {}) {
 
     const query = new URLSearchParams(filters).toString();
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/users?${query}`,
+      `${API_BASE_URL}/admin/users?${query}`,
       { headers: authHeaders(address) }
     );
 
@@ -34,7 +34,7 @@ export async function getUserDetails(userAddress) {
   try {
     const address = localStorage.getItem("adminWalletAddress");
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/users/${userAddress}`,
+      `${API_BASE_URL}/admin/users/${userAddress}`,
       { headers: authHeaders(address) }
     );
     return res.data;
@@ -49,7 +49,7 @@ export async function getRestaurants(filters = {}) {
     const query = new URLSearchParams(filters).toString();
 
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/restaurants?${query}`,
+      `${API_BASE_URL}/admin/restaurants?${query}`,
       { headers: authHeaders(address) }
     );
     return res.data;
@@ -62,7 +62,7 @@ export async function getRestaurantDetails(restaurantAddress) {
   try {
     const address = localStorage.getItem("adminWalletAddress");
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/restaurants/${restaurantAddress}`,
+      `${API_BASE_URL}/admin/restaurants/${restaurantAddress}`,
       { headers: authHeaders(address) }
     );
     return res.data;
@@ -77,7 +77,7 @@ export async function getDeliverers(filters = {}) {
     const query = new URLSearchParams(filters).toString();
 
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/deliverers?${query}`,
+      `${API_BASE_URL}/admin/deliverers?${query}`,
       { headers: authHeaders(address) }
     );
     return res.data;
@@ -90,7 +90,7 @@ export async function getDelivererDetails(delivererAddress) {
   try {
     const address = localStorage.getItem("adminWalletAddress");
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/deliverers/${delivererAddress}`,
+      `${API_BASE_URL}/admin/deliverers/${delivererAddress}`,
       { headers: authHeaders(address) }
     );
     return res.data;
@@ -105,7 +105,7 @@ export async function getOrders(filters = {}) {
     const query = new URLSearchParams(filters).toString();
 
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/orders?${query}`,
+      `${API_BASE_URL}/admin/orders?${query}`,
       { headers: authHeaders(address) }
     );
     return res.data;
@@ -118,7 +118,7 @@ export async function getOrderDetails(orderId) {
   try {
     const address = localStorage.getItem("adminWalletAddress");
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/orders/${orderId}`,
+      `${API_BASE_URL}/admin/orders/${orderId}`,
       { headers: authHeaders(address) }
     );
     return res.data;
@@ -133,7 +133,7 @@ export async function getDisputes(filters = {}) {
     const query = new URLSearchParams(filters).toString();
 
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/disputes?${query}`,
+      `${API_BASE_URL}/admin/disputes?${query}`,
       { headers: authHeaders(address) }
     );
 
@@ -148,7 +148,7 @@ export async function getDisputeDetails(disputeId) {
     const address = localStorage.getItem("adminWalletAddress");
 
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/disputes/${disputeId}`,
+      `${API_BASE_URL}/admin/disputes/${disputeId}`,
       { headers: authHeaders(address) }
     );
 
@@ -165,7 +165,7 @@ export async function resolveDispute(disputeId, data) {
     const body = typeof data === 'object' ? data : { winner: data };
 
     const res = await axios.post(
-      `${API_BASE_URL}/api/admin/disputes/${disputeId}/resolve`,
+      `${API_BASE_URL}/admin/disputes/${disputeId}/resolve`,
       body,
       { headers: authHeaders(address) }
     );
@@ -182,7 +182,7 @@ export async function getAnalytics(type, filters = {}) {
 
     const query = new URLSearchParams(filters).toString();
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/analytics/${type}?${query}`,
+      `${API_BASE_URL}/admin/analytics/${type}?${query}`,
       { headers: authHeaders(address) }
     );
 
@@ -197,7 +197,7 @@ export async function getTopRestaurants(limit = 10) {
     const address = localStorage.getItem("adminWalletAddress");
 
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/analytics/top-restaurants?limit=${limit}`,
+      `${API_BASE_URL}/admin/analytics/top-restaurants?limit=${limit}`,
       { headers: authHeaders(address) }
     );
 
@@ -212,7 +212,7 @@ export async function getTopDeliverers(limit = 10) {
     const address = localStorage.getItem("adminWalletAddress");
 
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/analytics/top-deliverers?limit=${limit}`,
+      `${API_BASE_URL}/admin/analytics/top-deliverers?limit=${limit}`,
       { headers: authHeaders(address) }
     );
 
@@ -229,7 +229,7 @@ export async function getAnalyticsDisputes(filters = {}) {
     const query = new URLSearchParams(filters).toString();
 
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/analytics/disputes?${query}`,
+      `${API_BASE_URL}/admin/analytics/disputes?${query}`,
       { headers: authHeaders(address) }
     );
 
@@ -244,7 +244,7 @@ export async function getDashboardStats() {
     const address = localStorage.getItem("adminWalletAddress");
 
     const res = await axios.get(
-      `${API_BASE_URL}/api/admin/stats`,
+      `${API_BASE_URL}/admin/stats`,
       { headers: authHeaders(address) }
     );
 

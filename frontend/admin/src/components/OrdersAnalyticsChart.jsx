@@ -35,7 +35,7 @@ ChartJS.register(
 );
 
 export default function OrdersAnalyticsChart() {
-  const [timeframe, setTimeframe] = useState("week");
+  const [timeframe, setTimeframe] = useState("all");
   const [chartData, setChartData] = useState(null);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -183,7 +183,7 @@ export default function OrdersAnalyticsChart() {
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold">Commandes - Analytics</h3>
           <div className="flex gap-2">
-            {["day", "week", "month"].map((p) => (
+            {["all", "day", "week", "month"].map((p) => (
               <button
                 key={p}
                 onClick={() => setTimeframe(p)}
@@ -193,7 +193,7 @@ export default function OrdersAnalyticsChart() {
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
-                {p === "day" ? "Jour" : p === "week" ? "Semaine" : "Mois"}
+                {p === "all" ? "Tout" : p === "day" ? "Jour" : p === "week" ? "Semaine" : "Mois"}
               </button>
             ))}
           </div>
@@ -222,7 +222,7 @@ export default function OrdersAnalyticsChart() {
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold">Commandes - Analytics</h3>
           <div className="flex gap-2">
-            {["day", "week", "month"].map((p) => (
+            {["all", "day", "week", "month"].map((p) => (
               <button
                 key={p}
                 onClick={() => setTimeframe(p)}
@@ -232,7 +232,7 @@ export default function OrdersAnalyticsChart() {
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
-                {p === "day" ? "Jour" : p === "week" ? "Semaine" : "Mois"}
+                {p === "all" ? "Tout" : p === "day" ? "Jour" : p === "week" ? "Semaine" : "Mois"}
               </button>
             ))}
           </div>
@@ -255,7 +255,7 @@ export default function OrdersAnalyticsChart() {
         <h3 className="text-xl font-semibold">Commandes - Analytics</h3>
         
         <div className="flex gap-2">
-          {["day", "week", "month"].map((p) => (
+          {["all", "day", "week", "month"].map((p) => (
             <button
               key={p}
               onClick={() => setTimeframe(p)}
@@ -265,7 +265,7 @@ export default function OrdersAnalyticsChart() {
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
               }`}
             >
-              {p === "day" ? "Jour" : p === "week" ? "Semaine" : "Mois"}
+              {p === "all" ? "Tout" : p === "day" ? "Jour" : p === "week" ? "Semaine" : "Mois"}
             </button>
           ))}
         </div>

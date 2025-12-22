@@ -471,13 +471,16 @@ async function getAllDeliverers(req, res) {
       message: "Failed to fetch deliverers"
     });
   }
-}
+}
+
 async function getOrders(req, res) {
   try {
-    const { page = 1, limit = 10, sortField = 'createdAt', sortOrder = 'desc', status } = req.query;    
+    const { page = 1, limit = 10, sortField = 'createdAt', sortOrder = 'desc', status } = req.query;
+    
     const safePage = Math.max(1, parseInt(page) || 1);
     const safeLimit = Math.max(1, parseInt(limit) || 10);
-    const query = {};    if (status && status !== 'all') query.status = status;
+    const query = {};
+    if (status && status !== 'all') query.status = status;
     const sortOptions = {};
     sortOptions[sortField === 'date' ? 'createdAt' : sortField] = sortOrder === 'desc' ? -1 : 1;
     const total = await Order.countDocuments(query);
@@ -511,7 +514,8 @@ async function getOrderDetails(req, res) {
         error: "Not Found",
         message: `Commande #${orderId} non trouvée`
       });
-    }    const details = {
+    }
+    const details = {
       ...order,
 
       client: order.client || { name: "N/A", address: null },
@@ -552,13 +556,20 @@ async function getOrderDetails(req, res) {
 
 async function getAnalyticsOrders(req, res) {
   try {
-    const { timeframe = 'week' } = req.query;
-    let startDate = new Date();
-    if (timeframe === 'day') startDate.setDate(startDate.getDate() - 1);
-    else if (timeframe === 'week') startDate.setDate(startDate.getDate() - 7);
-    else if (timeframe === 'month') startDate.setMonth(startDate.getMonth() - 1);
-    else startDate.setDate(startDate.getDate() - 7);
-    const orders = await Order.find({ createdAt: { $gte: startDate } }).lean();
+    const { timeframe = 'all' } = req.query;
+    let query = {};
+    if (timeframe !== 'all') {
+      let startDate = new Date();
+      if (timeframe === 'day') startDate.setDate(startDate.getDate() - 1);
+      else if (timeframe === 'week') startDate.setDate(startDate.getDate() - 7);
+      else if (timeframe === 'month') startDate.setMonth(startDate.getMonth() - 1);
+      query.createdAt = { $gte: startDate };
+    }
+    const orders = await Order.find(query).lean();
+    console.log(`[Analytics Orders] Timeframe: ${timeframe}, Query:`, JSON.stringify(query), `Found: ${orders.length} orders`);
+    if (orders.length > 0) {
+      console.log(`[Analytics Orders] Order dates:`, orders.map(o => o.createdAt));
+    }
     const groupedData = {};
     orders.forEach(order => {
       const date = order.createdAt.toISOString().split('T')[0];
@@ -576,13 +587,20 @@ async function getAnalyticsOrders(req, res) {
 
 async function getAnalyticsRevenue(req, res) {
   try {
-    const { timeframe = 'week' } = req.query;
-    let startDate = new Date();
-    if (timeframe === 'day') startDate.setDate(startDate.getDate() - 1);
-    else if (timeframe === 'week') startDate.setDate(startDate.getDate() - 7);
-    else if (timeframe === 'month') startDate.setMonth(startDate.getMonth() - 1);
-    else startDate.setDate(startDate.getDate() - 7);
-    const orders = await Order.find({ createdAt: { $gte: startDate }, status: 'DELIVERED' }).lean();
+    const { timeframe = 'all' } = req.query;
+    let query = { status: 'DELIVERED' };
+    if (timeframe !== 'all') {
+      let startDate = new Date();
+      if (timeframe === 'day') startDate.setDate(startDate.getDate() - 1);
+      else if (timeframe === 'week') startDate.setDate(startDate.getDate() - 7);
+      else if (timeframe === 'month') startDate.setMonth(startDate.getMonth() - 1);
+      query.createdAt = { $gte: startDate };
+    }
+    const orders = await Order.find(query).lean();
+    console.log(`[Analytics Revenue] Timeframe: ${timeframe}, Query:`, JSON.stringify(query), `Found: ${orders.length} orders`);
+    if (orders.length > 0) {
+      console.log(`[Analytics Revenue] Order dates:`, orders.map(o => o.createdAt));
+    }
     const groupedData = {};
     orders.forEach(order => {
       const date = order.createdAt.toISOString().split('T')[0];
@@ -687,7 +705,8 @@ async function getAnalyticsDisputes(req, res) {
       startDate.setMonth(startDate.getMonth() - 1);
     } else {
       startDate.setFullYear(startDate.getFullYear() - 1);
-    }    const disputes = await Order.aggregate([
+    }
+    const disputes = await Order.aggregate([
       {
         $match: {
           status: 'DISPUTED',
@@ -703,7 +722,8 @@ async function getAnalyticsDisputes(req, res) {
         }
       },
       { $sort: { _id: 1 } }
-    ]);    const totalDisputes = await Order.countDocuments({ status: 'DISPUTED' });
+    ]);
+    const totalDisputes = await Order.countDocuments({ status: 'DISPUTED' });
     const resolvedDisputes = await Order.countDocuments({ status: 'RESOLVED' });
     const pendingDisputes = await Order.countDocuments({ status: 'DISPUTED', disputeReason: { $exists: true } });
 
