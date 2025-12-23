@@ -104,7 +104,7 @@ export default function HomePage() {
       if (activeData.count > 1) {
       }
 
-      const earningsResponse = await api.getEarnings(address, "today").catch(() => ({
+      const earningsResponse = await api.getEarnings(address, "week").catch(() => ({
         earnings: { completedDeliveries: 0, totalEarnings: 0 }
       }));
       const earnings = earningsResponse.earnings || { completedDeliveries: 0, totalEarnings: 0 };
@@ -451,7 +451,7 @@ export default function HomePage() {
               >
                 <Card className="text-center">
                   <Package className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-                  <h3 className="text-sm text-slate-400 mb-1">Livraisons</h3>
+                  <h3 className="text-sm text-slate-400 mb-1">Livraisons (7j)</h3>
                   <p className="text-3xl font-bold text-white">{stats.todayDeliveries}</p>
                 </Card>
               </motion.div>
@@ -463,7 +463,7 @@ export default function HomePage() {
               >
                 <Card className="text-center">
                   <DollarSign className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-                  <h3 className="text-sm text-slate-400 mb-1">Gains</h3>
+                  <h3 className="text-sm text-slate-400 mb-1">Gains (7j)</h3>
                   <p className="text-3xl font-bold text-white">
                     {stats.todayEarnings.toFixed(5)} POL
                   </p>

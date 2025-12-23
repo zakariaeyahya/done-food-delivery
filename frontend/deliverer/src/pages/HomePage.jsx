@@ -61,7 +61,7 @@ function HomePage() {
       const active = await api.getActiveDelivery(address).catch(() => null);
       setActiveDelivery(active);
 
-      const earningsResponse = await api.getEarnings(address, "today").catch((err) => {
+      const earningsResponse = await api.getEarnings(address, "week").catch((err) => {
         return { earnings: { completedDeliveries: 0, totalEarnings: 0 } };
       });
       const earnings = earningsResponse.earnings || {
@@ -265,11 +265,11 @@ function HomePage() {
         <>
           <div className="stats-grid">
             <div className="card">
-              <h3>Livraisons</h3>
+              <h3>Livraisons (7j)</h3>
               <p className="big">{stats.todayDeliveries}</p>
             </div>
             <div className="card">
-              <h3>Gains</h3>
+              <h3>Gains (7j)</h3>
               <p className="big">{Number(stats.todayEarnings).toFixed(5)} POL</p>
             </div>
             <div className="card">
