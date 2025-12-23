@@ -136,7 +136,7 @@ function EarningsPage() {
                   <td>{tx.orderId}</td>
                   <td>{tx.delivererAmount} POL</td>
                   <td>
-                    <a href={`https://mumbai.polygonscan.com/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer">
+                    <a href={`https://amoy.polygonscan.com/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer">
                       {tx.txHash.slice(0, 12)}...
                     </a>
                   </td>

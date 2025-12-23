@@ -212,6 +212,8 @@ async function startServer() {
     await initializeConnections();
 
     server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📡 Environment: ${NODE_ENV}`);
     });
 
   } catch (error) {

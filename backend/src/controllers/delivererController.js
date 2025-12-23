@@ -561,10 +561,23 @@ async function getDelivererEarnings(req, res) {
     
     const { startDate, endDate, period } = req.query;
     
-    const query = { 
-      deliverer: deliverer._id,
-      status: 'DELIVERED'
+    // Condition de base: deliverer + status DELIVERED
+    const delivererCondition = {
+      $or: [
+        { deliverer: deliverer._id },
+        { delivererAddress: normalizedAddress }
+      ]
     };
+
+    // Construire la requête avec $and pour combiner les conditions
+    const query = {
+      $and: [
+        delivererCondition,
+        { status: 'DELIVERED' }
+      ]
+    };
+
+    // Ajouter le filtre de date si spécifié
     if (period) {
       const now = new Date();
       let start = new Date();
@@ -584,37 +597,54 @@ async function getDelivererEarnings(req, res) {
       }
 
       if (period.toLowerCase() === 'today' || period.toLowerCase() === 'week' || period.toLowerCase() === 'month') {
-        query.$or = [
-          { completedAt: { $gte: start, $lte: now } },
-          { completedAt: null, updatedAt: { $gte: start, $lte: now } }
-        ];
+        query.$and.push({
+          $or: [
+            { completedAt: { $gte: start, $lte: now } },
+            { completedAt: null, updatedAt: { $gte: start, $lte: now } }
+          ]
+        });
       }
     } else if (startDate || endDate) {
       const dateFilter = {};
       if (startDate) dateFilter.$gte = new Date(startDate);
       if (endDate) dateFilter.$lte = new Date(endDate);
-      query.$or = [
-        { completedAt: dateFilter },
-        { completedAt: null, updatedAt: dateFilter }
-      ];
+      query.$and.push({
+        $or: [
+          { completedAt: dateFilter },
+          { completedAt: null, updatedAt: dateFilter }
+        ]
+      });
     }
     
-    const orders = await Order.find(query);
-    
+    console.log('📊 Earnings query:', JSON.stringify(query, null, 2));
+    const orders = await Order.find(query).sort({ completedAt: -1, updatedAt: -1 });
+    console.log(`📊 Found ${orders.length} orders for deliverer ${normalizedAddress}`);
+
     const totalEarnings = orders.reduce((sum, order) => {
       const deliveryFeePOL = parseFloat(order.deliveryFee || 0) / 1e18;
       return sum + deliveryFeePOL;
     }, 0);
-    
+
     const completedDeliveries = orders.length;
     const averageEarning = completedDeliveries > 0 ? totalEarnings / completedDeliveries : 0;
-    
+
+    // Construire la liste des transactions pour l'historique
+    const transactions = orders.map(order => ({
+      orderId: order.orderId,
+      delivererAmount: parseFloat(order.deliveryFee || 0) / 1e18,
+      totalAmount: parseFloat(order.totalAmount || 0) / 1e18,
+      txHash: order.txHash || null,
+      timestamp: order.completedAt ? Math.floor(new Date(order.completedAt).getTime() / 1000) : Math.floor(new Date(order.updatedAt).getTime() / 1000),
+      date: order.completedAt || order.updatedAt
+    }));
+
     return res.status(200).json({
       success: true,
       earnings: {
         totalEarnings: parseFloat(totalEarnings.toFixed(4)),
         completedDeliveries,
-        averageEarning: parseFloat(averageEarning.toFixed(4))
+        averageEarning: parseFloat(averageEarning.toFixed(4)),
+        transactions
       }
     });
   } catch (error) {

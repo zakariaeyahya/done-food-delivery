@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import {
   Line,
@@ -31,6 +30,31 @@ ChartJS.register(
   Legend,
   Filler
 );
+
+// Composant StatCard pour afficher une statistique
+function StatCard({ title, value, className = "" }) {
+  return (
+    <div className={`rounded-2xl bg-white p-4 shadow-soft dark:bg-neutral-800 ${className}`}>
+      <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-1">{title}</p>
+      <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">{value}</p>
+    </div>
+  );
+}
+
+// Composant Badge pour les labels
+function Badge({ tone = "primary", children }) {
+  const toneClasses = {
+    primary: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
+    secondary: "bg-neutral-100 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300",
+    success: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+    error: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+  };
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${toneClasses[tone] || toneClasses.primary}`}>
+      {children}
+    </span>
+  );
+}
 
 function Analytics({
   restaurantId,
@@ -82,9 +106,13 @@ function Analytics({
         restaurantAddress
       );
 
+      // Mapper les champs du backend vers le frontend
       setAnalytics((prev) => ({
         ...prev,
-        ...data,
+        totalOrders: data?.totalOrders ?? prev.totalOrders,
+        revenue: data?.totalRevenue ?? data?.revenue ?? prev.revenue,
+        averageRating: data?.averageRating ?? data?.rating ?? prev.averageRating,
+        averagePreparationTime: data?.averagePreparationTime ?? prev.averagePreparationTime,
         popularDishes: data?.popularDishes ?? prev.popularDishes,
         revenueSeries: data?.revenueSeries ?? prev.revenueSeries,
         ordersSeries: data?.ordersSeries ?? prev.ordersSeries,
@@ -117,11 +145,12 @@ function Analytics({
     else setInternalPeriod(next);
   }
 
-  function formatPrice(value) {
+  function formatPrice(value, currency = '', decimals = 2) {
     if (value == null || Number.isNaN(Number(value))) return "0";
-    return Number(value).toLocaleString("fr-FR", {
-      maximumFractionDigits: 2,
+    const formatted = Number(value).toLocaleString("fr-FR", {
+      maximumFractionDigits: decimals,
     });
+    return currency ? `${formatted} ${currency}` : formatted;
   }
 
   // ---------- Données graphiques ----------
@@ -384,3 +413,4 @@ function Analytics({
   );
 }
 
+export default Analytics;

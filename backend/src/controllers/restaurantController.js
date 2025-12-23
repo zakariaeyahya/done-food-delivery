@@ -10,6 +10,33 @@ const { ethers } = require("ethers");
  * @dev Handles registration, menu management, orders and analytics
  */
 
+// Helper: Calcul des plats populaires
+function getPopularDishes(orders) {
+  const itemCounts = {};
+  orders.forEach(order => {
+    if (order.items && Array.isArray(order.items)) {
+      order.items.forEach(item => {
+        const name = item.name || item.itemName || 'Unknown';
+        if (!itemCounts[name]) {
+          itemCounts[name] = { name, count: 0, revenue: 0 };
+        }
+        itemCounts[name].count += item.quantity || 1;
+        itemCounts[name].revenue += (item.price || 0) * (item.quantity || 1);
+      });
+    }
+  });
+  return Object.values(itemCounts)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+}
+
+// Helper: Calcul du temps de préparation moyen
+function calculateAvgPrepTime(orders) {
+  const ordersWithPrepTime = orders.filter(o => o.preparationTime && o.preparationTime > 0);
+  if (ordersWithPrepTime.length === 0) return 0;
+  return Math.round(ordersWithPrepTime.reduce((sum, o) => sum + o.preparationTime, 0) / ordersWithPrepTime.length);
+}
+
 /**
  * Registers a new restaurant
  * @dev Registers restaurant with IPFS image uploads
@@ -477,7 +504,9 @@ async function getRestaurantAnalytics(req, res) {
         totalRevenue: parseFloat(totalRevenue.toFixed(4)),
         averageRating,
         rating: restaurant.rating,
-        totalOrdersCount: restaurant.totalOrders
+        totalOrdersCount: restaurant.totalOrders,
+        popularDishes: getPopularDishes(orders),
+        averagePreparationTime: calculateAvgPrepTime(orders)
       }
     });
   } catch (error) {

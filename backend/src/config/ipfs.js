@@ -28,6 +28,7 @@ let gatewayURL = null;
  */
 async function initIPFS() {
   try {
+    console.log('📁 Initializing IPFS/Pinata...');
     const isPinataConfigured = process.env.PINATA_API_KEY &&
                                process.env.PINATA_SECRET_KEY &&
                                !process.env.PINATA_API_KEY.includes('your_') &&
@@ -37,16 +38,19 @@ async function initIPFS() {
       pinataAPI = new pinataSDK(process.env.PINATA_API_KEY, process.env.PINATA_SECRET_KEY);
 
       await pinataAPI.testAuthentication();
+      console.log('✅ Pinata IPFS connected');
 
       gatewayURL = process.env.IPFS_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
 
       return pinataAPI;
     } else {
+      console.log('⚠️  Pinata not configured - using public gateway');
       gatewayURL = process.env.IPFS_GATEWAY_URL || "https://ipfs.io/ipfs/";
 
       return null;
     }
   } catch (error) {
+    console.error('❌ IPFS/Pinata error:', error.message);
     throw error;
   }
 }

@@ -51,11 +51,6 @@ export function OrdersList({ limit }: OrdersListProps) {
         });
 
         socketRef.current.on("orderReady", (order: any) => {
-            orderId: order.orderId,
-            restaurant: order.restaurant?.name || 'Restaurant',
-            totalAmount: order.totalAmount,
-            deliveryAddress: order.deliveryAddress
-          });
           setOrders((prev) => {
             const exists = prev.find((o: any) => o.orderId === order.orderId);
             if (exists) {
@@ -100,24 +95,12 @@ export function OrdersList({ limit }: OrdersListProps) {
     setLoading(true);
 
     try {
-      const locationParams = currentLocation 
+      const locationParams = currentLocation
         ? { lat: currentLocation.lat, lng: currentLocation.lng }
         : {};
-      
-      if (currentLocation) {
-      } else {
-      }
-      
+
       const availableOrders = await api.getAvailableOrders(locationParams);
       
-      if (availableOrders.length > 0) {
-          orderId: o.orderId,
-          restaurant: o.restaurant?.name || 'Restaurant',
-          status: o.status,
-          totalAmount: o.totalAmount
-        })));
-      } else {
-      }
 
       let sortedOrders = availableOrders;
       if (availableOrders.length > 0) {

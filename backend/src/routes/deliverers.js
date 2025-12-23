@@ -29,6 +29,36 @@ router.get(
   delivererController.getAvailableDeliverers
 );
 
+// Route GET /api/deliverers/debug/delivered-orders - Debug: voir toutes les commandes DELIVERED
+router.get(
+  "/debug/delivered-orders",
+  async (req, res) => {
+    try {
+      const Order = require("../models/Order");
+      const orders = await Order.find({ status: 'DELIVERED' })
+        .populate('deliverer', 'address name')
+        .select('orderId status deliverer deliveryFee totalAmount completedAt updatedAt')
+        .sort({ updatedAt: -1 })
+        .limit(20);
+
+      res.json({
+        count: orders.length,
+        orders: orders.map(o => ({
+          orderId: o.orderId,
+          status: o.status,
+          deliverer: o.deliverer ? { id: o.deliverer._id, address: o.deliverer.address, name: o.deliverer.name } : null,
+          deliveryFee: o.deliveryFee,
+          totalAmount: o.totalAmount,
+          completedAt: o.completedAt,
+          updatedAt: o.updatedAt
+        }))
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
 // Route POST /api/deliverers/orders/:orderId/accept - Accepter une commande (livreur)
 // IMPORTANT: Cette route doit être AVANT /:address pour éviter que "orders" soit interprété comme une adresse
 router.post(
@@ -100,6 +130,7 @@ router.get(
   validation.validateAddress,              // Valider address dans params
   delivererController.getDelivererEarnings
 );
+
 
 // Route GET /api/deliverers/:address/rating - Récupérer le rating et les avis d'un livreur
 router.get(

@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import * as api from "../services/api";
 
@@ -10,6 +9,65 @@ const IPFS_GATEWAY =
 function formatPrice(v) {
   if (v == null || Number.isNaN(Number(v))) return "0";
   return Number(v).toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+}
+
+// Composant CategoryButton pour les filtres de catégorie
+function CategoryButton({ active, onClick, label }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+        active
+          ? "bg-orange-500 text-white shadow-md"
+          : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+// Composant MenuItemCard pour afficher un item du menu
+function MenuItemCard({ item, onEdit, onDelete, onToggle }) {
+  const imageUrl = item.image
+    ? (item.image.startsWith('http') ? item.image : `${IPFS_GATEWAY}${item.image}`)
+    : null;
+
+  return (
+    <div className={`rounded-2xl bg-white p-4 shadow-soft dark:bg-neutral-800 ${!item.available ? 'opacity-60' : ''}`}>
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt={item.name}
+          className="w-full h-32 object-cover rounded-xl mb-3"
+        />
+      )}
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">{item.name}</h3>
+        <span className="text-orange-500 font-bold">{formatPrice(item.price)} €</span>
+      </div>
+      <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-2 line-clamp-2">{item.description}</p>
+      <div className="flex items-center justify-between">
+        <span className="text-xs px-2 py-1 rounded-full bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300">
+          {item.category}
+        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={onToggle}
+            className={`text-xs px-2 py-1 rounded ${item.available ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}
+          >
+            {item.available ? 'Dispo' : 'Indispo'}
+          </button>
+          <button onClick={onEdit} className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-600 hover:bg-blue-200">
+            Modifier
+          </button>
+          <button onClick={onDelete} className="text-xs px-2 py-1 rounded bg-red-100 text-red-600 hover:bg-red-200">
+            Suppr
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }) {
@@ -337,3 +395,4 @@ function MenuManager({ restaurantId, restaurantAddress, showSuccess, showError }
   );
 }
 
+export default MenuManager;

@@ -1,10 +1,25 @@
-
 import { useEffect, useMemo, useState } from "react";
 import OrderCard from "./OrderCard";
 
 import * as api from "../services/api";
 import * as blockchain from "../services/blockchain";
 import { useSocket } from "../contexts/SocketContext";
+
+// Composant FilterChip pour les filtres
+function FilterChip({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+        active
+          ? "bg-orange-500 text-white shadow-md"
+          : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 function OrdersQueue({
   restaurantId,
@@ -180,8 +195,7 @@ function OrdersQueue({
   function playNotificationSound() {
     try {
       const audio = new Audio("/notification.mp3");
-      audio.play().catch((err) =>
-      );
+      audio.play().catch(() => {});
     } catch (e) {
       // silencieux si fichier absent
     }
@@ -318,3 +332,4 @@ function OrdersQueue({
   );
 }
 
+export default OrdersQueue;

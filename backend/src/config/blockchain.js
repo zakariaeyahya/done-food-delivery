@@ -106,6 +106,7 @@ function getMinimalABI(contractName) {
  */
 async function initBlockchain() {
   try {
+    console.log('⛓️  Connecting to Polygon Amoy...');
     const rpcUrl = process.env.AMOY_RPC_URL || process.env.MUMBAI_RPC_URL;
     if (!rpcUrl) {
       throw new Error("AMOY_RPC_URL or MUMBAI_RPC_URL is not defined in .env");
@@ -227,11 +228,15 @@ async function initBlockchain() {
       wallet
     );
 
-    await provider.getNetwork();
+    const network = await provider.getNetwork();
+    console.log(`✅ Blockchain connected - Chain ID: ${network.chainId}`);
+    console.log(`👛 Wallet: ${wallet.address}`);
 
     try {
       await contracts.orderManager.getTotalOrders?.() || await provider.getCode(orderManagerAddress);
+      console.log('📋 Smart contracts loaded');
     } catch (error) {
+      console.log('📋 Smart contracts loaded (minimal ABI)');
     }
 
     return contracts;

@@ -70,13 +70,6 @@ export default function HomePage() {
         return;
       }
 
-        address: delivererData.deliverer?.address,
-        name: delivererData.deliverer?.name,
-        isAvailable: delivererData.deliverer?.isAvailable,
-        isStaked: delivererData.deliverer?.isStaked,
-        stakedAmount: delivererData.deliverer?.stakedAmount
-      });
-
       setIsRegistered(true);
       setCheckingRegistration(false);
 

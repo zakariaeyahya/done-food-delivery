@@ -40,7 +40,7 @@ function EarningsChart({
   restaurantId,
   restaurantAddress,
   period = "week",
-  explorerBaseUrl = "https://mumbai.polygonscan.com",
+  explorerBaseUrl = "https://amoy.polygonscan.com",
   showSuccess,
   showError,
 }) {

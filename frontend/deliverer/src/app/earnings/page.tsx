@@ -46,9 +46,25 @@ export default function EarningsPage() {
   async function loadTransactions() {
     setLoading(true);
     try {
+      // Essayer d'abord la blockchain
       const { events } = await blockchain.getEarningsEvents(address!);
-      setTransactions(events);
+      if (events && events.length > 0) {
+        setTransactions(events);
+      } else {
+        // Fallback: utiliser les données du backend
+        const response = await api.getEarnings(address!, period);
+        const backendTransactions = response?.earnings?.transactions || [];
+        setTransactions(backendTransactions);
+      }
     } catch (err) {
+      // En cas d'erreur blockchain, utiliser le backend
+      try {
+        const response = await api.getEarnings(address!, period);
+        const backendTransactions = response?.earnings?.transactions || [];
+        setTransactions(backendTransactions);
+      } catch {
+        setTransactions([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -77,15 +93,27 @@ export default function EarningsPage() {
 
   async function fetchEarningsEvents() {
     try {
+      // Essayer d'abord la blockchain
       const { events } = await blockchain.getEarningsEvents(address!);
 
-      const labels = events.map((e: any) =>
-        new Date(e.timestamp * 1000).toLocaleDateString()
-      );
-
-      const values = events.map((e: any) => e.delivererAmount);
-
-      setChartData({ labels, values });
+      if (events && events.length > 0) {
+        const labels = events.map((e: any) =>
+          new Date(e.timestamp * 1000).toLocaleDateString()
+        );
+        const values = events.map((e: any) => e.delivererAmount);
+        setChartData({ labels, values });
+      } else {
+        // Fallback: utiliser les transactions du backend
+        const response = await api.getEarnings(address!, period);
+        const backendTransactions = response?.earnings?.transactions || [];
+        if (backendTransactions.length > 0) {
+          const labels = backendTransactions.map((t: any) =>
+            new Date(t.timestamp * 1000).toLocaleDateString()
+          );
+          const values = backendTransactions.map((t: any) => t.delivererAmount);
+          setChartData({ labels, values });
+        }
+      }
     } catch (err) {
     }
   }
@@ -229,7 +257,7 @@ export default function EarningsPage() {
                         </td>
                         <td className="py-3 px-4">
                           <a
-                            href={`https://mumbai.polygonscan.com/tx/${tx.txHash}`}
+                            href={`https://amoy.polygonscan.com/tx/${tx.txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-orange-400 hover:text-orange-300 text-sm"

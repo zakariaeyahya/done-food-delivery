@@ -35,18 +35,24 @@ async function connectDB() {
       socketTimeoutMS: 45000,
     };
 
+    console.log('📦 Connecting to MongoDB...');
     await mongoose.connect(process.env.MONGODB_URI, options);
+    console.log('✅ MongoDB connected successfully');
+    console.log(`📁 Database: ${mongoose.connection.name}`);
 
     mongoose.connection.on('connected', () => {
       connectionStatus = 1;
+      console.log('✅ MongoDB connection established');
     });
 
     mongoose.connection.on('error', (err) => {
       connectionStatus = 0;
+      console.error('❌ MongoDB connection error:', err.message);
     });
 
     mongoose.connection.on('disconnected', () => {
       connectionStatus = 0;
+      console.log('⚠️ MongoDB disconnected');
     });
 
     process.on('SIGINT', async () => {
