@@ -638,6 +638,11 @@ async function getDelivererEarnings(req, res) {
       date: order.completedAt || order.updatedAt
     }));
 
+    // Disable caching for fresh earnings data
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
     return res.status(200).json({
       success: true,
       earnings: {
@@ -648,8 +653,8 @@ async function getDelivererEarnings(req, res) {
       }
     });
   } catch (error) {
-    
-    
+
+
     return res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to get deliverer earnings",
