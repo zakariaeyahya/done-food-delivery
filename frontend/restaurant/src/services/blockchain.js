@@ -191,24 +191,32 @@ export async function confirmPreparationOnChain(orderId) {
     if (!signer) {
       throw new Error('Wallet not connected. Please connect your wallet first.');
     }
-    
+
     if (!ORDER_MANAGER_ADDRESS) {
       throw new Error('Order manager address not configured');
     }
-    
+
     if (!orderManagerContract) {
       orderManagerContract = new ethers.Contract(ORDER_MANAGER_ADDRESS, DoneOrderManagerABI, signer);
     }
-    
-    
+
+    // Obtenir le gas price actuel du réseau (compatible Polygon Amoy)
+    let gasPrice;
+    try {
+      const currentGasPrice = await signer.provider.send('eth_gasPrice', []);
+      gasPrice = (BigInt(currentGasPrice) * BigInt(120)) / BigInt(100); // +20%
+    } catch {
+      gasPrice = ethers.parseUnits('30', 'gwei'); // Fallback
+    }
+
     const orderIdBigInt = typeof orderId === 'number' ? BigInt(orderId) : BigInt(orderId);
-    const tx = await orderManagerContract.confirmPreparation(orderIdBigInt);
-    
-    
+    const tx = await orderManagerContract.confirmPreparation(orderIdBigInt, { gasPrice });
+
     const receipt = await tx.wait();
-    
+
     return { txHash: receipt.hash, receipt };
   } catch (error) {
+    console.error('[confirmPreparationOnChain] Error:', error.message);
     if (error.code === 4001) {
       throw new Error('User rejected transaction');
     }

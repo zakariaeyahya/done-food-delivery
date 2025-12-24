@@ -145,7 +145,22 @@ function AvailableOrders({ limit = null }) {
       const signer = await blockchain.getSigner();
       const address = await signer.getAddress();
 
-      const isStaked = await blockchain.isStaked(address);
+      // 1. D'abord vérifier localStorage (comme StakingPanel)
+      const localStake = localStorage.getItem(`staked_${address}`);
+      let isStaked = false;
+
+      if (localStake && parseFloat(localStake) > 0) {
+        isStaked = true;
+      } else {
+        // 2. Sinon vérifier blockchain
+        try {
+          isStaked = await blockchain.isStaked(address);
+        } catch (stakeError) {
+          console.warn('[handleAcceptOrder] blockchain.isStaked failed:', stakeError.message);
+          isStaked = false;
+        }
+      }
+
       if (!isStaked) {
         alert("Vous devez staker minimum 0.1 POL pour accepter une commande.");
         return;

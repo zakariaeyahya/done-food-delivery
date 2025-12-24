@@ -60,6 +60,13 @@ router.get(
   adminController.getAllUsers
 );
 
+// Route GET /api/admin/users/:address - Détails d'un utilisateur
+router.get(
+  "/users/:address",
+  // verifyAdminRole, // ⏳ À activer après implémentation verifyAdminRole
+  adminController.getUserDetails
+);
+
 // Route GET /api/admin/restaurants - Liste tous les restaurants
 router.get(
   "/restaurants",

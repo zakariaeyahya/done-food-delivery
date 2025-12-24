@@ -232,9 +232,13 @@ async function getAvailableDeliverers(req, res) {
       };
     });
     if (lat && lng) {
-      formattedOrders = formattedOrders
-        .filter(order => order.distance !== null)
-        .sort((a, b) => a.distance - b.distance);
+      // Sort by distance, putting orders with null distance at the end
+      formattedOrders = formattedOrders.sort((a, b) => {
+        if (a.distance === null && b.distance === null) return 0;
+        if (a.distance === null) return 1;  // null goes to end
+        if (b.distance === null) return -1;
+        return a.distance - b.distance;
+      });
     }
     
     return res.status(200).json(formattedOrders);
@@ -933,9 +937,97 @@ async function getDelivererRating(req, res) {
 }
 
 /**
+ * Synchronize staking status from blockchain to MongoDB
+ * @dev Reads staking status from blockchain and updates MongoDB
+ *
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
+ */
+async function syncStakingStatus(req, res) {
+  try {
+    const address = req.params.address || req.body.address || req.userAddress;
+
+    if (!address) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Address is required"
+      });
+    }
+
+    const normalizedAddress = address.toLowerCase();
+
+    const deliverer = await Deliverer.findByAddress(normalizedAddress);
+    if (!deliverer) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Deliverer not found"
+      });
+    }
+
+    let isStakedBlockchain = false;
+    let stakedAmountBlockchain = "0";
+    let syncSource = "blockchain";
+
+    try {
+      // Try to get staking status from blockchain
+      isStakedBlockchain = await blockchainService.isStaked(normalizedAddress);
+
+      if (isStakedBlockchain) {
+        const staking = require("../config/blockchain").getContractInstance("staking");
+        const stakedAmountWei = await staking.stakedAmount(normalizedAddress);
+        stakedAmountBlockchain = ethers.formatEther(stakedAmountWei);
+      }
+
+      console.log(`[syncStakingStatus] Blockchain says: isStaked=${isStakedBlockchain}, amount=${stakedAmountBlockchain}`);
+    } catch (blockchainError) {
+      console.log(`[syncStakingStatus] Blockchain error: ${blockchainError.message}`);
+
+      // If blockchain fails but request body contains staking info from frontend transaction
+      if (req.body.txHash && req.body.stakedAmount) {
+        isStakedBlockchain = true;
+        stakedAmountBlockchain = req.body.stakedAmount.toString();
+        syncSource = "frontend_tx";
+        console.log(`[syncStakingStatus] Using frontend tx data: txHash=${req.body.txHash}, amount=${stakedAmountBlockchain}`);
+      } else {
+        return res.status(500).json({
+          error: "Blockchain Error",
+          message: "Failed to read staking status from blockchain",
+          details: blockchainError.message
+        });
+      }
+    }
+
+    // Update MongoDB with the staking status
+    deliverer.isStaked = isStakedBlockchain;
+    deliverer.stakedAmount = parseFloat(stakedAmountBlockchain);
+    await deliverer.save();
+
+    console.log(`[syncStakingStatus] Updated MongoDB for ${normalizedAddress}: isStaked=${isStakedBlockchain}, amount=${stakedAmountBlockchain}`);
+
+    return res.status(200).json({
+      success: true,
+      message: "Staking status synchronized",
+      syncSource,
+      deliverer: {
+        address: deliverer.address,
+        isStaked: deliverer.isStaked,
+        stakedAmount: deliverer.stakedAmount.toString()
+      }
+    });
+  } catch (error) {
+    console.error('[syncStakingStatus] Error:', error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to sync staking status",
+      details: error.message
+    });
+  }
+}
+
+/**
  * Cancel/abandon a delivery (return order to READY status)
  * @dev Allows deliverer to abandon a stuck delivery
- * 
+ *
  * @param {Object} req - Express Request
  * @param {Object} res - Express Response
  */
@@ -1147,5 +1239,6 @@ module.exports = {
   getDelivererRating,
   cancelDelivery,
   forceCompleteDelivery,
-  getActiveDelivery
+  getActiveDelivery,
+  syncStakingStatus
 };

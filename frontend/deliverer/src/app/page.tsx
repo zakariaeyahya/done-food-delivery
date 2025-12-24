@@ -109,14 +109,26 @@ export default function HomePage() {
       }));
       const earnings = earningsResponse.earnings || { completedDeliveries: 0, totalEarnings: 0 };
 
-      const stakeInfo = await blockchain.getStakeInfo(address).catch((err: any) => {
-        if (!err.message?.includes('RPC endpoint') && !err.message?.includes('too many errors')) {
-        }
-        return { amount: 0, isStaked: false };
-      });
+      // 1. D'abord vérifier localStorage (comme StakingPanel)
+      const localStake = localStorage.getItem(`staked_${address}`);
+      let stakedAmount = 0;
+      let staked = false;
 
-      const stakedAmount = stakeInfo.amount || 0;
-      const staked = stakedAmount > 0 || delivererData.deliverer?.isStaked || false;
+      if (localStake) {
+        stakedAmount = parseFloat(localStake);
+        staked = stakedAmount > 0;
+      } else {
+        // 2. Sinon vérifier blockchain
+        const stakeInfo = await blockchain.getStakeInfo(address).catch((err: any) => {
+          console.warn('[page.tsx] getStakeInfo failed:', err.message);
+          return { amount: 0, isStaked: false };
+        });
+        stakedAmount = stakeInfo.amount || 0;
+        staked = stakeInfo.isStaked || stakedAmount > 0;
+      }
+
+      // 3. Fallback sur l'API backend
+      staked = staked || delivererData.deliverer?.isStaked || false;
       setIsStaked(staked);
 
       setStats({

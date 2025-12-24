@@ -127,27 +127,22 @@ function OrdersQueue({
     try {
       setLoading(true);
 
-      // 1) confirmer via API backend
+      // 1) D'ABORD confirmer on-chain (blockchain = source de vérité)
+      const hasBlockchainConfig = import.meta.env.VITE_ORDER_MANAGER_ADDRESS &&
+                                   import.meta.env.VITE_ORDER_MANAGER_ADDRESS !== '0x0000000000000000000000000000000000000000';
+
+      if (hasBlockchainConfig) {
+        console.log('🔗 Confirmation blockchain en cours...');
+        await blockchain.connectWallet();
+        await blockchain.confirmPreparationOnChain(orderId);
+        console.log('✅ Blockchain confirmPreparation OK');
+      }
+
+      // 2) ENSUITE synchroniser avec le backend (MongoDB)
       await api.confirmPreparation(orderId, restaurantAddress, {
         preparationTime,
       });
-
-      // 2) confirmer on-chain (optionnel en dev mode)
-      const isDevMode = !import.meta.env.VITE_ORDER_MANAGER_ADDRESS || 
-                        import.meta.env.VITE_ORDER_MANAGER_ADDRESS === '0x0000000000000000000000000000000000000000' ||
-                        import.meta.env.MODE === 'development';
-      
-      if (!isDevMode) {
-        // En production, vérifier que le wallet est connecté avant d'appeler la blockchain
-        try {
-          // Essayer de se connecter si pas déjà connecté
-          await blockchain.connectWallet();
-          await blockchain.confirmPreparationOnChain(orderId, preparationTime);
-        } catch (blockchainError) {
-          // Ne pas faire échouer si l'API a réussi
-        }
-      } else {
-      }
+      console.log('✅ API backend synchronisé');
 
       // 3) update local optimiste
       setOrders((prev) =>

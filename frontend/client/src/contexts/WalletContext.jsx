@@ -17,12 +17,21 @@ export function WalletProvider({ children }) {
   async function connect() {
     try {
       setIsConnecting(true);
-      
-      const connectedAddress = await blockchain.connectWallet();
-      
-      if (!connectedAddress) {
-        throw new Error('No address returned from connectWallet');
+
+      // Forcer MetaMask à ouvrir le sélecteur de compte
+      const accounts = await window.ethereum.request({
+        method: 'wallet_requestPermissions',
+        params: [{ eth_accounts: {} }]
+      }).then(() =>
+        window.ethereum.request({ method: 'eth_accounts' })
+      );
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error('Aucun compte sélectionné');
       }
+
+      const connectedAddress = accounts[0].toLowerCase();
+      console.log('[WalletContext] Compte connecté:', connectedAddress);
 
       setAddress(connectedAddress);
       setIsConnected(true);
@@ -33,9 +42,27 @@ export function WalletProvider({ children }) {
 
       // Sauvegarder dans localStorage
       localStorage.setItem('walletAddress', connectedAddress);
-      
+
     } catch (error) {
-      throw error;
+      // Si l'utilisateur annule, essayer la méthode classique
+      if (error.code === 4001) {
+        throw new Error('Connexion annulée par l\'utilisateur');
+      }
+
+      // Fallback: méthode classique
+      const connectedAddress = await blockchain.connectWallet();
+
+      if (!connectedAddress) {
+        throw new Error('No address returned from connectWallet');
+      }
+
+      setAddress(connectedAddress);
+      setIsConnected(true);
+
+      const maticBalance = await blockchain.getMaticBalance(connectedAddress);
+      setBalance(maticBalance);
+      localStorage.setItem('walletAddress', connectedAddress);
+
     } finally {
       setIsConnecting(false);
     }
@@ -62,11 +89,68 @@ export function WalletProvider({ children }) {
     if (savedAddress) {
       setAddress(savedAddress);
       setIsConnected(true);
-      
+
       blockchain
         .getMaticBalance(savedAddress)
         .then(setBalance)
         .catch((err) => {});
+    }
+
+    // Écouter les changements de compte MetaMask
+    if (window.ethereum) {
+      const handleAccountsChanged = async (accounts) => {
+        if (accounts.length === 0) {
+          // L'utilisateur a déconnecté tous les comptes
+          disconnect();
+        } else {
+          const newAddress = accounts[0].toLowerCase();
+          const currentAddress = address?.toLowerCase();
+
+          if (newAddress !== currentAddress) {
+            console.log('[WalletContext] Compte MetaMask changé:', newAddress);
+            setAddress(newAddress);
+            setIsConnected(true);
+            localStorage.setItem('walletAddress', newAddress);
+
+            // Mettre à jour le solde
+            try {
+              const maticBalance = await blockchain.getMaticBalance(newAddress);
+              setBalance(maticBalance);
+            } catch (err) {
+              console.error('[WalletContext] Erreur récupération solde:', err);
+            }
+          }
+        }
+      };
+
+      const handleChainChanged = () => {
+        // Recharger la page si le réseau change
+        window.location.reload();
+      };
+
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+
+      // Vérifier le compte actuel au chargement
+      window.ethereum.request({ method: 'eth_accounts' }).then((accounts) => {
+        if (accounts.length > 0) {
+          const currentMetaMaskAddress = accounts[0].toLowerCase();
+          const savedAddr = savedAddress?.toLowerCase();
+
+          if (currentMetaMaskAddress !== savedAddr) {
+            console.log('[WalletContext] Sync avec MetaMask:', currentMetaMaskAddress);
+            setAddress(currentMetaMaskAddress);
+            setIsConnected(true);
+            localStorage.setItem('walletAddress', currentMetaMaskAddress);
+            blockchain.getMaticBalance(currentMetaMaskAddress).then(setBalance).catch(() => {});
+          }
+        }
+      });
+
+      return () => {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      };
     }
   }, []);
 

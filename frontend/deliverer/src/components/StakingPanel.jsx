@@ -23,24 +23,60 @@ function StakingPanel({ address }) {
 
   async function fetchStakingInfo() {
     try {
-      // 1. D'abord, vérifier localStorage (MVP Mode)
+      // 1. Vérifier blockchain d'abord (source of truth)
+      const stakeInfo = await blockchain.getStakeInfo(address);
+      setStakedAmount(stakeInfo.amount);
+      setIsStaked(stakeInfo.isStaked);
+
+      if (stakeInfo.isStaked && stakeInfo.amount > 0) {
+        localStorage.setItem(`staked_${address}`, stakeInfo.amount.toString());
+        // Auto-sync with backend if staked on blockchain
+        try {
+          await api.syncStakingStatus(address, null, stakeInfo.amount);
+          console.log('[StakingPanel] Auto-synced staking status with backend');
+        } catch (syncErr) {
+          console.warn('[StakingPanel] Auto-sync failed:', syncErr.message);
+        }
+      }
+    } catch (err) {
+      // Fallback to localStorage if blockchain fails
       const localStake = localStorage.getItem(`staked_${address}`);
       if (localStake) {
         const amount = parseFloat(localStake);
         setStakedAmount(amount);
         setIsStaked(true);
-        return;
       }
-  
-      // 2. Sinon, vérifier blockchain (si disponible)
-      const stakeInfo = await blockchain.getStakeInfo(address);
-      setStakedAmount(stakeInfo.amount);
-      setIsStaked(stakeInfo.isStaked);
-      
-      if (stakeInfo.isStaked && stakeInfo.amount > 0) {
-        localStorage.setItem(`staked_${address}`, stakeInfo.amount.toString());
+      console.warn('[StakingPanel] Blockchain check failed, using localStorage:', err.message);
+    }
+  }
+
+  async function handleManualSync() {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // Force sync from blockchain to backend
+      const result = await api.syncStakingStatus(address);
+      console.log('[StakingPanel] Manual sync result:', result);
+
+      if (result.deliverer) {
+        setIsStaked(result.deliverer.isStaked);
+        setStakedAmount(parseFloat(result.deliverer.stakedAmount));
+
+        if (result.deliverer.isStaked) {
+          localStorage.setItem(`staked_${address}`, result.deliverer.stakedAmount);
+          setSuccess(`Synchronisation réussie ! Staké: ${result.deliverer.stakedAmount} POL`);
+        } else {
+          localStorage.removeItem(`staked_${address}`);
+          setSuccess('Synchronisation réussie. Aucun staking trouvé sur la blockchain.');
+        }
       }
     } catch (err) {
+      console.error('[StakingPanel] Manual sync error:', err);
+      setError(`Erreur de synchronisation: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -83,16 +119,30 @@ function StakingPanel({ address }) {
     setSuccess(null);
 
     try {
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 1. Stake on the blockchain via MetaMask
+      console.log(`[StakingPanel] Staking ${amount} POL on blockchain...`);
+      const result = await blockchain.stake(amount);
+      console.log(`[StakingPanel] Blockchain stake successful:`, result);
 
+      // 2. Sync with backend MongoDB
+      console.log(`[StakingPanel] Syncing with backend...`);
+      try {
+        await api.syncStakingStatus(address, result.txHash, amount);
+        console.log(`[StakingPanel] Backend sync successful`);
+      } catch (syncError) {
+        console.warn(`[StakingPanel] Backend sync failed, but blockchain stake succeeded:`, syncError.message);
+        // Continue anyway - blockchain stake was successful
+      }
+
+      // 3. Update local state
       setStakedAmount(amount);
       setIsStaked(true);
-      setSuccess(`Staking réussi ! Vous avez staké ${amount} POL.`);
+      setSuccess(`Staking réussi ! Vous avez staké ${amount} POL. TxHash: ${result.txHash?.slice(0, 10)}...`);
       setStakeInput("0.1");
-      
+
       localStorage.setItem(`staked_${address}`, amount.toString());
     } catch (err) {
+      console.error(`[StakingPanel] Stake error:`, err);
       setError(`Erreur: ${err.message}`);
     } finally {
       setLoading(false);
@@ -220,6 +270,37 @@ function StakingPanel({ address }) {
           </button>
         </div>
       )}
+
+      {/* Bouton de synchronisation manuelle */}
+      <div className="sync-section" style={{ marginTop: '1rem' }}>
+        <button
+          className="btn-secondary"
+          onClick={handleManualSync}
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '0.75rem',
+            backgroundColor: '#6b7280',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.6 : 1
+          }}
+        >
+          {loading ? (
+            <>
+              <span className="spinner"></span>
+              Synchronisation...
+            </>
+          ) : (
+            "🔄 Synchroniser avec la blockchain"
+          )}
+        </button>
+        <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem', textAlign: 'center' }}>
+          Si votre staking n'est pas détecté, cliquez pour synchroniser
+        </p>
+      </div>
 
       {success && (
         <div className="alert success">

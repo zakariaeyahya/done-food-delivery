@@ -117,6 +117,13 @@ router.post(
   delivererController.unstake
 );
 
+// Route POST /api/deliverers/sync-staking/:address - Synchroniser le statut de staking depuis la blockchain
+router.post(
+  "/sync-staking/:address",
+  validation.validateAddress,              // Valider address dans params
+  delivererController.syncStakingStatus
+);
+
 // Route GET /api/deliverers/:address/orders - Récupérer les commandes d'un livreur
 router.get(
   "/:address/orders",

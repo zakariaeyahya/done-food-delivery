@@ -378,9 +378,12 @@ async function getOrdersByClient(req, res) {
           name: order.restaurant.name || 'Unknown',
           address: order.restaurant.address || order.restaurant
         } : null,
+        items: order.items || [],
         totalAmount: order.totalAmount,
+        deliveryAddress: order.deliveryAddress,
         createdAt: order.createdAt,
-        completedAt: order.completedAt
+        completedAt: order.completedAt,
+        review: order.review || null
       })),
       pagination: {
         total,
@@ -449,18 +452,12 @@ async function confirmPreparation(req, res) {
         privateKey
       );
     } catch (blockchainError) {
-      if (process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.DEMO_MODE === 'true') {
-                blockchainResult = {
-          txHash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''),
-          blockNumber: Math.floor(Math.random() * 1000000) + 1000000
-        };
-      } else {
-        return res.status(500).json({
-          error: "Internal Server Error",
-          message: "Failed to confirm preparation on blockchain",
-          details: blockchainError.message
-        });
-      }
+      console.error('[confirmPreparation] Blockchain error:', blockchainError.message);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to confirm preparation on blockchain",
+        details: blockchainError.message
+      });
     }
     await Order.updateStatus(orderId, 'PREPARING');
     const updatedOrder = await Order.findOne({ orderId })
@@ -873,23 +870,12 @@ async function confirmDelivery(req, res) {
         req.body.clientPrivateKey || process.env.PRIVATE_KEY
       );
     } catch (blockchainError) {
-      // Mode mock/demo si ALLOW_MOCK_BLOCKCHAIN ou DEMO_MODE actif
-      const isMockMode = process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.DEMO_MODE === 'true';
-
-      console.log('[confirmDelivery] Blockchain error, mock mode:', isMockMode);
-
-      if (isMockMode) {
-        blockchainResult = {
-          txHash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''),
-          tokensEarned: "0"
-        };
-      } else {
-        return res.status(500).json({
-          error: "Internal Server Error",
-          message: "Failed to confirm delivery on blockchain",
-          details: blockchainError.message
-        });
-      }
+      console.error('[confirmDelivery] Blockchain error:', blockchainError.message);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to confirm delivery on blockchain",
+        details: blockchainError.message
+      });
     }
         await Order.updateStatus(orderId, 'DELIVERED');
     try {
@@ -1000,20 +986,12 @@ async function openDispute(req, res) {
         req.body.openerPrivateKey || process.env.PRIVATE_KEY
       );
           } catch (blockchainError) {
-
-      // En mode mock/demo, permettre de continuer même si la blockchain échoue
-      if (process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.DEMO_MODE === 'true') {
-                blockchainResult = {
-          txHash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''),
-          blockNumber: 12345678
-        };
-      } else {
-        return res.status(500).json({
-          error: "Internal Server Error",
-          message: "Failed to open dispute on blockchain",
-          details: blockchainError.message
-        });
-      }
+      console.error('[openDispute] Blockchain error:', blockchainError.message);
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to open dispute on blockchain",
+        details: blockchainError.message
+      });
     }
     order.status = 'DISPUTED';
     order.disputed = true; // Important: ce champ est utilisé par getDisputes() dans adminController

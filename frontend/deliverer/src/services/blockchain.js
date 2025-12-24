@@ -36,6 +36,58 @@ export const DELIVERER_ROLE = ethers.keccak256(
   ethers.toUtf8Bytes("DELIVERER_ROLE")
 );
 
+// Fallback RPC URLs pour Polygon Amoy (quand MetaMask est rate limited)
+const AMOY_RPC_URLS = [
+  "https://polygon-amoy-bor-rpc.publicnode.com",
+  "https://polygon-amoy.blockpi.network/v1/rpc/public",
+  "https://rpc-amoy.polygon.technology"
+];
+
+async function getFallbackProvider() {
+  for (const rpcUrl of AMOY_RPC_URLS) {
+    try {
+      const fallbackProvider = new ethers.JsonRpcProvider(rpcUrl, {
+        chainId: 80002,
+        name: "polygon-amoy"
+      });
+      // Test the connection
+      await Promise.race([
+        fallbackProvider.getBlockNumber(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000))
+      ]);
+      console.log(`[Fallback RPC] Using: ${rpcUrl}`);
+      return fallbackProvider;
+    } catch (e) {
+      console.warn(`[Fallback RPC] ${rpcUrl} failed:`, e.message);
+    }
+  }
+  throw new Error("All fallback RPC endpoints failed");
+}
+
+async function getGasPriceWithFallback(signerOrProvider) {
+  // Try MetaMask first
+  try {
+    const gasPrice = await signerOrProvider.provider.send('eth_gasPrice', []);
+    return (BigInt(gasPrice) * BigInt(120)) / BigInt(100); // +20%
+  } catch (metaMaskError) {
+    console.warn('[Gas Price] MetaMask RPC failed, trying fallback...');
+
+    // Try fallback RPC
+    try {
+      const fallback = await getFallbackProvider();
+      const feeData = await fallback.getFeeData();
+      if (feeData.gasPrice) {
+        return (feeData.gasPrice * BigInt(120)) / BigInt(100);
+      }
+    } catch (fallbackError) {
+      console.warn('[Gas Price] Fallback failed:', fallbackError.message);
+    }
+
+    // Ultimate fallback
+    return ethers.parseUnits('30', 'gwei');
+  }
+}
+
 import DoneOrderManagerABI from "../../../../contracts/artifacts/contracts/DoneOrderManager.sol/DoneOrderManager.json";
 import DoneStakingABI from "../../../../contracts/artifacts/contracts/DoneStaking.sol/DoneStaking.json";
 import DonePaymentSplitterABI from "../../../../contracts/artifacts/contracts/DonePaymentSplitter.sol/DonePaymentSplitter.json";
@@ -102,115 +154,80 @@ export async function hasRole(role, address) {
 }
 
 export async function isStaked(address) {
+  const stakingAddress = getStakingAddress();
+  if (!stakingAddress || stakingAddress === '') {
+    throw new Error("Staking contract not configured. Please set NEXT_PUBLIC_STAKING_ADDRESS in your .env.local file.");
+  }
+
+  // Essayer d'abord avec MetaMask
   try {
-    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
-      try {
-        const provider = getProvider();
-        const balance = await provider.getBalance(address);
-        const balancePOL = parseFloat(ethers.formatEther(balance));
-        
-        if (balancePOL === 0) {
-          return true;
-        }
-      } catch (err) {
-      }
-    }
+    const contract = new ethers.Contract(
+      stakingAddress,
+      DoneStakingABI.abi,
+      getProvider()
+    );
+    return await contract.isStaked(address);
+  } catch (metaMaskError) {
+    console.warn('[isStaked] MetaMask RPC failed, trying fallback...', metaMaskError.message);
 
-    const stakingAddress = getStakingAddress();
-    if (!stakingAddress || stakingAddress === '') {
-      throw new Error("Staking contract not configured. Please set NEXT_PUBLIC_STAKING_ADDRESS in your .env.local file.");
-    }
-
-    if (!stakingContract) {
-      stakingContract = new ethers.Contract(
+    // Essayer avec fallback RPC
+    try {
+      const fallbackProvider = await getFallbackProvider();
+      const contract = new ethers.Contract(
         stakingAddress,
         DoneStakingABI.abi,
-        getProvider()
+        fallbackProvider
       );
+      return await contract.isStaked(address);
+    } catch (fallbackError) {
+      console.error('[isStaked] Fallback RPC also failed:', fallbackError.message);
+      throw new Error("Impossible de vérifier le statut de staking. Tous les RPC ont échoué.");
     }
-    return await stakingContract.isStaked(address);
-  } catch (err) {
-    if (err.code === 'CALL_EXCEPTION' || 
-        err.message?.includes('missing revert data') ||
-        err.message?.includes('execution reverted') ||
-        err.code === -32002) {
-      if (process.env.NODE_ENV === "development") {
-        return true; // En dev, considérer comme staké pour permettre les tests
-      }
-      throw new Error("Impossible de vérifier le statut de staking. Vérifiez votre connexion blockchain.");
-    }
-    throw new Error(err.message);
   }
 }
 
 
-let stakingWarningShown = false;
-
 export async function getStakeInfo(address) {
+  const stakingAddress = getStakingAddress();
+  if (!stakingAddress || stakingAddress === '') {
+    console.warn('[getStakeInfo] Staking contract not configured');
+    return { amount: 0, isStaked: false };
+  }
+
+  // Essayer d'abord avec MetaMask
   try {
-    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
-      try {
-        const provider = getProvider();
-        const balance = await provider.getBalance(address);
-        const balancePOL = parseFloat(ethers.formatEther(balance));
-        
-        if (balancePOL === 0) {
-          return { amount: 0.1, isStaked: true };
-        }
-      } catch (err) {
-        if (err.code === -32002 || err.message?.includes('too many errors')) {
-          if (process.env.NODE_ENV === "development") {
-            return { amount: 0.1, isStaked: true };
-          }
-        }
-        if (!err.message?.includes('RPC endpoint')) {
-        }
-      }
-    }
-
-    const stakingAddress = getStakingAddress();
-    if (!stakingAddress || stakingAddress === '') {
-      if (!stakingWarningShown) {
-        stakingWarningShown = true;
-      }
-      return { amount: 0, isStaked: false };
-    }
-
-    if (!stakingContract) {
-      stakingContract = new ethers.Contract(
-        stakingAddress,
-        DoneStakingABI.abi,
-        getProvider()
-      );
-    }
-
-    let isStaked = false;
-    let stakedAmount = ethers.parseEther("0");
-    
-    try {
-      isStaked = await stakingContract.isStaked(address);
-      stakedAmount = await stakingContract.getStakedAmount(address);
-    } catch (rpcError) {
-      if (rpcError.code === -32002 || rpcError.message?.includes('too many errors')) {
-        if (process.env.NODE_ENV === "development") {
-          return { amount: 0.1, isStaked: true };
-        }
-      }
-      throw rpcError; // Re-lancer les autres erreurs
-    }
-
+    const contract = new ethers.Contract(
+      stakingAddress,
+      DoneStakingABI.abi,
+      getProvider()
+    );
+    const isStakedResult = await contract.isStaked(address);
+    const stakedAmount = await contract.getStakedAmount(address);
     return {
       amount: Number(ethers.formatEther(stakedAmount)),
-      isStaked: isStaked,
+      isStaked: isStakedResult,
     };
-  } catch (err) {
-    if (!stakingWarningShown) {
-      if (err.code === 'BAD_DATA' || err.message?.includes('could not decode')) {
-      } else {
-      }
-      stakingWarningShown = true;
+  } catch (metaMaskError) {
+    console.warn('[getStakeInfo] MetaMask RPC failed, trying fallback...', metaMaskError.message);
+
+    // Essayer avec fallback RPC
+    try {
+      const fallbackProvider = await getFallbackProvider();
+      const contract = new ethers.Contract(
+        stakingAddress,
+        DoneStakingABI.abi,
+        fallbackProvider
+      );
+      const isStakedResult = await contract.isStaked(address);
+      const stakedAmount = await contract.getStakedAmount(address);
+      return {
+        amount: Number(ethers.formatEther(stakedAmount)),
+        isStaked: isStakedResult,
+      };
+    } catch (fallbackError) {
+      console.error('[getStakeInfo] Fallback RPC also failed:', fallbackError.message);
+      return { amount: 0, isStaked: false };
     }
-    return { amount: 0, isStaked: false };
   }
 }
 
@@ -311,28 +328,26 @@ export async function acceptOrderOnChain(orderId) {
       );
     }
 
-    const tx = await orderManagerContract.assignDeliverer(orderId);
+    // Obtenir le gas price avec fallback RPC
+    const gasPrice = await getGasPriceWithFallback(signer);
+
+    const tx = await orderManagerContract.assignDeliverer(orderId, { gasPrice });
     const receipt = await tx.wait();
 
     return { txHash: receipt.hash, receipt };
   } catch (err) {
-    if (err.code === 'CALL_EXCEPTION' || 
-        err.message?.includes('missing revert data') ||
-        err.message?.includes('execution reverted') ||
-        err.code === -32002 ||
-        err.message?.includes('contract address not configured')) {
-      if (process.env.NODE_ENV === "development") {
-        return { txHash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''), receipt: null };
-      }
-      throw new Error("Impossible d'accepter la commande sur la blockchain. Vérifiez votre connexion.");
-    }
-    throw new Error(err.message);
+    console.error('[acceptOrderOnChain] Blockchain error:', err.message);
+    throw new Error("Impossible d'accepter la commande sur la blockchain: " + err.message);
   }
 }
 
 export async function confirmPickupOnChain(orderId) {
   try {
     const signer = await getSigner();
+
+    if (!ORDER_MANAGER_ADDRESS || ORDER_MANAGER_ADDRESS === '0x0000000000000000000000000000000000000000') {
+      throw new Error("Order manager contract address not configured");
+    }
 
     if (!orderManagerContract) {
       orderManagerContract = new ethers.Contract(
@@ -342,12 +357,16 @@ export async function confirmPickupOnChain(orderId) {
       );
     }
 
-    const tx = await orderManagerContract.confirmPickup(orderId);
+    // Obtenir le gas price avec fallback RPC
+    const gasPrice = await getGasPriceWithFallback(signer);
+
+    const tx = await orderManagerContract.confirmPickup(orderId, { gasPrice });
     const receipt = await tx.wait();
 
     return { txHash: receipt.hash, receipt };
   } catch (err) {
-    throw new Error(err.message);
+    console.error('[confirmPickupOnChain] Blockchain error:', err.message);
+    throw new Error("Impossible de confirmer le pickup sur la blockchain: " + err.message);
   }
 }
 
@@ -356,6 +375,10 @@ export async function confirmDeliveryOnChain(orderId) {
     const signer = await getSigner();
     const address = await signer.getAddress();
 
+    if (!ORDER_MANAGER_ADDRESS || ORDER_MANAGER_ADDRESS === '0x0000000000000000000000000000000000000000') {
+      throw new Error("Order manager contract address not configured");
+    }
+
     if (!orderManagerContract) {
       orderManagerContract = new ethers.Contract(
         ORDER_MANAGER_ADDRESS,
@@ -364,14 +387,18 @@ export async function confirmDeliveryOnChain(orderId) {
       );
     }
 
-    const tx = await orderManagerContract.confirmDelivery(orderId);
+    // Obtenir le gas price avec fallback RPC
+    const gasPrice = await getGasPriceWithFallback(signer);
+
+    const tx = await orderManagerContract.confirmDelivery(orderId, { gasPrice });
     const receipt = await tx.wait();
 
     const { totalEarnings } = await getEarningsEvents(address, orderId);
 
     return { txHash: receipt.hash, earnings: totalEarnings };
   } catch (err) {
-    throw new Error(err.message);
+    console.error('[confirmDeliveryOnChain] Blockchain error:', err.message);
+    throw new Error("Impossible de confirmer la livraison sur la blockchain: " + err.message);
   }
 }
 

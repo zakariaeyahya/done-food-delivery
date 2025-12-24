@@ -4,6 +4,7 @@ import { formatDateTime, formatPriceInMATIC } from '../utils/formatters';
 import { useWallet } from '../contexts/WalletContext';
 import { useNavigate } from 'react-router-dom';
 import DisputeModal from './DisputeModal';
+import { verifyTransaction } from '../services/blockchain';
 
 const ORDERS_PER_PAGE = 5;
 
@@ -168,6 +169,36 @@ const OrderHistory = ({ clientAddress }) => {
       const response = await getOrderReceipt(orderId);
       const receipt = response.data.receipt;
 
+      // Vérifier réellement la transaction sur la blockchain
+      let blockchainStatus = {
+        verified: false,
+        message: 'Vérification en cours...',
+        cssClass: 'pending'
+      };
+
+      if (receipt.txHash) {
+        const verification = await verifyTransaction(receipt.txHash);
+        if (verification.verified) {
+          blockchainStatus = {
+            verified: true,
+            message: `✓ Transaction vérifiée sur la blockchain (${verification.transaction.confirmations} confirmations)`,
+            cssClass: 'verified'
+          };
+        } else {
+          blockchainStatus = {
+            verified: false,
+            message: `✗ ${verification.error || 'Transaction non vérifiée'}`,
+            cssClass: 'not-verified'
+          };
+        }
+      } else {
+        blockchainStatus = {
+          verified: false,
+          message: '✗ Aucun hash de transaction disponible',
+          cssClass: 'not-verified'
+        };
+      }
+
       // Generate HTML receipt
       const receiptHTML = `
 <!DOCTYPE html>
@@ -202,6 +233,10 @@ const OrderHistory = ({ clientAddress }) => {
     .footer p { font-size: 12px; color: #888; }
     .tx-hash { font-family: monospace; font-size: 10px; word-break: break-all; background: #f0f0f0; padding: 8px; border-radius: 4px; margin-top: 10px; }
     .verified { color: #22c55e; font-weight: 600; }
+    .not-verified { color: #ef4444; font-weight: 600; }
+    .pending { color: #f59e0b; font-weight: 600; }
+    .explorer-link { display: inline-block; margin-top: 10px; color: #3b82f6; text-decoration: none; font-size: 12px; }
+    .explorer-link:hover { text-decoration: underline; }
     @media print { body { background: white; padding: 0; } .receipt { box-shadow: none; } }
   </style>
 </head>
@@ -295,8 +330,9 @@ const OrderHistory = ({ clientAddress }) => {
 
       <div class="section">
         <div class="section-title">Vérification Blockchain</div>
-        <p class="verified">✓ Transaction vérifiée sur la blockchain</p>
-        <div class="tx-hash">TX: ${receipt.txHash}</div>
+        <p class="${blockchainStatus.cssClass}">${blockchainStatus.message}</p>
+        <div class="tx-hash">TX: ${receipt.txHash || 'N/A'}</div>
+        ${blockchainStatus.verified ? `<a href="https://amoy.polygonscan.com/tx/${receipt.txHash}" target="_blank" class="explorer-link">Voir sur Polygonscan →</a>` : ''}
       </div>
     </div>
 

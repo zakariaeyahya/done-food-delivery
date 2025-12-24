@@ -313,6 +313,22 @@ async function getDeliverer(address) {
   }
 }
 
+async function syncStakingStatus(address, txHash = null, stakedAmount = null) {
+  try {
+    if (!address) throw new Error("Address is required");
+
+    const body = {};
+    if (txHash) body.txHash = txHash;
+    if (stakedAmount) body.stakedAmount = stakedAmount;
+
+    const response = await apiClient.post(`/deliverers/sync-staking/${address}`, body);
+    return response.data;
+  } catch (error) {
+    console.error('[syncStakingStatus] Error:', error.response?.data || error.message);
+    throw new Error(`Failed to sync staking status: ${error.response?.data?.message || error.message}`);
+  }
+}
+
 const api = {
   getAvailableOrders,
   acceptOrder,
@@ -329,7 +345,8 @@ const api = {
   forceCompleteDelivery,
   getOrder,
   registerDeliverer,
-  getDeliverer
+  getDeliverer,
+  syncStakingStatus
 };
 
 export default api;
@@ -350,5 +367,6 @@ export {
   forceCompleteDelivery,
   getOrder,
   registerDeliverer,
-  getDeliverer
+  getDeliverer,
+  syncStakingStatus
 };

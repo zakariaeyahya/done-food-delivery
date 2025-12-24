@@ -1,9 +1,6 @@
 import { ethers } from 'ethers';
 import { getWeb3Provider } from '../utils/web3';
 
-// Mode DEMO pour bypasser les appels blockchain réels
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
-
 const AMOY_NETWORK_ID = '80002';
 const AMOY_RPC_URL = 'https://rpc-amoy.polygon.technology';
 const AMOY_CHAIN_PARAMS = {
@@ -97,18 +94,6 @@ export const getDoneTokenBalance = async (address) => {
 };
 
 export const createOnChainOrder = async (restaurantAddress, foodPrice, deliveryFee, ipfsHash = '') => {
-  // En mode DEMO, simuler la transaction
-  if (DEMO_MODE) {
-    console.log('[DEMO_MODE] Simulating createOrder');
-    const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-    const mockOrderId = Math.floor(Math.random() * 10000) + 1;
-    return {
-      txHash: mockTxHash,
-      blockNumber: Math.floor(Math.random() * 1000000) + 1000000,
-      onChainOrderId: mockOrderId.toString()
-    };
-  }
-
   if (!ORDER_CONTRACT_ADDRESS || !ethers.isAddress(ORDER_CONTRACT_ADDRESS)) {
     throw new Error('Order contract address not configured');
   }
@@ -151,13 +136,25 @@ export const createOnChainOrder = async (restaurantAddress, foodPrice, deliveryF
     ipfsHash: ipfsHash
   });
 
-  // Appeler createOrder avec le montant payable
+  // Obtenir le gas price actuel du réseau (compatible Polygon Amoy)
+  let gasPrice;
+  try {
+    const currentGasPrice = await signer.provider.send('eth_gasPrice', []);
+    gasPrice = (BigInt(currentGasPrice) * BigInt(120)) / BigInt(100); // +20%
+  } catch {
+    gasPrice = ethers.parseUnits('30', 'gwei'); // Fallback
+  }
+
+  // Appeler createOrder avec le montant payable et gas approprié
   const tx = await contract.createOrder(
     restaurantAddress,
     foodPriceWei,
     deliveryFeeWei,
     ipfsHash || '',
-    { value: totalAmountWei }
+    {
+      value: totalAmountWei,
+      gasPrice: gasPrice
+    }
   );
 
   const receipt = await tx.wait();
@@ -184,16 +181,6 @@ export const createOnChainOrder = async (restaurantAddress, foodPrice, deliveryF
 };
 
 export const confirmOnChainDelivery = async (orderId) => {
-  // En mode DEMO, simuler la transaction
-  if (DEMO_MODE) {
-    console.log('[DEMO_MODE] Simulating confirmDelivery for orderId:', orderId);
-    const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-    return {
-      txHash: mockTxHash,
-      blockNumber: Math.floor(Math.random() * 1000000) + 1000000
-    };
-  }
-
   if (!ORDER_CONTRACT_ADDRESS || !ethers.isAddress(ORDER_CONTRACT_ADDRESS)) {
     throw new Error('Order contract address not configured');
   }
@@ -213,7 +200,16 @@ export const confirmOnChainDelivery = async (orderId) => {
   // orderId doit être un nombre
   const orderIdNum = typeof orderId === 'string' ? parseInt(orderId) : orderId;
 
-  const tx = await contract.confirmDelivery(orderIdNum);
+  // Obtenir le gas price actuel du réseau (compatible Polygon Amoy)
+  let gasPrice;
+  try {
+    const currentGasPrice = await signer.provider.send('eth_gasPrice', []);
+    gasPrice = (BigInt(currentGasPrice) * BigInt(120)) / BigInt(100); // +20%
+  } catch {
+    gasPrice = ethers.parseUnits('30', 'gwei'); // Fallback
+  }
+
+  const tx = await contract.confirmDelivery(orderIdNum, { gasPrice });
   const receipt = await tx.wait();
 
   return {
@@ -223,16 +219,6 @@ export const confirmOnChainDelivery = async (orderId) => {
 };
 
 export const openOnChainDispute = async (orderId) => {
-  // En mode DEMO, simuler la transaction
-  if (DEMO_MODE) {
-    console.log('[DEMO_MODE] Simulating openDispute for orderId:', orderId);
-    const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-    return {
-      txHash: mockTxHash,
-      blockNumber: Math.floor(Math.random() * 1000000) + 1000000
-    };
-  }
-
   if (!ORDER_CONTRACT_ADDRESS || !ethers.isAddress(ORDER_CONTRACT_ADDRESS)) {
     throw new Error('Order contract address not configured');
   }
@@ -251,7 +237,16 @@ export const openOnChainDispute = async (orderId) => {
 
   const orderIdNum = typeof orderId === 'string' ? parseInt(orderId) : orderId;
 
-  const tx = await contract.openDispute(orderIdNum);
+  // Obtenir le gas price actuel du réseau (compatible Polygon Amoy)
+  let gasPrice;
+  try {
+    const currentGasPrice = await signer.provider.send('eth_gasPrice', []);
+    gasPrice = (BigInt(currentGasPrice) * BigInt(120)) / BigInt(100); // +20%
+  } catch {
+    gasPrice = ethers.parseUnits('30', 'gwei'); // Fallback
+  }
+
+  const tx = await contract.openDispute(orderIdNum, { gasPrice });
   const receipt = await tx.wait();
 
   return {
@@ -262,9 +257,80 @@ export const openOnChainDispute = async (orderId) => {
 
 export const isContractsConfigured = () => {
   return (
-    DONE_TOKEN_ADDRESS && 
+    DONE_TOKEN_ADDRESS &&
     ethers.isAddress(DONE_TOKEN_ADDRESS) &&
-    ORDER_CONTRACT_ADDRESS && 
+    ORDER_CONTRACT_ADDRESS &&
     ethers.isAddress(ORDER_CONTRACT_ADDRESS)
   );
+};
+
+/**
+ * Vérifie si une transaction existe réellement sur la blockchain Polygon Amoy
+ * @param {string} txHash - Le hash de la transaction à vérifier
+ * @returns {Promise<{verified: boolean, transaction: object|null, error: string|null}>}
+ */
+export const verifyTransaction = async (txHash) => {
+  if (!txHash || typeof txHash !== 'string' || !txHash.startsWith('0x') || txHash.length !== 66) {
+    return {
+      verified: false,
+      transaction: null,
+      error: 'Hash de transaction invalide'
+    };
+  }
+
+  try {
+    // Utiliser un provider RPC direct pour Polygon Amoy (pas besoin de wallet connecté)
+    const rpcProvider = new ethers.JsonRpcProvider(AMOY_RPC_URL);
+
+    // Récupérer la transaction
+    const transaction = await rpcProvider.getTransaction(txHash);
+
+    if (!transaction) {
+      return {
+        verified: false,
+        transaction: null,
+        error: 'Transaction non trouvée sur la blockchain'
+      };
+    }
+
+    // Récupérer le reçu pour confirmer que la transaction a été minée
+    const receipt = await rpcProvider.getTransactionReceipt(txHash);
+
+    if (!receipt) {
+      return {
+        verified: false,
+        transaction: transaction,
+        error: 'Transaction en attente (non confirmée)'
+      };
+    }
+
+    // Vérifier si la transaction a réussi
+    if (receipt.status === 0) {
+      return {
+        verified: false,
+        transaction: transaction,
+        error: 'Transaction échouée (reverted)'
+      };
+    }
+
+    return {
+      verified: true,
+      transaction: {
+        hash: transaction.hash,
+        blockNumber: receipt.blockNumber,
+        from: transaction.from,
+        to: transaction.to,
+        status: receipt.status === 1 ? 'success' : 'failed',
+        confirmations: await rpcProvider.getBlockNumber() - receipt.blockNumber
+      },
+      error: null
+    };
+  } catch (error) {
+    console.error('[verifyTransaction] Error:', error);
+    return {
+      verified: false,
+      transaction: null,
+      error: error.message || 'Erreur lors de la vérification'
+    };
+  }
 };

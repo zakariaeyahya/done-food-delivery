@@ -141,22 +141,28 @@ export function OrdersList({ limit }: OrdersListProps) {
       const signer = await blockchain.getSigner();
       const address = await signer.getAddress();
 
+      // 1. D'abord vérifier localStorage (comme StakingPanel)
+      const localStake = localStorage.getItem(`staked_${address}`);
       let isStaked = false;
-      try {
-        isStaked = await blockchain.isStaked(address);
-      } catch (stakeError: any) {
-        if (process.env.NODE_ENV === "development") {
+
+      if (localStake && parseFloat(localStake) > 0) {
+        isStaked = true;
+      } else {
+        // 2. Sinon vérifier blockchain
+        try {
+          isStaked = await blockchain.isStaked(address);
+        } catch (stakeError: any) {
+          console.warn('[handleAcceptOrder] blockchain.isStaked failed:', stakeError.message);
+          // 3. Fallback sur l'API backend
           try {
             const delivererData = await api.getDeliverer(address);
             isStaked = delivererData.deliverer?.isStaked || false;
           } catch (dbError) {
-            isStaked = true; // En dev, permettre de continuer
+            isStaked = false;
           }
-        } else {
-          throw stakeError;
         }
       }
-      
+
       if (!isStaked) {
         alert("Vous devez staker minimum 0.1 POL pour accepter une commande.");
         return;

@@ -6,7 +6,7 @@ import { formatAddress } from '../utils/web3';
 import { ethers } from 'ethers';
 
 function ConnectWallet() {
-  const { address, restaurant, isConnected, connect, disconnect } = useWallet();
+  const { address, restaurant, isConnected, connect, disconnect, switchAccount } = useWallet();
   const [isConnecting, setIsConnecting] = useState(false);
   const [network, setNetwork] = useState(null);
   const [balance, setBalance] = useState('0');
@@ -120,9 +120,14 @@ function ConnectWallet() {
             <span className="network text-xs text-gray-500">{network || 'Vérification...'}</span>
             <span className="balance text-xs text-gray-600">{balance} POL</span>
           </div>
-          <button onClick={handleDisconnect} className="btn btn-secondary btn-sm">
-            Déconnecter
-          </button>
+          <div className="flex gap-2">
+            <button onClick={switchAccount} className="btn btn-primary btn-sm" title="Changer de compte MetaMask">
+              Changer
+            </button>
+            <button onClick={handleDisconnect} className="btn btn-secondary btn-sm">
+              Déconnecter
+            </button>
+          </div>
         </div>
       )}
 

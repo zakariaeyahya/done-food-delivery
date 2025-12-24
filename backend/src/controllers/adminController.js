@@ -372,9 +372,83 @@ async function getAllUsers(req, res) {
 }
 
 /**
+ * Gets details of a specific user (client)
+ * @dev Fetches user info and order history from MongoDB
+ *
+ * @param {Object} req - Express Request with address param
+ * @param {Object} res - Express Response
+ */
+async function getUserDetails(req, res) {
+  try {
+    const { address } = req.params;
+
+    if (!address) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "User address is required"
+      });
+    }
+
+    const normalizedAddress = address.toLowerCase();
+
+    // Find user by address
+    const user = await User.findOne({ address: normalizedAddress }).lean();
+
+    if (!user) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `User with address ${address} not found`
+      });
+    }
+
+    // Get user's orders
+    const orders = await Order.find({ client: user._id })
+      .populate('restaurant', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Calculate statistics
+    const deliveredOrders = orders.filter(o => o.status === 'DELIVERED');
+    const totalSpent = deliveredOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+    const lastOrder = orders[0];
+
+    // Format orders for response
+    const formattedOrders = orders.map(order => ({
+      orderId: order.orderId,
+      status: order.status,
+      total: order.totalAmount || 0,
+      date: order.createdAt,
+      restaurant: order.restaurant?.name || 'N/A',
+      items: order.items || []
+    }));
+
+    return res.status(200).json({
+      success: true,
+      user: {
+        address: user.address,
+        name: user.name || 'N/A',
+        email: user.email || null
+      },
+      phone: user.phone || null,
+      status: orders.length > 0 ? 'active' : 'inactive',
+      totalOrders: orders.length,
+      totalSpent: totalSpent,
+      lastActivity: lastOrder?.createdAt || user.createdAt,
+      orders: formattedOrders
+    });
+  } catch (error) {
+    console.error('[getUserDetails] Error:', error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to fetch user details"
+    });
+  }
+}
+
+/**
  * Gets list of all restaurants
  * @dev Fetches from MongoDB and enriches with blockchain revenue
- * 
+ *
  * @param {Object} req - Express Request
  * @param {Object} res - Express Response
  */
@@ -769,6 +843,7 @@ module.exports = {
   getDisputes,
   resolveDispute,
   getAllUsers,
+  getUserDetails,
   getAllRestaurants,
   getAllDeliverers,
   getOrders,

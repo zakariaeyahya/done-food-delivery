@@ -107,6 +107,27 @@ export function WalletProvider({ children }) {
     localStorage.removeItem(STORAGE_KEYS.RESTAURANT);
   }
 
+  async function switchAccount() {
+    try {
+      // Demander à MetaMask d'ouvrir le sélecteur de compte
+      await window.ethereum.request({
+        method: 'wallet_requestPermissions',
+        params: [{ eth_accounts: {} }]
+      });
+      // Récupérer le nouveau compte sélectionné
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accounts.length > 0) {
+        const newAddress = accounts[0];
+        setAddress(newAddress);
+        localStorage.setItem(STORAGE_KEYS.ADDRESS, newAddress);
+        // Charger le profil restaurant pour ce nouveau compte
+        await fetchRestaurantProfile(newAddress);
+      }
+    } catch (error) {
+      console.error('Erreur changement de compte:', error);
+    }
+  }
+
   return (
     <WalletContext.Provider value={{
       address,
@@ -116,6 +137,7 @@ export function WalletProvider({ children }) {
       loading,
       connect,
       disconnect,
+      switchAccount,
       onRegistrationSuccess,
       refreshRestaurant
     }}>

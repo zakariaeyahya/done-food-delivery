@@ -43,6 +43,7 @@ const allowedOrigins = [
   "http://localhost:5174",
   "http://localhost:5175",
   "http://localhost:5176",
+  "http://localhost:3001",  // Next.js deliverer frontend
   "http://localhost:3002",
   "http://localhost:3003",
   process.env.FRONTEND_URL
