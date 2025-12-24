@@ -45,6 +45,7 @@ function loadABI(contractName) {
 function getMinimalABI(contractName) {
   const minimalABIs = {
     DoneOrderManager: [
+      // Order management functions
       "function createOrder(address restaurant, uint256 foodPrice, uint256 deliveryFee, string memory ipfsHash) external payable returns (uint256)",
       "function confirmPreparation(uint256 orderId) external",
       "function assignDeliverer(uint256 orderId, address deliverer) external",
@@ -53,13 +54,23 @@ function getMinimalABI(contractName) {
       "function openDispute(uint256 orderId) external",
       "function resolveDispute(uint256 orderId, address payable winner, uint256 refundPercent) external",
       "function getOrder(uint256 orderId) external view returns (tuple(uint256 id, address client, address restaurant, address deliverer, uint256 foodPrice, uint256 deliveryFee, uint256 platformFee, uint256 totalAmount, uint8 status, string ipfsHash, uint256 createdAt, bool disputed, bool delivered))",
+      // AccessControl functions (OpenZeppelin)
+      "function hasRole(bytes32 role, address account) external view returns (bool)",
+      "function grantRole(bytes32 role, address account) external",
+      "function revokeRole(bytes32 role, address account) external",
+      "function DEFAULT_ADMIN_ROLE() external view returns (bytes32)",
+      "function RESTAURANT_ROLE() external view returns (bytes32)",
+      "function DELIVERER_ROLE() external view returns (bytes32)",
+      "function PLATFORM_ROLE() external view returns (bytes32)",
+      // Events
       "event OrderCreated(uint256 indexed orderId, address indexed client, address indexed restaurant, uint256 totalAmount)",
       "event PreparationConfirmed(uint256 indexed orderId, address indexed restaurant)",
       "event DelivererAssigned(uint256 indexed orderId, address indexed deliverer)",
       "event PickupConfirmed(uint256 indexed orderId, address indexed deliverer)",
       "event DeliveryConfirmed(uint256 indexed orderId, address indexed client)",
       "event DisputeOpened(uint256 indexed orderId, address indexed opener)",
-      "event DisputeResolved(uint256 indexed orderId, address winner, uint256 amount)"
+      "event DisputeResolved(uint256 indexed orderId, address winner, uint256 amount)",
+      "event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)"
     ],
     DonePaymentSplitter: [
       "function splitPayment(uint256 orderId, address payable restaurant, address payable deliverer, address payable platform) external payable",

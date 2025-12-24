@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import { useSocket } from '../contexts/SocketContext';
-import { confirmDelivery } from '../services/api';
+import { confirmDelivery as confirmDeliveryAPI } from '../services/api';
+import { confirmOnChainDelivery, isContractsConfigured } from '../services/blockchain';
 import { formatPriceInMATIC } from '../utils/formatters';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
@@ -95,25 +96,50 @@ const OrderTracking = ({ order }) => {
         }
       }
 
-      const response = await confirmDelivery(orderId);
+      let txHash = null;
+      let tokensEarnedValue = "0";
 
-      // Récupérer les tokens gagnés depuis la réponse
-      const tokensEarnedValue = response.data?.tokensEarned || "0";
+      // L'orderId dans MongoDB EST l'ID on-chain (ils sont synchronisés)
+      const onChainId = order.orderId || order.onChainOrderId || order.blockchainOrderId;
+
+      // 1. Appel blockchain direct via MetaMask (le CLIENT signe)
+      if (isContractsConfigured() && onChainId) {
+        console.log('Appel blockchain confirmDelivery avec MetaMask...');
+        console.log('OnChain Order ID:', onChainId);
+        const blockchainResult = await confirmOnChainDelivery(onChainId);
+        txHash = blockchainResult.txHash;
+        console.log('✅ Transaction confirmee:', txHash);
+        console.log('🔗 Polygonscan: https://amoy.polygonscan.com/tx/' + txHash);
+      } else if (!onChainId) {
+        console.log('⚠️ Pas d\'ID on-chain disponible - commande creee en mode mock?');
+      }
+
+      // 2. Mettre a jour le backend
+      try {
+        const response = await confirmDeliveryAPI(orderId);
+        tokensEarnedValue = response.data?.tokensEarned || "0";
+      } catch (apiError) {
+        console.log('Backend update (non-bloquant):', apiError.message);
+      }
+
+      // Afficher la notification de tokens recus
       setTokensEarned(tokensEarnedValue);
-      
-      // Afficher la notification de tokens reçus
       if (tokensEarnedValue && parseFloat(tokensEarnedValue) > 0) {
         setShowTokensNotification(true);
-        // Masquer la notification après 10 secondes
         setTimeout(() => setShowTokensNotification(false), 10000);
       }
 
       setCurrentStatus('DELIVERED');
-      
-      // Émettre un événement pour rafraîchir le solde de tokens dans TokenBalance
-      window.dispatchEvent(new CustomEvent('tokensUpdated', { 
-        detail: { tokensEarned: tokensEarnedValue } 
+
+      // Emettre un evenement pour rafraichir le solde de tokens dans TokenBalance
+      window.dispatchEvent(new CustomEvent('tokensUpdated', {
+        detail: { tokensEarned: tokensEarnedValue, txHash }
       }));
+
+      if (txHash) {
+        console.log('Livraison confirmee on-chain! TxHash:', txHash);
+        console.log('Voir sur Polygonscan: https://amoy.polygonscan.com/tx/' + txHash);
+      }
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Erreur inconnue';
       alert(`Echec de la confirmation de livraison: ${errorMessage}`);
@@ -494,7 +520,7 @@ const OrderTracking = ({ order }) => {
               <div className="flex-1">
                 <h3 className="text-xl font-bold">Tokens DONE reçus !</h3>
                 <p className="text-white/90 mt-1">
-                  Vous avez reçu <strong className="text-2xl">{parseFloat(tokensEarned).toFixed(5)} DONE</strong> pour cette commande !
+                  Vous avez reçu <strong className="text-2xl">{(parseFloat(tokensEarned) / 1e18).toFixed(2)} DONE</strong> pour cette commande !
                 </p>
                 <p className="text-white/80 text-sm mt-2">
                   Utilisez vos tokens DONE pour obtenir des réductions sur vos prochaines commandes.

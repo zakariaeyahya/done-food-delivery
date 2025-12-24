@@ -283,24 +283,28 @@ async function updateDelivererStatus(req, res) {
       });
     }
     if (isAvailable && !updatedDeliverer.isStaked) {
-      
-      try {
-        const isStakedBlockchain = await blockchainService.isStaked(normalizedAddress);
-        if (isStakedBlockchain) {
-          const staking = require("../config/blockchain").getContractInstance("staking");
-          const stakedAmountWei = await staking.stakedAmount(normalizedAddress);
-          const stakedAmountBlockchain = ethers.formatEther(stakedAmountWei);
-          
-          updatedDeliverer.isStaked = true;
-          updatedDeliverer.stakedAmount = parseFloat(stakedAmountBlockchain);
-          await updatedDeliverer.save();
-          
-          
-        } else {
-          
+
+      // En mode DEMO, auto-activer le staking pour permettre les tests
+      if (process.env.DEMO_MODE === 'true') {
+        updatedDeliverer.isStaked = true;
+        updatedDeliverer.stakedAmount = 0.1;
+        await updatedDeliverer.save();
+        console.log('[DEMO_MODE] Auto-staking livreur:', normalizedAddress);
+      } else {
+        try {
+          const isStakedBlockchain = await blockchainService.isStaked(normalizedAddress);
+          if (isStakedBlockchain) {
+            const staking = require("../config/blockchain").getContractInstance("staking");
+            const stakedAmountWei = await staking.stakedAmount(normalizedAddress);
+            const stakedAmountBlockchain = ethers.formatEther(stakedAmountWei);
+
+            updatedDeliverer.isStaked = true;
+            updatedDeliverer.stakedAmount = parseFloat(stakedAmountBlockchain);
+            await updatedDeliverer.save();
+          }
+        } catch (blockchainError) {
+          console.log('[updateDelivererStatus] Blockchain error:', blockchainError.message);
         }
-      } catch (blockchainError) {
-        
       }
     }
     
@@ -758,8 +762,8 @@ async function acceptOrder(req, res) {
           
           
         } else {
-          if (process.env.NODE_ENV === 'development' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
-            
+          if (process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.DEMO_MODE === 'true') {
+
             deliverer.isStaked = true;
             await deliverer.save();
           } else {
@@ -770,18 +774,18 @@ async function acceptOrder(req, res) {
           }
         }
       } catch (blockchainError) {
-        const isRpcError = blockchainError.code === -32002 || 
+        const isRpcError = blockchainError.code === -32002 ||
                           blockchainError.message?.includes('too many errors') ||
                           blockchainError.message?.includes('missing revert data') ||
                           blockchainError.message?.includes('CALL_EXCEPTION');
-        if (process.env.NODE_ENV === 'development' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || isRpcError) {
+        if (process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.DEMO_MODE === 'true' || isRpcError) {
           if (deliverer.isAvailable) {
             deliverer.isStaked = true;
             await deliverer.save();
-            
+
           }
         } else {
-          
+
           return res.status(400).json({
             error: "Bad Request",
             message: "Deliverer is not staked. Please stake minimum 0.1 POL to accept orders."
@@ -790,13 +794,22 @@ async function acceptOrder(req, res) {
       }
     }
     const updatedDeliverer = await Deliverer.findByAddress(normalizedAddress);
-    if (!updatedDeliverer.isStaked) {
-      
+    if (!updatedDeliverer.isStaked && process.env.DEMO_MODE !== 'true') {
+
       return res.status(400).json({
         error: "Bad Request",
         message: "Deliverer is not staked. Please stake minimum 0.1 POL to accept orders."
       });
     }
+
+    // En mode DEMO, marquer automatiquement comme staké
+    if (process.env.DEMO_MODE === 'true' && !updatedDeliverer.isStaked) {
+      updatedDeliverer.isStaked = true;
+      updatedDeliverer.stakedAmount = 0.1;
+      await updatedDeliverer.save();
+      console.log('[DEMO_MODE] Auto-staking for accept order:', normalizedAddress);
+    }
+
     order.deliverer = deliverer._id;
     order.status = 'IN_DELIVERY';
     await order.save();

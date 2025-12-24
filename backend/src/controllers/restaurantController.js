@@ -1095,6 +1095,103 @@ async function getRestaurantByAddress(req, res) {
   }
 }
 
+/**
+ * Accorde le rôle RESTAURANT_ROLE sur la blockchain à un restaurant
+ * @notice Permet au restaurant de recevoir des commandes on-chain
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
+ */
+async function grantBlockchainRole(req, res) {
+  try {
+    const { address } = req.body;
+
+    console.log('[grantBlockchainRole] Request for address:', address);
+
+    if (!address) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Restaurant address is required"
+      });
+    }
+
+    // Valider le format de l'adresse Ethereum
+    if (!ethers.isAddress(address)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid Ethereum address format"
+      });
+    }
+
+    // Vérifier si le restaurant a déjà le rôle
+    try {
+      const hasRole = await blockchainService.hasRestaurantRole(address);
+      if (hasRole) {
+        console.log('[grantBlockchainRole] Address already has role:', address);
+        return res.status(200).json({
+          success: true,
+          message: "Restaurant already has blockchain role",
+          hasRole: true
+        });
+      }
+    } catch (checkError) {
+      console.warn('[grantBlockchainRole] Error checking role:', checkError.message);
+    }
+
+    // Accorder le rôle
+    console.log('[grantBlockchainRole] Granting role to:', address);
+    const result = await blockchainService.grantRestaurantRole(address);
+
+    console.log('[grantBlockchainRole] Role granted successfully:', result);
+
+    return res.status(200).json({
+      success: true,
+      message: "Restaurant blockchain role granted successfully",
+      txHash: result.txHash,
+      blockNumber: result.blockNumber
+    });
+  } catch (error) {
+    console.error('[grantBlockchainRole] Error:', error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to grant blockchain role",
+      details: error.message
+    });
+  }
+}
+
+/**
+ * Vérifie si un restaurant a le rôle blockchain
+ * @param {Object} req - Express Request
+ * @param {Object} res - Express Response
+ */
+async function checkBlockchainRole(req, res) {
+  try {
+    const { address } = req.params;
+
+    if (!address) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Restaurant address is required"
+      });
+    }
+
+    const hasRole = await blockchainService.hasRestaurantRole(address);
+
+    return res.status(200).json({
+      success: true,
+      address: address,
+      hasRole: hasRole
+    });
+  } catch (error) {
+    console.error('[checkBlockchainRole] Error:', error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to check blockchain role",
+      details: error.message
+    });
+  }
+}
+
 module.exports = {
   registerRestaurant,
   getRestaurant,
@@ -1108,6 +1205,8 @@ module.exports = {
   updateMenuItem,
   deleteMenuItem,
   getRestaurantEarnings,
-  withdrawEarnings
+  withdrawEarnings,
+  grantBlockchainRole,
+  checkBlockchainRole
 };
 

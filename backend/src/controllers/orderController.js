@@ -22,10 +22,10 @@ const { ethers } = require("ethers");
  */
 async function createOrder(req, res) {
   try {
-            
-    const { restaurantId, items, deliveryAddress, clientAddress, clientPrivateKey } = req.body;
+
+    const { restaurantId, items, deliveryAddress, clientAddress, clientPrivateKey, txHash: frontendTxHash, onChainOrderId: frontendOnChainOrderId } = req.body;
     const userAddress = req.userAddress || clientAddress;
-        
+
     if (!userAddress) {
             return res.status(400).json({
         error: "Bad Request",
@@ -89,21 +89,53 @@ async function createOrder(req, res) {
       });
     }
     let blockchainResult;
-    try {
-      blockchainResult = await blockchainService.createOrder({
-        restaurantAddress: restaurant.address,
-        foodPrice: foodPrice.toString(),
-        deliveryFee: deliveryFee.toString(),
-        ipfsHash,
-        clientAddress: userAddress,
-        clientPrivateKey: clientPrivateKey || process.env.PRIVATE_KEY // Fallback pour tests
+
+    // Vérifier et accorder le rôle RESTAURANT_ROLE si nécessaire
+    const isMockMode = process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.DEMO_MODE === 'true';
+
+    if (!isMockMode) {
+      try {
+        const hasRole = await blockchainService.hasRestaurantRole(restaurant.address);
+        if (!hasRole) {
+          console.log(`[createOrder] Restaurant ${restaurant.address} n'a pas RESTAURANT_ROLE, attribution...`);
+          await blockchainService.grantRestaurantRole(restaurant.address);
+          console.log(`[createOrder] RESTAURANT_ROLE accordé à ${restaurant.address}`);
+        }
+      } catch (roleError) {
+        console.error('[createOrder] Erreur lors de l\'attribution du rôle:', roleError.message);
+        // Continuer quand même, le frontend gérera l'erreur si nécessaire
+      }
+    }
+
+    // Si le frontend a déjà créé l'ordre sur la blockchain (via MetaMask),
+    // utiliser le txHash et onChainOrderId fournis
+    if (frontendTxHash && frontendOnChainOrderId) {
+      console.log('[createOrder] Utilisation du txHash/orderId du frontend:', {
+        txHash: frontendTxHash,
+        onChainOrderId: frontendOnChainOrderId
       });
-    } catch (blockchainError) {
-            return res.status(500).json({
-        error: "Internal Server Error",
-        message: "Failed to create order on blockchain",
-        details: blockchainError.message
-      });
+      blockchainResult = {
+        orderId: frontendOnChainOrderId,
+        txHash: frontendTxHash
+      };
+    } else {
+      // Sinon, créer sur la blockchain via le backend (mode legacy/mock)
+      try {
+        blockchainResult = await blockchainService.createOrder({
+          restaurantAddress: restaurant.address,
+          foodPrice: foodPrice.toString(),
+          deliveryFee: deliveryFee.toString(),
+          ipfsHash,
+          clientAddress: userAddress,
+          clientPrivateKey: clientPrivateKey || process.env.PRIVATE_KEY // Fallback pour tests
+        });
+      } catch (blockchainError) {
+              return res.status(500).json({
+          error: "Internal Server Error",
+          message: "Failed to create order on blockchain",
+          details: blockchainError.message
+        });
+      }
     }
     const foodPriceWei = ethers.parseEther(foodPrice.toString());
     const deliveryFeeWei = ethers.parseEther(deliveryFee.toString());
@@ -417,7 +449,7 @@ async function confirmPreparation(req, res) {
         privateKey
       );
     } catch (blockchainError) {
-      if (process.env.NODE_ENV === 'development' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
+      if (process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.DEMO_MODE === 'true') {
                 blockchainResult = {
           txHash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''),
           blockNumber: Math.floor(Math.random() * 1000000) + 1000000
@@ -841,8 +873,13 @@ async function confirmDelivery(req, res) {
         req.body.clientPrivateKey || process.env.PRIVATE_KEY
       );
     } catch (blockchainError) {
-      if (process.env.NODE_ENV === 'development' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
-                blockchainResult = {
+      // Mode mock/demo si ALLOW_MOCK_BLOCKCHAIN ou DEMO_MODE actif
+      const isMockMode = process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.DEMO_MODE === 'true';
+
+      console.log('[confirmDelivery] Blockchain error, mock mode:', isMockMode);
+
+      if (isMockMode) {
+        blockchainResult = {
           txHash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''),
           tokensEarned: "0"
         };
@@ -963,9 +1000,9 @@ async function openDispute(req, res) {
         req.body.openerPrivateKey || process.env.PRIVATE_KEY
       );
           } catch (blockchainError) {
-                  
-      // En mode développement/test, permettre de continuer même si la blockchain échoue
-      if (process.env.NODE_ENV === 'development' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
+
+      // En mode mock/demo, permettre de continuer même si la blockchain échoue
+      if (process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.DEMO_MODE === 'true') {
                 blockchainResult = {
           txHash: '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join(''),
           blockNumber: 12345678

@@ -137,6 +137,24 @@ export const getRestaurantById = (id) => {
 };
 
 /**
+ * Checks if a restaurant has the blockchain role
+ * @param {string} address - The restaurant's wallet address
+ * @returns {Promise<AxiosResponse<any>>}
+ */
+export const checkRestaurantBlockchainRole = (address) => {
+  return apiClient.get(`/restaurants/blockchain/role/${address}`);
+};
+
+/**
+ * Grants the blockchain role to a restaurant
+ * @param {string} address - The restaurant's wallet address
+ * @returns {Promise<AxiosResponse<any>>}
+ */
+export const grantRestaurantBlockchainRole = (address) => {
+  return apiClient.post('/restaurants/blockchain/grant-role', { address });
+};
+
+/**
  * Creates a new order.
  * @param {object} orderData - The data for the new order.
  * @param {string} clientAddress - The client's wallet address (for auth in dev mode)

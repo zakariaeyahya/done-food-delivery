@@ -159,5 +159,17 @@ router.post(
   restaurantController.withdrawEarnings
 );
 
+// Route GET /api/restaurants/blockchain/role/:address - Vérifier le rôle blockchain d'un restaurant
+router.get(
+  "/blockchain/role/:address",
+  restaurantController.checkBlockchainRole
+);
+
+// Route POST /api/restaurants/blockchain/grant-role - Accorder le rôle blockchain à un restaurant
+router.post(
+  "/blockchain/grant-role",
+  restaurantController.grantBlockchainRole
+);
+
 // Exporter le router
 module.exports = router;

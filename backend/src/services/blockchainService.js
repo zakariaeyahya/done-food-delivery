@@ -20,7 +20,7 @@ const blockchainEvents = new EventEmitter();
  */
 async function createOrder(params) {
   try {
-    if (process.env.NODE_ENV === 'test' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.NODE_ENV === 'development') {
+    if (process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.DEMO_MODE === 'true') {
       let mockOrderId;
       try {
         const Order = require("../models/Order");
@@ -128,10 +128,7 @@ async function createOrder(params) {
  */
 async function confirmPreparation(orderId, restaurantAddress, restaurantPrivateKey) {
   try {
-    const isMockMode = process.env.NODE_ENV === 'test' ||
-                       process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' ||
-                       process.env.NODE_ENV === 'development' ||
-                       !process.env.CONTRACT_ORDER_MANAGER_ADDRESS;
+    const isMockMode = process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.DEMO_MODE === 'true';
 
     if (isMockMode) {
       const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
@@ -167,8 +164,7 @@ async function confirmPreparation(orderId, restaurantAddress, restaurantPrivateK
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
-    if ((process.env.NODE_ENV === 'development' || !process.env.CONTRACT_ORDER_MANAGER_ADDRESS) &&
-        (error.message?.includes('contract') || error.message?.includes('provider') || error.message?.includes('network'))) {
+    if (process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.DEMO_MODE === 'true') {
       const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
       const mockBlockNumber = Math.floor(Math.random() * 1000000) + 1000000;
       blockchainEvents.emit("PreparationConfirmed", { orderId, restaurant: restaurantAddress });
@@ -190,6 +186,16 @@ async function confirmPreparation(orderId, restaurantAddress, restaurantPrivateK
  */
 async function assignDeliverer(orderId, delivererAddress, platformPrivateKey) {
   try {
+    // En mode DEMO, simuler la transaction
+    if (process.env.DEMO_MODE === 'true' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
+      const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+      blockchainEvents.emit("DelivererAssigned", { orderId, deliverer: delivererAddress });
+      return {
+        txHash: mockTxHash,
+        blockNumber: Math.floor(Math.random() * 1000000) + 1000000
+      };
+    }
+
     const orderManager = getContractInstance("orderManager");
     const provider = getProvider();
 
@@ -208,6 +214,11 @@ async function assignDeliverer(orderId, delivererAddress, platformPrivateKey) {
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
+    if (process.env.DEMO_MODE === 'true' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
+      const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+      blockchainEvents.emit("DelivererAssigned", { orderId, deliverer: delivererAddress });
+      return { txHash: mockTxHash, blockNumber: 12345678 };
+    }
     throw error;
   }
 }
@@ -221,6 +232,16 @@ async function assignDeliverer(orderId, delivererAddress, platformPrivateKey) {
  */
 async function confirmPickup(orderId, delivererAddress, delivererPrivateKey) {
   try {
+    // En mode DEMO, simuler la transaction
+    if (process.env.DEMO_MODE === 'true' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
+      const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+      blockchainEvents.emit("PickupConfirmed", { orderId, deliverer: delivererAddress });
+      return {
+        txHash: mockTxHash,
+        blockNumber: Math.floor(Math.random() * 1000000) + 1000000
+      };
+    }
+
     const orderManager = getContractInstance("orderManager");
     const provider = getProvider();
 
@@ -239,6 +260,11 @@ async function confirmPickup(orderId, delivererAddress, delivererPrivateKey) {
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
+    if (process.env.DEMO_MODE === 'true' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
+      const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+      blockchainEvents.emit("PickupConfirmed", { orderId, deliverer: delivererAddress });
+      return { txHash: mockTxHash, blockNumber: 12345678 };
+    }
     throw error;
   }
 }
@@ -252,6 +278,22 @@ async function confirmPickup(orderId, delivererAddress, delivererPrivateKey) {
  */
 async function confirmDelivery(orderId, clientAddress, clientPrivateKey) {
   try {
+    // En mode DEMO, simuler la transaction
+    if (process.env.DEMO_MODE === 'true' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
+      const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+      const mockTokensEarned = "1000000000000000000"; // 1 DONE token simulé
+      blockchainEvents.emit("DeliveryConfirmed", {
+        orderId,
+        client: clientAddress,
+        tokensEarned: mockTokensEarned
+      });
+      return {
+        txHash: mockTxHash,
+        blockNumber: Math.floor(Math.random() * 1000000) + 1000000,
+        tokensEarned: mockTokensEarned
+      };
+    }
+
     const orderManager = getContractInstance("orderManager");
     const token = getContractInstance("token");
     const provider = getProvider();
@@ -281,6 +323,11 @@ async function confirmDelivery(orderId, clientAddress, clientPrivateKey) {
       tokensEarned: tokensEarned.toString()
     };
   } catch (error) {
+    if (process.env.DEMO_MODE === 'true' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
+      const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+      blockchainEvents.emit("DeliveryConfirmed", { orderId, client: clientAddress, tokensEarned: "0" });
+      return { txHash: mockTxHash, blockNumber: 12345678, tokensEarned: "0" };
+    }
     throw error;
   }
 }
@@ -295,7 +342,7 @@ async function confirmDelivery(orderId, clientAddress, clientPrivateKey) {
  */
 async function openDispute(orderId, openerAddress, reason, openerPrivateKey) {
   try {
-    if (process.env.NODE_ENV === 'test' || process.env.ALLOW_MOCK_BLOCKCHAIN === 'true') {
+    if (process.env.ALLOW_MOCK_BLOCKCHAIN === 'true' || process.env.DEMO_MODE === 'true') {
       const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
       blockchainEvents.emit("DisputeOpened", { orderId, opener: openerAddress });
       return {
@@ -742,6 +789,83 @@ function getBlockchainEvents() {
   return blockchainEvents;
 }
 
+/**
+ * Vérifie si une adresse a le rôle RESTAURANT_ROLE
+ * @param {string} address - Adresse à vérifier
+ * @returns {Promise<boolean>} True si l'adresse a le rôle
+ */
+async function hasRestaurantRole(address) {
+  try {
+    const orderManager = getContractInstance("orderManager");
+
+    // Récupérer le RESTAURANT_ROLE depuis le contrat
+    const RESTAURANT_ROLE = await orderManager.RESTAURANT_ROLE();
+    console.log('[hasRestaurantRole] RESTAURANT_ROLE:', RESTAURANT_ROLE);
+
+    const hasRole = await orderManager.hasRole(RESTAURANT_ROLE, address);
+    console.log(`[hasRestaurantRole] ${address} has role:`, hasRole);
+
+    return hasRole;
+  } catch (error) {
+    console.error('[hasRestaurantRole] Error:', error.message);
+    // Fallback: calculer le hash manuellement
+    try {
+      const orderManager = getContractInstance("orderManager");
+      const RESTAURANT_ROLE = ethers.keccak256(ethers.toUtf8Bytes("RESTAURANT_ROLE"));
+      return await orderManager.hasRole(RESTAURANT_ROLE, address);
+    } catch (fallbackError) {
+      console.error('[hasRestaurantRole] Fallback error:', fallbackError.message);
+      return false;
+    }
+  }
+}
+
+/**
+ * Accorde le rôle RESTAURANT_ROLE à une adresse
+ * @param {string} restaurantAddress - Adresse du restaurant
+ * @returns {Promise<Object>} { txHash, blockNumber, success }
+ */
+async function grantRestaurantRole(restaurantAddress) {
+  try {
+    const orderManager = getContractInstance("orderManager");
+    const wallet = getWallet();
+
+    // Récupérer le RESTAURANT_ROLE depuis le contrat
+    let RESTAURANT_ROLE;
+    try {
+      RESTAURANT_ROLE = await orderManager.RESTAURANT_ROLE();
+    } catch (e) {
+      // Fallback: calculer le hash manuellement
+      RESTAURANT_ROLE = ethers.keccak256(ethers.toUtf8Bytes("RESTAURANT_ROLE"));
+    }
+    console.log('[grantRestaurantRole] RESTAURANT_ROLE:', RESTAURANT_ROLE);
+
+    // Vérifier si le restaurant a déjà le rôle
+    const alreadyHasRole = await orderManager.hasRole(RESTAURANT_ROLE, restaurantAddress);
+    if (alreadyHasRole) {
+      console.log(`[grantRestaurantRole] ${restaurantAddress} already has RESTAURANT_ROLE`);
+      return { success: true, alreadyHadRole: true };
+    }
+
+    console.log(`[grantRestaurantRole] Granting RESTAURANT_ROLE to ${restaurantAddress}...`);
+
+    const orderManagerWithSigner = orderManager.connect(wallet);
+    const tx = await orderManagerWithSigner.grantRole(RESTAURANT_ROLE, restaurantAddress);
+    const receipt = await tx.wait();
+
+    console.log(`[grantRestaurantRole] Success! TxHash: ${tx.hash}`);
+
+    return {
+      txHash: tx.hash,
+      blockNumber: receipt.blockNumber,
+      success: true
+    };
+  } catch (error) {
+    console.error('[grantRestaurantRole] Error:', error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   createOrder,
   confirmPreparation,
@@ -760,5 +884,7 @@ module.exports = {
   listenEvents,
   getPendingBalance,
   withdraw,
-  getBlockchainEvents
+  getBlockchainEvents,
+  hasRestaurantRole,
+  grantRestaurantRole
 };

@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
-import { createOrder as createApiOrder } from '../services/api';
+import { createOrder as createApiOrder, grantRestaurantBlockchainRole } from '../services/api';
 import { formatPriceInMATIC } from '../utils/formatters';
 import { useWallet } from '../contexts/WalletContext';
 import { useCart } from '../contexts/CartContext';
+import { createOnChainOrder, isContractsConfigured } from '../services/blockchain';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const LIBRARIES = ['places'];
@@ -58,6 +59,46 @@ const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal })
       setError('');
       setTxStatus('pending');
 
+      let txHashResult = null;
+      let onChainOrderId = null;
+
+      // Si les contrats sont configurés, créer d'abord sur la blockchain
+      if (isContractsConfigured() && restaurantAddress) {
+        console.log('🔗 Création de la commande sur la blockchain via MetaMask...');
+
+        try {
+          // 1. D'abord, s'assurer que le restaurant a le rôle blockchain
+          console.log('📋 Vérification/attribution du rôle blockchain au restaurant...');
+          try {
+            await grantRestaurantBlockchainRole(restaurantAddress);
+            console.log('✅ Rôle blockchain vérifié/accordé');
+          } catch (roleError) {
+            console.warn('⚠️ Erreur lors de l\'attribution du rôle:', roleError.message);
+            // Continuer quand même, le rôle peut déjà être accordé
+          }
+
+          // 2. Ensuite, créer la commande sur la blockchain
+          const blockchainResult = await createOnChainOrder(
+            restaurantAddress,
+            foodTotal,
+            deliveryFee,
+            '' // ipfsHash (optionnel)
+          );
+
+          txHashResult = blockchainResult.txHash;
+          onChainOrderId = blockchainResult.onChainOrderId;
+
+          console.log('✅ Commande créée on-chain:', {
+            txHash: txHashResult,
+            onChainOrderId: onChainOrderId
+          });
+        } catch (blockchainError) {
+          console.error('❌ Erreur blockchain:', blockchainError);
+          throw new Error(`Erreur blockchain: ${blockchainError.message || blockchainError}`);
+        }
+      }
+
+      // Ensuite, enregistrer dans le backend
       const orderPayload = {
         items: cartItems.map(item => ({
           name: item.name,
@@ -67,7 +108,10 @@ const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal })
         })),
         deliveryAddress: deliveryAddress,
         clientAddress: clientAddress,
-        deliveryFee: deliveryFee
+        deliveryFee: deliveryFee,
+        // Ajouter les infos blockchain
+        txHash: txHashResult,
+        onChainOrderId: onChainOrderId
       };
 
       if (restaurantId) {
@@ -84,11 +128,16 @@ const Checkout = ({ cartItems, foodTotal, deliveryFee, commission, finalTotal })
         throw new Error('OrderId non reçu du backend');
       }
 
-      const txHashFromBackend = apiResponse.data.order?.txHash;
-
-      if (txHashFromBackend) {
-        setTxHash(txHashFromBackend);
+      // Utiliser le txHash de la blockchain si disponible
+      if (txHashResult) {
+        setTxHash(txHashResult);
+      } else {
+        const txHashFromBackend = apiResponse.data.order?.txHash;
+        if (txHashFromBackend) {
+          setTxHash(txHashFromBackend);
+        }
       }
+
       setTxStatus('confirmed');
     } catch (err) {
       let errorMessage = 'Une erreur est survenue lors de la création de la commande.';
