@@ -1,5 +1,9 @@
 # DONE Food Delivery on Blockchain
 
+[![Demo Video](https://img.shields.io/badge/Demo-YouTube-red?style=for-the-badge&logo=youtube)](https://youtu.be/KrxfQ_f6xAo)
+
+> **Vidéo de démonstration** : [https://youtu.be/KrxfQ_f6xAo](https://youtu.be/KrxfQ_f6xAo)
+
 ## Description du Projet
 
 DONE Food Delivery est une plateforme décentralisée de livraison de repas basée sur la blockchain Ethereum (réseau Polygon). Le système garantit transparence, automatisation et traçabilité des transactions en utilisant des smart contracts pour gérer toutes les étapes du processus de livraison.
@@ -581,7 +585,23 @@ done-food-delivery/
 - [Ethers.js Documentation](https://docs.ethers.org/)
 - [IPFS Documentation](https://docs.ipfs.tech/)
 
+---
+
+## Équipe de Développement
+
+Ce projet a été réalisé par des étudiants de l'Université Abdelmalek Essaadi (UAE) :
+
+| Membre | Email |
+|--------|-------|
+| **Aya Brouki** | brouki.aya@etu.uae.ac.ma |
+| **Zakariae Yahya** | zakariae.yahya@etu.uae.ac.ma |
+| **Nora Eloumni** | eloumni.nora@etu.uae.ac.ma |
+| **Salaheddine Kayouh** | kayouh.salaheddine@etu.uae.ac.ma |
+| **Imane Khaila** | imane.khaila@etu.uae.ac.ma |
+
+---
+
 ## License
 
-Ce projet est développé dans le cadre d'un projet académique.
+Ce projet est développé dans le cadre d'un projet académique à l'Université Abdelmalek Essaadi (UAE).
 
